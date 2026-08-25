@@ -1,16 +1,98 @@
-# API Documentation
+# Food Delivery Marketplace API Documentation
 
-This document covers the authentication and marketplace foundation endpoints.
+Professional frontend handoff for the Laravel 12 backend.
 
-Base URL: `/api`
+Base URL:
 
-## Register
+```text
+http://127.0.0.1:8000/api
+```
+
+Postman variables:
+
+```text
+{{base_url}} = http://127.0.0.1:8000/api
+{{token}} = Sanctum bearer token returned by login/register
+```
+
+Authenticated requests use:
+
+```http
+Authorization: Bearer {{token}}
+Accept: application/json
+Content-Type: application/json
+```
+
+Success responses generally use:
+
+```json
+{
+  "success": true,
+  "message": "Message text.",
+  "data": {}
+}
+```
+
+Validation errors generally use:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed.",
+  "errors": {
+    "field": ["The field is required."]
+  }
+}
+```
+
+## Access Summary
+
+Public endpoints:
+
+- `POST /register`
+- `POST /login`
+- `GET /restaurants`
+- `GET /restaurants/{restaurant}`
+- `GET /categories`
+- `GET /categories/{category}`
+- `GET /foods`
+- `GET /foods/{food}`
+
+Authenticated endpoints without a specific role check in the current backend:
+
+- `POST /logout`
+- `GET /user`
+- Restaurant create/update/delete
+- Category create/update/delete
+- Food create/update/delete
+- Address endpoints
+- Cart endpoints
+- Customer order endpoints
+
+Role-specific endpoints:
+
+- Rider profile and rider delivery endpoints require role `rider`.
+- `POST /orders/{order}/assign-rider` requires role `restaurant` or `admin`.
+
+Important implementation notes:
+
+- Public registration allows `customer`, `restaurant`, and `rider`.
+- Public registration rejects `admin`.
+- Restaurant, category, and food write endpoints require a token, but currently do not enforce ownership or a specific role.
+- Addresses, cart items, and customer orders are scoped to the authenticated user.
+- Rider deliveries are scoped to the authenticated user's rider profile.
+
+## Authentication
+
+### Register
 
 Method: `POST`
 
-URL: `/api/register`
+URL: `/register`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body:
 
@@ -18,20 +100,24 @@ Request body:
 {
   "name": "Test Customer",
   "email": "customer@example.com",
-  "password": "password123",
-  "password_confirmation": "password123",
+  "password": "{{auth_password}}",
+  "password_confirmation": "{{auth_password}}",
   "role": "customer"
 }
 ```
 
-Notes:
+Required fields:
 
-- `role` is optional.
-- Allowed public registration roles are `customer`, `restaurant`, and `rider`.
-- If `role` is not sent, it defaults to `customer`.
-- Users cannot register themselves as `admin`.
+- `name`: string, max 255
+- `email`: valid email, unique, max 255
+- `password`: string, min 8, confirmed
+- `password_confirmation`: must match `password`
 
-Example success response, `201`:
+Optional fields:
+
+- `role`: `customer`, `restaurant`, or `rider`; defaults to `customer`
+
+Example response, `201`:
 
 ```json
 {
@@ -42,9 +128,7 @@ Example success response, `201`:
       "id": 1,
       "name": "Test Customer",
       "email": "customer@example.com",
-      "role": "customer",
-      "created_at": "2026-08-24T16:31:00.000000Z",
-      "updated_at": "2026-08-24T16:31:00.000000Z"
+      "role": "customer"
     },
     "token": "1|example-token",
     "token_type": "Bearer"
@@ -52,42 +136,35 @@ Example success response, `201`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `422` validation error when required fields are missing, email is already used, passwords do not match, or role is invalid.
+- `422` validation error for missing fields, duplicate email, password mismatch, invalid role, or attempted `admin` registration.
 
-Example error response:
-
-```json
-{
-  "success": false,
-  "message": "Validation failed.",
-  "errors": {
-    "email": [
-      "The email has already been taken."
-    ]
-  }
-}
-```
-
-## Login
+### Login
 
 Method: `POST`
 
-URL: `/api/login`
+URL: `/login`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body:
 
 ```json
 {
   "email": "customer@example.com",
-  "password": "password123"
+  "password": "{{auth_password}}"
 }
 ```
 
-Example success response, `200`:
+Required fields:
+
+- `email`: valid email
+- `password`: string
+
+Example response, `200`:
 
 ```json
 {
@@ -98,9 +175,7 @@ Example success response, `200`:
       "id": 1,
       "name": "Test Customer",
       "email": "customer@example.com",
-      "role": "customer",
-      "created_at": "2026-08-24T16:31:00.000000Z",
-      "updated_at": "2026-08-24T16:31:00.000000Z"
+      "role": "customer"
     },
     "token": "1|example-token",
     "token_type": "Bearer"
@@ -108,43 +183,57 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `422` validation error when email or password is missing.
-- `401` when the email or password is incorrect.
+- `422` validation error.
+- `401` invalid email or password.
 
-Example invalid credentials response:
+### Get Current User
+
+Method: `GET`
+
+URL: `/user`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
 
 ```json
 {
-  "success": false,
-  "message": "Invalid email or password.",
-  "errors": {
-    "email": [
-      "The provided credentials are incorrect."
-    ]
+  "success": true,
+  "message": "Authenticated user retrieved successfully.",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "Test Customer",
+      "email": "customer@example.com",
+      "role": "customer"
+    }
   }
 }
 ```
 
-## Logout
+Important errors:
+
+- `401` missing or invalid token.
+
+### Logout
 
 Method: `POST`
 
-URL: `/api/logout`
+URL: `/logout`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
 
-Headers:
-
-```http
-Authorization: Bearer 1|example-token
-Accept: application/json
-```
+Required role: Any authenticated user
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -154,9 +243,9 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
+- `401` missing or invalid token.
 
 ## Restaurants
 
@@ -164,13 +253,15 @@ Possible errors:
 
 Method: `GET`
 
-URL: `/api/restaurants`
+URL: `/restaurants`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -180,14 +271,12 @@ Example success response, `200`:
     {
       "id": 1,
       "user_id": 2,
-      "name": "Market Kitchen",
-      "description": "Fresh everyday meals.",
-      "address": "12 Market Street",
+      "name": "City Bites",
+      "description": "Simple local food.",
+      "address": "100 Main Road",
       "phone": "012345678",
-      "image": "restaurants/market-kitchen.jpg",
+      "image": null,
       "status": "active",
-      "created_at": "2026-08-25T10:00:00.000000Z",
-      "updated_at": "2026-08-25T10:00:00.000000Z",
       "user": {
         "id": 2,
         "name": "Restaurant Owner",
@@ -203,13 +292,15 @@ Example success response, `200`:
 
 Method: `GET`
 
-URL: `/api/restaurants/{id}`
+URL: `/restaurants/{restaurant}`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -217,44 +308,53 @@ Example success response, `200`:
   "message": "Restaurant retrieved successfully.",
   "data": {
     "id": 1,
-    "user_id": 2,
-    "name": "Market Kitchen",
-    "description": "Fresh everyday meals.",
-    "address": "12 Market Street",
-    "phone": "012345678",
-    "image": "restaurants/market-kitchen.jpg",
+    "name": "City Bites",
     "status": "active",
     "foods": []
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `404` when the restaurant does not exist.
+- `404` restaurant not found.
 
 ### Create Restaurant
 
 Method: `POST`
 
-URL: `/api/restaurants`
+URL: `/restaurants`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
+
+Required role: Any authenticated user in the current backend
 
 Request body:
 
 ```json
 {
-  "name": "Market Kitchen",
-  "description": "Fresh everyday meals.",
-  "address": "12 Market Street",
+  "name": "City Bites",
+  "description": "Simple local food.",
+  "address": "100 Main Road",
   "phone": "012345678",
-  "image": "restaurants/market-kitchen.jpg",
+  "image": null,
   "status": "active"
 }
 ```
 
-Example success response, `201`:
+Required fields:
+
+- `name`: string, max 255
+- `address`: string, max 255
+- `phone`: string, max 50
+
+Optional fields:
+
+- `description`: string or null
+- `image`: string or null, max 255
+- `status`: `active` or `inactive`
+
+Example response, `201`:
 
 ```json
 {
@@ -263,28 +363,32 @@ Example success response, `201`:
   "data": {
     "id": 1,
     "user_id": 2,
-    "name": "Market Kitchen",
+    "name": "City Bites",
     "status": "active"
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `422` when `name`, `address`, or `phone` is missing, or `status` is not `active` or `inactive`.
+- `401` missing or invalid token.
+- `422` validation error.
 
 ### Update Restaurant
 
 Method: `PUT`
 
-URL: `/api/restaurants/{id}`
+URL: `/restaurants/{restaurant}`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
 
-Request body: Same fields as create restaurant.
+Required role: Any authenticated user in the current backend
 
-Example success response, `200`:
+Request body: Same as create restaurant.
+
+Required fields: `name`, `address`, `phone`
+
+Example response, `200`:
 
 ```json
 {
@@ -292,29 +396,31 @@ Example success response, `200`:
   "message": "Restaurant updated successfully.",
   "data": {
     "id": 1,
-    "name": "Updated Market Kitchen",
+    "name": "Updated City Bites",
     "status": "inactive"
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `404` when the restaurant does not exist.
-- `422` when required fields are missing or status is invalid.
+- `401` missing or invalid token.
+- `404` restaurant not found.
+- `422` validation error.
 
 ### Delete Restaurant
 
 Method: `DELETE`
 
-URL: `/api/restaurants/{id}`
+URL: `/restaurants/{restaurant}`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
+
+Required role: Any authenticated user in the current backend
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -324,10 +430,10 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `404` when the restaurant does not exist.
+- `401` missing or invalid token.
+- `404` restaurant not found.
 
 ## Categories
 
@@ -335,13 +441,15 @@ Possible errors:
 
 Method: `GET`
 
-URL: `/api/categories`
+URL: `/categories`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -351,9 +459,7 @@ Example success response, `200`:
     {
       "id": 1,
       "name": "Rice",
-      "description": "Rice dishes.",
-      "created_at": "2026-08-25T10:00:00.000000Z",
-      "updated_at": "2026-08-25T10:00:00.000000Z"
+      "description": "Rice dishes."
     }
   ]
 }
@@ -363,13 +469,15 @@ Example success response, `200`:
 
 Method: `GET`
 
-URL: `/api/categories/{id}`
+URL: `/categories/{category}`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -384,17 +492,19 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `404` when the category does not exist.
+- `404` category not found.
 
 ### Create Category
 
 Method: `POST`
 
-URL: `/api/categories`
+URL: `/categories`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
+
+Required role: Any authenticated user in the current backend
 
 Request body:
 
@@ -405,7 +515,15 @@ Request body:
 }
 ```
 
-Example success response, `201`:
+Required fields:
+
+- `name`: string, max 255
+
+Optional fields:
+
+- `description`: string or null
+
+Example response, `201`:
 
 ```json
 {
@@ -419,22 +537,26 @@ Example success response, `201`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `422` when `name` is missing.
+- `401` missing or invalid token.
+- `422` validation error.
 
 ### Update Category
 
 Method: `PUT`
 
-URL: `/api/categories/{id}`
+URL: `/categories/{category}`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
 
-Request body: Same fields as create category.
+Required role: Any authenticated user in the current backend
 
-Example success response, `200`:
+Request body: Same as create category.
+
+Required fields: `name`
+
+Example response, `200`:
 
 ```json
 {
@@ -443,28 +565,30 @@ Example success response, `200`:
   "data": {
     "id": 1,
     "name": "Noodles",
-    "description": "Noodle bowls and soups."
+    "description": "Noodle bowls."
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `404` when the category does not exist.
-- `422` when `name` is missing.
+- `401` missing or invalid token.
+- `404` category not found.
+- `422` validation error.
 
 ### Delete Category
 
 Method: `DELETE`
 
-URL: `/api/categories/{id}`
+URL: `/categories/{category}`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
+
+Required role: Any authenticated user in the current backend
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -474,11 +598,10 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `404` when the category does not exist.
-- Delete may fail if food items still reference the category.
+- `401` missing or invalid token.
+- `404` category not found.
 
 ## Foods
 
@@ -486,13 +609,15 @@ Possible errors:
 
 Method: `GET`
 
-URL: `/api/foods`
+URL: `/foods`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -510,7 +635,7 @@ Example success response, `200`:
       "status": "available",
       "restaurant": {
         "id": 1,
-        "name": "Market Kitchen"
+        "name": "City Bites"
       },
       "category": {
         "id": 1,
@@ -525,13 +650,15 @@ Example success response, `200`:
 
 Method: `GET`
 
-URL: `/api/foods/{id}`
+URL: `/foods/{food}`
 
-Authentication required: No
+Authentication: No
+
+Required role: None
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -539,27 +666,28 @@ Example success response, `200`:
   "message": "Food retrieved successfully.",
   "data": {
     "id": 1,
-    "restaurant_id": 1,
-    "category_id": 1,
     "name": "Chicken Rice",
-    "description": "Steamed chicken with rice.",
     "price": "4.50",
-    "status": "available"
+    "status": "available",
+    "restaurant": {},
+    "category": {}
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `404` when the food item does not exist.
+- `404` food not found.
 
 ### Create Food
 
 Method: `POST`
 
-URL: `/api/foods`
+URL: `/foods`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
+
+Required role: Any authenticated user in the current backend
 
 Request body:
 
@@ -575,7 +703,20 @@ Request body:
 }
 ```
 
-Example success response, `201`:
+Required fields:
+
+- `restaurant_id`: integer, existing restaurant
+- `category_id`: integer, existing category
+- `name`: string, max 255
+- `price`: numeric, minimum 0
+
+Optional fields:
+
+- `description`: string or null
+- `image`: string or null, max 255
+- `status`: `available` or `unavailable`
+
+Example response, `201`:
 
 ```json
 {
@@ -583,34 +724,35 @@ Example success response, `201`:
   "message": "Food created successfully.",
   "data": {
     "id": 1,
-    "restaurant_id": 1,
-    "category_id": 1,
     "name": "Chicken Rice",
     "price": "4.50",
-    "status": "available"
+    "status": "available",
+    "restaurant": {},
+    "category": {}
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `422` when `restaurant_id`, `category_id`, `name`, or `price` is missing.
-- `422` when `restaurant_id` or `category_id` does not exist.
-- `422` when `price` is not numeric or is less than `0`.
-- `422` when `status` is not `available` or `unavailable`.
+- `401` missing or invalid token.
+- `422` validation error.
 
 ### Update Food
 
 Method: `PUT`
 
-URL: `/api/foods/{id}`
+URL: `/foods/{food}`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
 
-Request body: Same fields as create food.
+Required role: Any authenticated user in the current backend
 
-Example success response, `200`:
+Request body: Same as create food.
+
+Required fields: `restaurant_id`, `category_id`, `name`, `price`
+
+Example response, `200`:
 
 ```json
 {
@@ -625,23 +767,25 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `404` when the food item does not exist.
-- `422` for missing fields, invalid foreign keys, invalid price, or invalid status.
+- `401` missing or invalid token.
+- `404` food not found.
+- `422` validation error.
 
 ### Delete Food
 
 Method: `DELETE`
 
-URL: `/api/foods/{id}`
+URL: `/foods/{food}`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
+
+Required role: Any authenticated user in the current backend
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
@@ -651,47 +795,1124 @@ Example success response, `200`:
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
-- `404` when the food item does not exist.
+- `401` missing or invalid token.
+- `404` food not found.
 
-## Authenticated User
+## Addresses
+
+All address endpoints require authentication. Users can only access their own addresses.
+
+### List Addresses
 
 Method: `GET`
 
-URL: `/api/user`
+URL: `/addresses`
 
-Authentication required: Yes, Sanctum bearer token
+Authentication: Yes
 
-Headers:
-
-```http
-Authorization: Bearer 1|example-token
-Accept: application/json
-```
+Required role: Any authenticated user
 
 Request body: None
 
-Example success response, `200`:
+Example response, `200`:
 
 ```json
 {
   "success": true,
-  "message": "Authenticated user retrieved successfully.",
-  "data": {
-    "user": {
+  "message": "Addresses retrieved successfully.",
+  "data": [
+    {
       "id": 1,
-      "name": "Test Customer",
-      "email": "customer@example.com",
-      "role": "customer",
-      "created_at": "2026-08-24T16:31:00.000000Z",
-      "updated_at": "2026-08-24T16:31:00.000000Z"
+      "user_id": 1,
+      "label": "Home",
+      "recipient_name": "Test Customer",
+      "phone": "012345678",
+      "address": "100 Main Road",
+      "latitude": "11.5564000",
+      "longitude": "104.9282000",
+      "is_default": true
+    }
+  ]
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+
+### Create Address
+
+Method: `POST`
+
+URL: `/addresses`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body:
+
+```json
+{
+  "label": "Home",
+  "recipient_name": "Test Customer",
+  "phone": "012345678",
+  "address": "100 Main Road",
+  "latitude": 11.5564,
+  "longitude": 104.9282,
+  "is_default": true
+}
+```
+
+Required fields:
+
+- `label`: string, max 255
+- `recipient_name`: string, max 255
+- `phone`: string, max 50
+- `address`: string
+
+Optional fields:
+
+- `latitude`: numeric or null
+- `longitude`: numeric or null
+- `is_default`: boolean
+
+Example response, `201`:
+
+```json
+{
+  "success": true,
+  "message": "Address created successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "label": "Home",
+    "recipient_name": "Test Customer",
+    "phone": "012345678",
+    "address": "100 Main Road",
+    "is_default": true
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `422` validation error.
+
+### Show Address
+
+Method: `GET`
+
+URL: `/addresses/{address}`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Address retrieved successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "label": "Home"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` address not found or belongs to another user.
+
+### Update Address
+
+Method: `PUT`
+
+URL: `/addresses/{address}`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: Same as create address.
+
+Required fields: `label`, `recipient_name`, `phone`, `address`
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Address updated successfully.",
+  "data": {
+    "id": 1,
+    "label": "Office",
+    "is_default": false
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` address not found or belongs to another user.
+- `422` validation error.
+
+### Delete Address
+
+Method: `DELETE`
+
+URL: `/addresses/{address}`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Address deleted successfully.",
+  "data": null
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` address not found or belongs to another user.
+
+## Cart
+
+All cart endpoints require authentication. The backend creates a user's cart on first access.
+
+### Get Cart
+
+Method: `GET`
+
+URL: `/cart`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Cart retrieved successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "items": [],
+    "subtotal": "0.00"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+
+### Add Cart Item
+
+Method: `POST`
+
+URL: `/cart/items`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body:
+
+```json
+{
+  "food_id": 1,
+  "quantity": 2
+}
+```
+
+Required fields:
+
+- `food_id`: integer, existing record in table `food`
+- `quantity`: integer, minimum 1
+
+Example response, `201`:
+
+```json
+{
+  "success": true,
+  "message": "Cart item added successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "items": [
+      {
+        "id": 1,
+        "food_id": 1,
+        "quantity": 2,
+        "food": {
+          "id": 1,
+          "name": "Chicken Rice",
+          "price": "4.50",
+          "status": "available"
+        }
+      }
+    ],
+    "subtotal": "9.00"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `422` validation error.
+- `422` unavailable food cannot be added.
+
+### Update Cart Item
+
+Method: `PUT`
+
+URL: `/cart/items/{cartItem}`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body:
+
+```json
+{
+  "quantity": 3
+}
+```
+
+Required fields:
+
+- `quantity`: integer, minimum 1
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Cart item updated successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "subtotal": "13.50"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` cart item not found or belongs to another user's cart.
+- `422` validation error.
+
+### Remove Cart Item
+
+Method: `DELETE`
+
+URL: `/cart/items/{cartItem}`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Cart item removed successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "items": [],
+    "subtotal": "0.00"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` cart item not found or belongs to another user's cart.
+
+### Clear Cart
+
+Method: `DELETE`
+
+URL: `/cart`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Cart cleared successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "items": [],
+    "subtotal": "0.00"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+
+## Orders
+
+Order list, create, show, and cancel endpoints require authentication and are scoped to the authenticated user's own orders.
+
+Order statuses:
+
+- `pending`
+- `confirmed`
+- `preparing`
+- `ready`
+- `delivering`
+- `delivered`
+- `cancelled`
+
+### List Orders
+
+Method: `GET`
+
+URL: `/orders`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Orders retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "address_id": 1,
+      "status": "pending",
+      "subtotal": "9.00",
+      "delivery_fee": "1.50",
+      "total": "10.50"
+    }
+  ]
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+
+### Create Order
+
+Method: `POST`
+
+URL: `/orders`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body:
+
+```json
+{
+  "address_id": 1
+}
+```
+
+Required fields:
+
+- `address_id`: integer, existing address owned by the authenticated user
+
+Notes:
+
+- Uses the authenticated user's current cart.
+- Cart must not be empty.
+- Food items must have status `available`.
+- Fixed delivery fee is `1.50`.
+- Creates a delivery record with status `pending`.
+- Clears cart items after order creation.
+
+Example response, `201`:
+
+```json
+{
+  "success": true,
+  "message": "Order created successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 1,
+    "address_id": 1,
+    "status": "pending",
+    "subtotal": "9.00",
+    "delivery_fee": "1.50",
+    "total": "10.50",
+    "address": {},
+    "items": [],
+    "delivery": {
+      "id": 1,
+      "order_id": 1,
+      "rider_id": null,
+      "status": "pending",
+      "picked_up_at": null,
+      "delivered_at": null
     }
   }
 }
 ```
 
-Possible errors:
+Important errors:
 
-- `401` when the bearer token is missing or invalid.
+- `401` missing or invalid token.
+- `422` validation error.
+- `422` address belongs to another user.
+- `422` cart is empty.
+- `422` cart contains unavailable food.
+
+### Show Order
+
+Method: `GET`
+
+URL: `/orders/{order}`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Order retrieved successfully.",
+  "data": {
+    "id": 1,
+    "status": "pending",
+    "address": {},
+    "items": [],
+    "delivery": {}
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` order not found or belongs to another user.
+
+### Cancel Order
+
+Method: `POST`
+
+URL: `/orders/{order}/cancel`
+
+Authentication: Yes
+
+Required role: Any authenticated user
+
+Request body: None
+
+Notes:
+
+- Only `pending` and `confirmed` orders can be cancelled.
+- If the order delivery is `pending` or `assigned`, the delivery is cancelled.
+- If an assigned rider exists, that rider is made available again.
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Order cancelled successfully.",
+  "data": {
+    "id": 1,
+    "status": "cancelled",
+    "delivery": {
+      "status": "cancelled"
+    }
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `404` order not found or belongs to another user.
+- `422` order cannot be cancelled.
+
+### Assign Rider
+
+Method: `POST`
+
+URL: `/orders/{order}/assign-rider`
+
+Authentication: Yes
+
+Required role: `restaurant` or `admin`
+
+Request body:
+
+```json
+{
+  "rider_id": 1
+}
+```
+
+Required fields:
+
+- `rider_id`: integer, existing rider profile
+
+Notes:
+
+- Rider must be `active`.
+- Rider must be available.
+- Order cannot be `delivered` or `cancelled`.
+- Delivery must be `pending` or `assigned`.
+- Sets delivery status to `assigned`.
+- Sets rider `is_available` to `false`.
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Rider assigned successfully.",
+  "data": {
+    "id": 1,
+    "status": "pending",
+    "delivery": {
+      "id": 1,
+      "order_id": 1,
+      "rider_id": 1,
+      "status": "assigned",
+      "rider": {
+        "id": 1,
+        "vehicle_type": "motorcycle",
+        "status": "active",
+        "is_available": false
+      }
+    }
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `restaurant` or `admin`.
+- `422` validation error.
+- `422` rider inactive, suspended, or unavailable.
+- `422` order cannot be assigned.
+
+## Rider
+
+Rider profile endpoints require authentication and role `rider`.
+
+Rider statuses:
+
+- `active`
+- `inactive`
+- `suspended`
+
+Vehicle types:
+
+- `bicycle`
+- `motorcycle`
+- `car`
+
+### Get Rider Profile
+
+Method: `GET`
+
+URL: `/rider/profile`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Rider profile retrieved successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 3,
+    "vehicle_type": "motorcycle",
+    "vehicle_number": "PP-1234",
+    "phone": "012345678",
+    "status": "active",
+    "is_available": true
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile not found.
+
+### Create Rider Profile
+
+Method: `POST`
+
+URL: `/rider/profile`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body:
+
+```json
+{
+  "vehicle_type": "motorcycle",
+  "vehicle_number": "PP-1234",
+  "phone": "012345678",
+  "status": "active",
+  "is_available": true
+}
+```
+
+Required fields:
+
+- `vehicle_type`: `bicycle`, `motorcycle`, or `car`
+- `vehicle_number`: string, max 50
+- `phone`: string, max 50
+
+Optional fields:
+
+- `status`: `active`, `inactive`, or `suspended`
+- `is_available`: boolean
+
+Example response, `201`:
+
+```json
+{
+  "success": true,
+  "message": "Rider profile created successfully.",
+  "data": {
+    "id": 1,
+    "user_id": 3,
+    "vehicle_type": "motorcycle",
+    "vehicle_number": "PP-1234",
+    "phone": "012345678",
+    "status": "active",
+    "is_available": true
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `422` validation error.
+- `422` rider profile already exists.
+
+### Update Rider Profile
+
+Method: `PUT`
+
+URL: `/rider/profile`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: Same as create rider profile.
+
+Required fields: `vehicle_type`, `vehicle_number`, `phone`
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Rider profile updated successfully.",
+  "data": {
+    "id": 1,
+    "vehicle_type": "car",
+    "vehicle_number": "CAR-7788",
+    "phone": "098765432",
+    "status": "active",
+    "is_available": true
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile not found.
+- `422` validation error.
+
+### Update Rider Availability
+
+Method: `PUT`
+
+URL: `/rider/availability`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body:
+
+```json
+{
+  "is_available": false
+}
+```
+
+Required fields:
+
+- `is_available`: boolean
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Rider availability updated successfully.",
+  "data": {
+    "id": 1,
+    "is_available": false
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile not found.
+- `422` validation error.
+
+## Delivery
+
+Delivery APIs currently exist as rider-facing endpoints. There is no general admin delivery list endpoint.
+
+Delivery statuses:
+
+- `pending`
+- `assigned`
+- `picked_up`
+- `delivering`
+- `delivered`
+- `cancelled`
+
+Implemented delivery flow:
+
+```text
+order created -> pending
+assign rider -> assigned
+accept -> assigned
+pickup -> picked_up
+start -> delivering
+deliver -> delivered
+```
+
+### List Rider Deliveries
+
+Method: `GET`
+
+URL: `/rider/deliveries`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Rider deliveries retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "order_id": 1,
+      "rider_id": 1,
+      "status": "assigned",
+      "picked_up_at": null,
+      "delivered_at": null,
+      "order": {
+        "id": 1,
+        "status": "pending",
+        "address": {},
+        "items": []
+      }
+    }
+  ]
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile not found.
+
+### Show Rider Delivery
+
+Method: `GET`
+
+URL: `/rider/deliveries/{delivery}`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Rider delivery retrieved successfully.",
+  "data": {
+    "id": 1,
+    "order_id": 1,
+    "rider_id": 1,
+    "status": "assigned",
+    "order": {}
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile not found, delivery not found, or delivery assigned to another rider.
+
+### Accept Delivery
+
+Method: `POST`
+
+URL: `/rider/deliveries/{delivery}/accept`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Notes:
+
+- Only status `assigned` can be accepted.
+- Status remains `assigned`.
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Delivery accepted successfully.",
+  "data": {
+    "id": 1,
+    "status": "assigned"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile or assigned delivery not found.
+- `422` invalid delivery status transition.
+
+### Pick Up Delivery
+
+Method: `POST`
+
+URL: `/rider/deliveries/{delivery}/pickup`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Notes:
+
+- Only status `assigned` can be picked up.
+- Sets delivery status to `picked_up`.
+- Sets `picked_up_at`.
+- Sets order status to `preparing`.
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Delivery picked up successfully.",
+  "data": {
+    "id": 1,
+    "status": "picked_up",
+    "picked_up_at": "2026-08-25T10:15:00.000000Z"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile or assigned delivery not found.
+- `422` invalid delivery status transition.
+
+### Start Delivery
+
+Method: `POST`
+
+URL: `/rider/deliveries/{delivery}/start`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Notes:
+
+- Only status `picked_up` can be started.
+- Sets delivery status to `delivering`.
+- Sets order status to `delivering`.
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Delivery started successfully.",
+  "data": {
+    "id": 1,
+    "status": "delivering"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile or assigned delivery not found.
+- `422` invalid delivery status transition.
+
+### Complete Delivery
+
+Method: `POST`
+
+URL: `/rider/deliveries/{delivery}/deliver`
+
+Authentication: Yes
+
+Required role: `rider`
+
+Request body: None
+
+Notes:
+
+- Only status `delivering` can be completed.
+- Sets delivery status to `delivered`.
+- Sets `delivered_at`.
+- Sets order status to `delivered`.
+- Sets rider `is_available` to `true`.
+
+Example response, `200`:
+
+```json
+{
+  "success": true,
+  "message": "Delivery completed successfully.",
+  "data": {
+    "id": 1,
+    "status": "delivered",
+    "delivered_at": "2026-08-25T10:35:00.000000Z"
+  }
+}
+```
+
+Important errors:
+
+- `401` missing or invalid token.
+- `403` user role is not `rider`.
+- `404` rider profile or assigned delivery not found.
+- `422` invalid delivery status transition.
+
+## Recommended Manual Test Flow
+
+1. Register customer: `POST /register`
+2. Login customer: `POST /login`; save `data.token` as `{{token}}`
+3. Get current user: `GET /user`
+4. Browse public restaurants, categories, and foods
+5. Create address: `POST /addresses`
+6. Add food to cart: `POST /cart/items`
+7. Review cart: `GET /cart`
+8. Create order: `POST /orders`
+9. Register/login rider
+10. Create rider profile: `POST /rider/profile`
+11. Login as restaurant user
+12. Assign rider: `POST /orders/{order}/assign-rider`
+13. Login as rider again
+14. List rider deliveries: `GET /rider/deliveries`
+15. Accept delivery
+16. Pick up delivery
+17. Start delivery
+18. Complete delivery
+
+## Endpoint Count
+
+This document covers all 44 routes currently registered by `php artisan route:list --path=api`.
