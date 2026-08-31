@@ -23,6 +23,16 @@ class RestaurantController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($request->user()->role !== 'restaurant') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only users with restaurant role can create restaurants.',
+                'errors' => [
+                    'role' => ['You must have the restaurant role to create a restaurant.'],
+                ],
+            ], 403);
+        }
+
         $validated = $request->validate($this->rules());
 
         $restaurant = Restaurant::create([
@@ -48,6 +58,7 @@ class RestaurantController extends Controller
 
     public function update(Request $request, Restaurant $restaurant): JsonResponse
     {
+        $restaurant = $this->findUserRestaurant($request, $restaurant);
         $validated = $request->validate($this->rules());
 
         $restaurant->update($validated);
@@ -59,8 +70,9 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function destroy(Restaurant $restaurant): JsonResponse
+    public function destroy(Request $request, Restaurant $restaurant): JsonResponse
     {
+        $restaurant = $this->findUserRestaurant($request, $restaurant);
         $restaurant->delete();
 
         return response()->json([
@@ -83,5 +95,14 @@ class RestaurantController extends Controller
             'image' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive'])],
         ];
+    }
+
+    private function findUserRestaurant(Request $request, Restaurant $restaurant): Restaurant
+    {
+        if ($request->user()->role === 'admin' || $request->user()->id === $restaurant->user_id) {
+            return $restaurant;
+        }
+
+        abort(403, 'You do not have permission to modify this restaurant.');
     }
 }

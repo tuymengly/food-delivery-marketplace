@@ -42,6 +42,7 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category): JsonResponse
     {
+        $this->ensureAdmin($request);
         $category->update($request->validate($this->rules()));
 
         return response()->json([
@@ -51,8 +52,9 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function destroy(Category $category): JsonResponse
+    public function destroy(Request $request, Category $category): JsonResponse
     {
+        $this->ensureAdmin($request);
         $category->delete();
 
         return response()->json([
@@ -71,5 +73,12 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
         ];
+    }
+
+    private function ensureAdmin(Request $request): void
+    {
+        if ($request->user()->role !== 'admin') {
+            abort(403, 'Only administrators can modify categories.');
+        }
     }
 }
