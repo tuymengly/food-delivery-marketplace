@@ -85,8 +85,12 @@ class MarketplaceApiTest extends TestCase
 
     public function test_authenticated_user_can_create_food(): void
     {
-        Sanctum::actingAs(User::factory()->create());
-        $restaurant = Restaurant::create($this->restaurantData());
+        $owner = User::factory()->create(['role' => 'restaurant']);
+        Sanctum::actingAs($owner);
+        $restaurant = Restaurant::create([
+            ...$this->restaurantData(),
+            'user_id' => $owner->id,
+        ]);
         $category = Category::create($this->categoryData());
 
         $this->postJson('/api/foods', $this->foodData($restaurant, $category))

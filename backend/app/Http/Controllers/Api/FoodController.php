@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Food;
+use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,21 @@ class FoodController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $food = Food::create($request->validate($this->rules()));
+        $validated = $request->validate($this->rules());
+
+        // Check if user owns the restaurant
+        $restaurant = Restaurant::find($validated['restaurant_id']);
+        if ($request->user()->role !== 'admin' && $request->user()->id !== $restaurant->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to create food for this restaurant.',
+                'errors' => [
+                    'restaurant_id' => ['You must own this restaurant to add food to it.'],
+                ],
+            ], 403);
+        }
+
+        $food = Food::create($validated);
 
         return response()->json([
             'success' => true,
@@ -43,6 +58,7 @@ class FoodController extends Controller
 
     public function update(Request $request, Food $food): JsonResponse
     {
+        $this->findUserFood($request, $food);
         $food->update($request->validate($this->rules()));
 
         return response()->json([
@@ -52,8 +68,9 @@ class FoodController extends Controller
         ]);
     }
 
-    public function destroy(Food $food): JsonResponse
+    public function destroy(Request $request, Food $food): JsonResponse
     {
+        $this->findUserFood($request, $food);
         $food->delete();
 
         return response()->json([
@@ -77,5 +94,18 @@ class FoodController extends Controller
             'image' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'string', Rule::in(['available', 'unavailable'])],
         ];
+    }
+
+    private function findUserFood(Request $request, Food $food): void
+    {
+        if (! $food->relationLoaded('restaurant')) {
+            $food->load('restaurant');
+        }
+
+        if ($request->user()->role === 'admin' || $request->user()->id === $food->restaurant->user_id) {
+            return;
+        }
+
+        abort(403, 'You do not have permission to modify this food.');
     }
 }
