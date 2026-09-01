@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Star, 
   MessageSquare, 
@@ -18,55 +18,12 @@ import {
   X,
   Eye
 } from 'lucide-react';
-
-const initialReviews = [
-  {
-    id: 1,
-    reviewer: 'Sarah J.',
-    orderId: '#ORD-8921',
-    target: 'Burger Joint Downtown',
-    targetType: 'restaurant',
-    rating: 5,
-    time: '2 hours ago',
-    comment: 'Absolutely fantastic! The food arrived piping hot and exactly as ordered. The delivery driver was very polite. Will definitely order from here again.',
-    status: 'PUBLISHED',
-    category: 'restaurant',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    borderColor: 'border-l-emerald-500'
-  },
-  {
-    id: 2,
-    reviewer: 'Mark T.',
-    orderId: '#ORD-8904',
-    target: 'Driver: Dave Smith',
-    targetType: 'driver',
-    rating: 1,
-    time: 'Yesterday',
-    comment: 'The driver threw my food at the door and yelled some inappropriate things. Absolutely unacceptable behavior. I demand a refund.',
-    status: 'FLAGGED',
-    flagReason: 'Inappropriate Language / Harassment. Auto-flagged by system.',
-    category: 'flagged',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    borderColor: 'border-l-rose-500'
-  },
-  {
-    id: 3,
-    reviewer: 'Elena R.',
-    orderId: '#ORD-8872',
-    target: 'Sushi Hana',
-    targetType: 'restaurant',
-    rating: 4,
-    time: '2 days ago',
-    comment: 'Fresh sushi and great packaging. Took slightly longer than estimated, but overall delicious experience.',
-    status: 'PUBLISHED',
-    category: 'restaurant',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    borderColor: 'border-l-emerald-500'
-  }
-];
+import { getReviews, updateReviewStatus, replyToReview } from '../../../services/adminService';
 
 export default function ManageReviews() {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState('All Reviews');
   const [searchTerm, setSearchTerm] = useState('');
   const [ratingFilter, setRatingFilter] = useState('All Ratings');
@@ -78,37 +35,71 @@ export default function ManageReviews() {
   const [contactModal, setContactModal] = useState({ open: false, review: null });
   const [contactText, setContactText] = useState('');
 
+  // 1. Fetch Reviews Data from Laravel API
+  const fetchReviewsData = async () => {
+    try {
+      setLoading(true);
+      const res = await getReviews();
+      const rawData = res.data.data || res.data || [];
+
+      // Map API Response to UI Structure Safely
+      const mappedReviews = rawData.map((item) => ({
+        id: item.id,
+        reviewer: item.user?.name || item.reviewer_name || 'Anonymous',
+        orderId: item.order_id ? `#ORD-${item.order_id}` : (item.order?.order_number || '#ORD-N/A'),
+        target: item.restaurant?.name || item.driver?.name || item.target_name || 'N/A',
+        targetType: item.type || (item.restaurant_id ? 'restaurant' : 'driver'),
+        rating: Number(item.rating) || 0,
+        time: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A',
+        comment: item.comment || item.content || 'No comment provided.',
+        status: (item.status || 'PUBLISHED').toUpperCase(),
+        flagReason: item.flag_reason || item.reason || null,
+        avatar: item.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.user?.name || 'User')}&background=random`,
+        borderColor: (item.status || '').toUpperCase() === 'FLAGGED' 
+          ? 'border-l-rose-500' 
+          : (item.status || '').toUpperCase() === 'HIDDEN' 
+          ? 'border-l-gray-300' 
+          : 'border-l-emerald-500'
+      }));
+
+      setReviews(mappedReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviewsData();
+  }, []);
+
   // Dynamic Statistics Calculation
   const totalReviewsCount = reviews.length;
   const flaggedCount = reviews.filter((r) => r.status === 'FLAGGED').length;
   const pendingCount = reviews.filter((r) => r.rating <= 2 && r.status === 'PUBLISHED').length;
-  
   const avgRating = totalReviewsCount > 0 
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / totalReviewsCount).toFixed(1)
     : '0.0';
 
   // Filter Logic
   const filteredReviews = reviews.filter((rev) => {
-    // 1. Search Filter
     const matchesSearch =
       rev.reviewer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rev.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rev.target.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rev.comment.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // 2. Tab Filter
     let matchesTab = true;
     if (activeTab === 'Restaurant Reviews') matchesTab = rev.targetType === 'restaurant';
     if (activeTab === 'Driver Reviews') matchesTab = rev.targetType === 'driver';
     if (activeTab === 'Flagged') matchesTab = rev.status === 'FLAGGED';
 
-    // 3. Dropdown Rating Filter
     let matchesRating = true;
     if (ratingFilter === '5 Stars') matchesRating = rev.rating === 5;
     if (ratingFilter === '4 Stars') matchesRating = rev.rating === 4;
     if (ratingFilter === '1 Star') matchesRating = rev.rating === 1;
 
-    // 4. Dropdown Status Filter
     let matchesStatus = true;
     if (statusFilter === 'Published') matchesStatus = rev.status === 'PUBLISHED';
     if (statusFilter === 'Flagged') matchesStatus = rev.status === 'FLAGGED';
@@ -118,24 +109,29 @@ export default function ManageReviews() {
   });
 
   // Action Handlers
-  const handleHideReview = (id) => {
-    setReviews(reviews.map((r) => (r.id === id ? { ...r, status: 'HIDDEN', borderColor: 'border-l-gray-300' } : r)));
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      await updateReviewStatus(id, newStatus);
+      fetchReviewsData();
+    } catch (error) {
+      console.error('Error updating review status:', error);
+      alert('បរាជ័យក្នុងការប្តូរ Status!');
+    }
   };
 
-  const handleUnhideReview = (id) => {
-    setReviews(reviews.map((r) => (r.id === id ? { ...r, status: 'PUBLISHED', borderColor: 'border-l-emerald-500' } : r)));
-  };
-
-  const handleModerate = (id) => {
-    setReviews(reviews.map((r) => (r.id === id ? { ...r, status: 'PUBLISHED', flagReason: undefined, borderColor: 'border-l-emerald-500' } : r)));
-  };
-
-  const handleSendReply = (e) => {
+  const handleSendReply = async (e) => {
     e.preventDefault();
     if (!replyText.trim()) return;
-    alert(`Reply sent to ${replyModal.review?.reviewer}:\n"${replyText}"`);
-    setReplyModal({ open: false, review: null });
-    setReplyText('');
+    try {
+      await replyToReview(replyModal.review?.id, { reply: replyText });
+      alert(`Reply sent to ${replyModal.review?.reviewer}`);
+      setReplyModal({ open: false, review: null });
+      setReplyText('');
+      fetchReviewsData();
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      alert('បរាជ័យក្នុងការផ្ញើ Reply!');
+    }
   };
 
   const handleSendContact = (e) => {
@@ -145,6 +141,10 @@ export default function ManageReviews() {
     setContactModal({ open: false, review: null });
     setContactText('');
   };
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500 font-medium">កំពុងទាញយក Reviews...</div>;
+  }
 
   return (
     <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-gray-800 space-y-6">
@@ -165,7 +165,7 @@ export default function ManageReviews() {
               {avgRating} <Star size={22} className="text-orange-500 fill-orange-500" />
             </h3>
             <p className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-2">
-              <TrendingUp size={12} /> +0.2 from last month
+              <TrendingUp size={12} /> Live average
             </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0">
@@ -179,7 +179,7 @@ export default function ManageReviews() {
             <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">TOTAL REVIEWS</p>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">{totalReviewsCount}</h3>
             <p className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-2">
-              <TrendingUp size={12} /> +850 this week
+              <TrendingUp size={12} /> Total recorded
             </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-xs shrink-0">
@@ -226,7 +226,7 @@ export default function ManageReviews() {
             <button
               key={tab.label}
               onClick={() => setActiveTab(tab.label)}
-              className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap relative ${
+              className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap relative cursor-pointer ${
                 activeTab === tab.label 
                   ? 'text-[#f96b44] border-b-2 border-[#f96b44]' 
                   : 'text-gray-500 hover:text-gray-800'
@@ -280,7 +280,7 @@ export default function ManageReviews() {
 
             <button 
               onClick={() => { setSearchTerm(''); setRatingFilter('All Ratings'); setStatusFilter('All Statuses'); }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 font-semibold text-xs rounded-xl hover:bg-gray-200 transition"
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 font-semibold text-xs rounded-xl hover:bg-gray-200 transition cursor-pointer"
             >
               <Filter size={14} /> Reset
             </button>
@@ -360,23 +360,23 @@ export default function ManageReviews() {
                   {rev.status === 'FLAGGED' ? (
                     <>
                       <button 
-                        onClick={() => handleModerate(rev.id)}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#b83818] hover:bg-[#962c12] text-white text-xs font-semibold rounded-xl transition w-full md:w-auto"
+                        onClick={() => handleUpdateStatus(rev.id, 'PUBLISHED')}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#b83818] hover:bg-[#962c12] text-white text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                       >
                         <ShieldAlert size={14} /> Approve & Publish
                       </button>
 
                       <button 
                         onClick={() => setContactModal({ open: true, review: rev })}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-xl transition w-full md:w-auto"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                       >
                         <Mail size={14} /> Contact User
                       </button>
                     </>
                   ) : rev.status === 'HIDDEN' ? (
                     <button 
-                      onClick={() => handleUnhideReview(rev.id)}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs font-semibold rounded-xl transition w-full md:w-auto"
+                      onClick={() => handleUpdateStatus(rev.id, 'PUBLISHED')}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                     >
                       <Eye size={14} /> Unhide Review
                     </button>
@@ -384,14 +384,14 @@ export default function ManageReviews() {
                     <>
                       <button 
                         onClick={() => setReplyModal({ open: true, review: rev })}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-semibold rounded-xl transition w-full md:w-auto"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                       >
                         <CornerUpLeft size={14} /> Reply
                       </button>
 
                       <button 
-                        onClick={() => handleHideReview(rev.id)}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold rounded-xl transition w-full md:w-auto"
+                        onClick={() => handleUpdateStatus(rev.id, 'HIDDEN')}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                       >
                         <EyeOff size={14} /> Hide
                       </button>
@@ -423,10 +423,10 @@ export default function ManageReviews() {
       {/* Reply Modal */}
       {replyModal.open && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative">
             <button 
               onClick={() => { setReplyModal({ open: false, review: null }); setReplyText(''); }} 
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
             >
               <X size={20} />
             </button>
@@ -446,13 +446,13 @@ export default function ManageReviews() {
                 <button 
                   type="button" 
                   onClick={() => { setReplyModal({ open: false, review: null }); setReplyText(''); }}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#f96b44] hover:bg-[#e05630] rounded-xl shadow-xs"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#f96b44] hover:bg-[#e05630] rounded-xl shadow-xs cursor-pointer"
                 >
                   Send Reply
                 </button>
@@ -465,10 +465,10 @@ export default function ManageReviews() {
       {/* Contact User Modal */}
       {contactModal.open && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative">
             <button 
               onClick={() => { setContactModal({ open: false, review: null }); setContactText(''); }} 
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
             >
               <X size={20} />
             </button>
@@ -494,13 +494,13 @@ export default function ManageReviews() {
                 <button 
                   type="button" 
                   onClick={() => { setContactModal({ open: false, review: null }); setContactText(''); }}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs cursor-pointer"
                 >
                   Send Message
                 </button>

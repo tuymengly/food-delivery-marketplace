@@ -1,39 +1,90 @@
-import React, { useState } from 'react';
-import { Search, Eye, Plus, Check, X, ShieldOff, Star } from 'lucide-react';
-
-const initialRestaurants = [
-  { id: 1, name: 'The Burger Lab', owner: 'Tom Wright', status: 'Active', rating: '4.7', foods: 24, joined: 'Jun 3, 2026', avatarBg: 'bg-orange-100 text-orange-600' },
-  { id: 2, name: 'Sushi Hana', owner: 'Yuki Tanaka', status: 'Active', rating: '4.8', foods: 38, joined: 'Jul 2, 2026', avatarBg: 'bg-red-100 text-red-600' },
-  { id: 3, name: 'Pizza Roma', owner: 'Marco Bianchi', status: 'Active', rating: '4.5', foods: 18, joined: 'May 15, 2026', avatarBg: 'bg-amber-100 text-amber-600' },
-  { id: 4, name: 'Noodle House', owner: 'Lin Wei', status: 'Pending', rating: '—', foods: 0, joined: 'Aug 20, 2026', avatarBg: 'bg-orange-100 text-orange-600' },
-  { id: 5, name: 'Taco Fiesta', owner: 'Carlos Reyes', status: 'Pending', rating: '—', foods: 0, joined: 'Aug 22, 2026', avatarBg: 'bg-orange-100 text-orange-600' },
-];
+import React, { useState, useEffect } from 'react';
+import { Search, Eye, Plus, Check, X, Star } from 'lucide-react';
+import { getRestaurants, createRestaurant, updateRestaurantStatus } from '../../../services/adminService';
 
 export default function ManageRestaurants() {
-  const [restaurants, setRestaurants] = useState(initialRestaurants);
+  const [restaurants, setRestaurants] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
 
-  // Dynamic status actions handler
-  const handleStatusChange = (id, newStatus) => {
-    setRestaurants((prev) =>
-      prev.map((res) => (res.id === id ? { ...res, status: newStatus } : res))
-    );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    description: '',
+    status: 'active',
+  });
+
+  const fetchRestaurantsData = async () => {
+    try {
+      setLoading(true);
+      const res = await getRestaurants();
+      setRestaurants(res.data.data || res.data || []);
+    } catch (error) {
+      console.error('Error fetching restaurants:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Filter restaurants logic
+  useEffect(() => {
+    fetchRestaurantsData();
+  }, []);
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await updateRestaurantStatus(id, newStatus);
+      fetchRestaurantsData(); 
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('បរាជ័យក្នុងការប្តូរ Status!');
+    }
+  };
+
+  const handleCreateRestaurant = async (e) => {
+    e.preventDefault();
+    try {
+      await createRestaurant(formData);
+      setIsModalOpen(false);
+      setFormData({
+        name: '',
+        address: '',
+        phone: '',
+        description: '',
+        status: 'active',
+      });
+      fetchRestaurantsData();
+    } catch (error) {
+      console.error('Validation Error Details:', error.response?.data);
+      alert(error.response?.data?.message || 'បរាជ័យក្នុងការបង្កើត Restaurant!');
+    }
+  };
+
+  // Filter Logic
   const filteredRestaurants = restaurants.filter((res) => {
+    const ownerName = res.user?.name || res.owner || res.owner_name || '';
     const matchesSearch =
-      res.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      res.owner.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All Status' || res.status === statusFilter;
+      res.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ownerName.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const resStatus = res.status?.toLowerCase();
+    const filterStatus = statusFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'All Status' || resStatus === filterStatus;
+
     return matchesSearch && matchesStatus;
   });
 
-  const pendingCount = restaurants.filter((r) => r.status === 'Pending').length;
+  const pendingCount = restaurants.filter((r) => r.status?.toLowerCase() === 'pending').length;
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500 font-medium">កំពុងទាញយក Restaurants...</div>;
+  }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen space-y-6 text-gray-800">
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -46,7 +97,10 @@ export default function ManageRestaurants() {
           </p>
         </div>
 
-        <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f96b44] hover:bg-[#e05630] text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition w-full sm:w-auto">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f96b44] hover:bg-[#e05630] text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition w-full sm:w-auto cursor-pointer"
+        >
           <Plus size={16} /> Add Restaurant
         </button>
       </div>
@@ -84,10 +138,9 @@ export default function ManageRestaurants() {
               <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 tracking-wider uppercase bg-gray-50/50">
                 <th className="py-3.5 px-4 sm:px-6">Restaurant</th>
                 <th className="py-3.5 px-4 sm:px-6">Owner</th>
+                <th className="py-3.5 px-4 sm:px-6">Address & Phone</th>
                 <th className="py-3.5 px-4 sm:px-6">Status</th>
                 <th className="py-3.5 px-4 sm:px-6">Rating</th>
-                <th className="py-3.5 px-4 sm:px-6">Foods</th>
-                <th className="py-3.5 px-4 sm:px-6">Joined</th>
                 <th className="py-3.5 px-4 sm:px-6 text-center">Actions</th>
               </tr>
             </thead>
@@ -95,96 +148,80 @@ export default function ManageRestaurants() {
               {filteredRestaurants.length > 0 ? (
                 filteredRestaurants.map((item) => (
                   <tr key={item.id} className="hover:bg-orange-50/10 transition">
-                    {/* Restaurant Name & Avatar */}
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${item.avatarBg}`}
-                        >
-                          {item.name.charAt(0)}
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 bg-orange-100 text-orange-600">
+                          {item.name?.charAt(0)}
                         </div>
                         <span className="font-semibold text-gray-900">{item.name}</span>
                       </div>
                     </td>
 
                     <td className="py-4 px-4 sm:px-6 text-gray-600 font-medium whitespace-nowrap">
-                      {item.owner}
+                      {item.user?.name || item.owner || item.owner_name || 'N/A'}
                     </td>
 
-                    {/* Status Badge */}
+                    <td className="py-4 px-4 sm:px-6 text-gray-500 text-xs whitespace-nowrap">
+                      <div>{item.address || 'No address'}</div>
+                      <div className="text-gray-400">{item.phone || 'No phone'}</div>
+                    </td>
+
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
-                      {item.status === 'Active' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100/80 text-emerald-600">
-                          Active
-                        </span>
-                      )}
-                      {item.status === 'Pending' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100/80 text-amber-700">
-                          Pending
-                        </span>
-                      )}
-                      {item.status === 'Disabled' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
-                          Disabled
-                        </span>
-                      )}
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                        ['active', 'Active'].includes(item.status) ? 'bg-emerald-100/80 text-emerald-600' :
+                        ['pending', 'Pending'].includes(item.status) ? 'bg-amber-100/80 text-amber-700' :
+                        'bg-gray-100 text-gray-500'
+                      }`}>
+                        {item.status}
+                      </span>
                     </td>
 
-                    {/* Rating */}
                     <td className="py-4 px-4 sm:px-6 font-semibold text-gray-700 whitespace-nowrap">
-                      {item.rating !== '—' ? (
+                      {item.rating ? (
                         <span className="flex items-center gap-1 text-gray-800">
                           <Star size={14} className="fill-amber-400 text-amber-400" /> {item.rating}
                         </span>
-                      ) : (
-                        '—'
-                      )}
+                      ) : '—'}
                     </td>
 
-                    <td className="py-4 px-4 sm:px-6 text-gray-500 whitespace-nowrap">{item.foods} items</td>
-                    <td className="py-4 px-4 sm:px-6 text-gray-400 text-xs font-medium whitespace-nowrap">
-                      {item.joined}
-                    </td>
-
-                    {/* Action Buttons */}
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {item.status === 'Active' && (
+                        {['active', 'Active'].includes(item.status) && (
                           <button
                             onClick={() => handleStatusChange(item.id, 'Disabled')}
-                            className="px-2.5 py-1 bg-stone-100 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-200 transition"
+                            className="px-2.5 py-1 bg-stone-100 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-200 transition cursor-pointer"
                           >
                             Disable
                           </button>
                         )}
 
-                        {item.status === 'Pending' && (
+                        {['pending', 'Pending'].includes(item.status) && (
                           <>
                             <button
                               onClick={() => handleStatusChange(item.id, 'Active')}
-                              className="px-2.5 py-1 bg-emerald-100 text-emerald-600 text-xs font-semibold rounded-lg hover:bg-emerald-200 transition flex items-center gap-1"
+                              className="px-2.5 py-1 bg-emerald-100 text-emerald-600 text-xs font-semibold rounded-lg hover:bg-emerald-200 transition flex items-center gap-1 cursor-pointer"
                             >
                               <Check size={12} /> Approve
                             </button>
                             <button
                               onClick={() => handleStatusChange(item.id, 'Disabled')}
-                              className="px-2.5 py-1 bg-rose-100 text-rose-600 text-xs font-semibold rounded-lg hover:bg-rose-200 transition flex items-center gap-1"
+                              className="px-2.5 py-1 bg-rose-100 text-rose-600 text-xs font-semibold rounded-lg hover:bg-rose-200 transition flex items-center gap-1 cursor-pointer"
                             >
                               <X size={12} /> Reject
                             </button>
                           </>
                         )}
 
-                        {item.status === 'Disabled' && (
+                        {['disabled', 'Disabled', 'inactive'].includes(item.status) && (
                           <button
                             onClick={() => handleStatusChange(item.id, 'Active')}
-                            className="px-2.5 py-1 bg-sky-100 text-sky-600 text-xs font-semibold rounded-lg hover:bg-sky-200 transition"
+                            className="px-2.5 py-1 bg-sky-100 text-sky-600 text-xs font-semibold rounded-lg hover:bg-sky-200 transition cursor-pointer"
                           >
                             Enable
                           </button>
                         )}
 
-                        <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition ml-1">
+                        <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition ml-1 cursor-pointer">
                           <Eye size={16} />
                         </button>
                       </div>
@@ -193,8 +230,8 @@ export default function ManageRestaurants() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
-                    No restaurants found matching your criteria.
+                  <td colSpan={6} className="py-8 text-center text-sm text-gray-400">
+                    No restaurants found.
                   </td>
                 </tr>
               )}
@@ -202,6 +239,86 @@ export default function ManageRestaurants() {
           </table>
         </div>
       </div>
+
+      {/* Modal Add Restaurant */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-gray-900 text-lg">Add New Restaurant</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRestaurant} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Restaurant Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  placeholder="e.g. Pizza Hut"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Address *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  placeholder="e.g. Phnom Penh"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  placeholder="e.g. 012345678"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  placeholder="Optional details..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#f96b44] hover:bg-[#e05630] text-white rounded-xl text-xs font-semibold"
+                >
+                  Save Restaurant
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

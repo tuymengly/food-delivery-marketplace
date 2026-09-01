@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   UserPlus, 
-  SlidersHorizontal, 
   ChevronLeft, 
   ChevronRight, 
   Download,
@@ -12,54 +11,13 @@ import {
   Edit2,
   Trash2,
   X,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
-
-const initialUsers = [
-  { 
-    id: 1, 
-    name: 'Sarah Jenkins', 
-    email: 'sarah.j@example.com', 
-    role: 'Customer', 
-    status: 'Active', 
-    location: 'Seattle, WA', 
-    joinDate: 'Oct 12, 2023',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' 
-  },
-  { 
-    id: 2, 
-    name: 'Bella Napoli Pizzeria', 
-    email: 'admin@bellanapoli.com', 
-    role: 'Restaurant', 
-    status: 'Pending', 
-    location: 'Portland, OR', 
-    joinDate: 'Oct 24, 2024',
-    avatar: null
-  },
-  { 
-    id: 3, 
-    name: 'Marcus Chen', 
-    email: 'm.chen.deliveries@mail.com', 
-    role: 'Driver', 
-    status: 'Suspended', 
-    location: 'Seattle, WA', 
-    joinDate: 'Jan 05, 2022',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80'
-  },
-  { 
-    id: 4, 
-    name: 'Elena Jones', 
-    email: 'elena.j99@example.com', 
-    role: 'Customer', 
-    status: 'Active', 
-    location: 'Tacoma, WA', 
-    joinDate: 'Mar 15, 2024',
-    avatar: null
-  },
-];
-
+import { getUsers, createUser, updateUser, deleteUser } from "../../../services/adminService";
 export default function ManageUsers() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
@@ -68,6 +26,7 @@ export default function ManageUsers() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -76,16 +35,33 @@ export default function ManageUsers() {
     location: ''
   });
 
-  // Open Modal for Create or Edit
+  // Fetch Users from API
+  const fetchUsersData = async () => {
+    try {
+      setLoading(true);
+      const res = await getUsers();
+      setUsers(res.data?.data || res.data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsersData();
+  }, []);
+
+  // Open Modal
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUser(user);
       setFormData({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        location: user.location
+        name: user.name || '',
+        email: user.email || '',
+        role: user.role || 'Customer',
+        status: user.status || 'Active',
+        location: user.location || ''
       });
     } else {
       setEditingUser(null);
@@ -107,53 +83,44 @@ export default function ManageUsers() {
   };
 
   // Save User (Create / Update)
-  const handleSaveUser = (e) => {
+  const handleSaveUser = async (e) => {
     e.preventDefault();
-    if (editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...formData } : u));
-    } else {
-      const newUser = {
-        id: Date.now(),
-        ...formData,
-        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        avatar: null
-      };
-      setUsers([newUser, ...users]);
+    try {
+      setSubmitting(true);
+      if (editingUser) {
+        await updateUser(editingUser.id, formData);
+      } else {
+        await createUser(formData);
+      }
+      await fetchUsersData(); // Refresh list after save
+      handleCloseModal();
+    } catch (error) {
+      console.error('Failed to save user:', error);
+      alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!');
+    } finally {
+      setSubmitting(false);
     }
-    handleCloseModal();
   };
 
   // Delete User
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = async (id) => {
     if (window.confirm('តើអ្នកប្រាកដថាចង់លុប User នេះមែនទេ?')) {
-      setUsers(users.filter(u => u.id !== id));
-      setSelectedUsers(selectedUsers.filter(userId => userId !== id));
+      try {
+        await deleteUser(id);
+        setUsers(users.filter(u => u.id !== id));
+        setSelectedUsers(selectedUsers.filter(userId => userId !== id));
+      } catch (error) {
+        console.error('Failed to delete user:', error);
+        alert('លុបមិនបានសម្រេច!');
+      }
     }
-  };
-
-  // CSV Export Handler
-  const handleExportCSV = () => {
-    if (filteredUsers.length === 0) {
-      alert('គ្មានទិន្នន័យសម្រាប់ Export ទេ!');
-      return;
-    }
-    const headers = ['ID,Name,Email,Role,Status,Location,Join Date\n'];
-    const rows = filteredUsers.map(u => `${u.id},"${u.name}",${u.email},${u.role},${u.status},"${u.location}",${u.joinDate}`);
-    const csvContent = 'data:text/csv;charset=utf-8,' + headers.concat(rows).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `users_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   // Filter Data Logic
   const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (user.location || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'All Roles' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'All Statuses' || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
@@ -174,6 +141,24 @@ export default function ManageUsers() {
     );
   };
 
+  // CSV Export
+  const handleExportCSV = () => {
+    if (filteredUsers.length === 0) {
+      alert('គ្មានទិន្នន័យសម្រាប់ Export ទេ!');
+      return;
+    }
+    const headers = ['ID,Name,Email,Role,Status,Location,Join Date\n'];
+    const rows = filteredUsers.map(u => `${u.id},"${u.name}",${u.email},${u.role},${u.status},"${u.location || ''}",${u.created_at || u.joinDate}`);
+    const csvContent = 'data:text/csv;charset=utf-8,' + headers.concat(rows).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `users_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Dynamic Badges
   const renderRoleBadge = (role) => {
     switch (role) {
@@ -183,7 +168,7 @@ export default function ManageUsers() {
         return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-100/70 text-orange-700"><Utensils size={13} /> Restaurant</span>;
       case 'Driver':
         return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100/70 text-amber-700"><Bike size={13} /> Driver</span>;
-      default: return null;
+      default: return <span className="text-xs text-gray-500">{role}</span>;
     }
   };
 
@@ -195,14 +180,14 @@ export default function ManageUsers() {
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100/80 text-amber-700"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending</span>;
       case 'Suspended':
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100/80 text-rose-600">⚠️ Suspended</span>;
-      default: return null;
+      default: return <span className="text-xs text-gray-500">{status}</span>;
     }
   };
 
   return (
     <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-gray-800 space-y-6">
       
-      {/* 1. Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 tracking-tight">User Management</h1>
@@ -223,14 +208,14 @@ export default function ManageUsers() {
 
           <button 
             onClick={() => handleOpenModal()} 
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#f96b44] hover:bg-[#e05630] text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition shrink-0"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#f96b44] hover:bg-[#e05630] text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition shrink-0 cursor-pointer"
           >
             <UserPlus size={16} /> Add New User
           </button>
         </div>
       </div>
 
-      {/* 2. Main Table Card */}
+      {/* Main Table Card */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
         
         {/* Filter Bar */}
@@ -260,14 +245,14 @@ export default function ManageUsers() {
 
             <button 
               onClick={() => { setSearchTerm(''); setRoleFilter('All Roles'); setStatusFilter('All Statuses'); }}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-orange-600 hover:text-orange-700 bg-orange-50/60 rounded-xl transition"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-orange-600 hover:text-orange-700 bg-orange-50/60 rounded-xl transition cursor-pointer"
             >
               <Filter size={14} /> Reset Filters
             </button>
           </div>
 
           <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span>Showing 1-{filteredUsers.length} of {users.length}</span>
+            <span>Showing {filteredUsers.length} of {users.length}</span>
             <div className="flex items-center gap-1">
               <button className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition"><ChevronLeft size={16} /></button>
               <button className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition"><ChevronRight size={16} /></button>
@@ -297,7 +282,14 @@ export default function ManageUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
-              {filteredUsers.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-gray-400">
+                    <Loader2 size={24} className="animate-spin mx-auto text-orange-500 mb-2" />
+                    កំពុងទាញទិន្នន័យ...
+                  </td>
+                </tr>
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-orange-50/20 transition">
                     <td className="py-4 px-4 text-center">
@@ -315,7 +307,7 @@ export default function ManageUsers() {
                           <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full object-cover border border-gray-100" />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">
-                            {user.name.charAt(0)}
+                            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                           </div>
                         )}
                         <div>
@@ -327,22 +319,21 @@ export default function ManageUsers() {
 
                     <td className="py-4 px-4">{renderRoleBadge(user.role)}</td>
                     <td className="py-4 px-4">{renderStatusBadge(user.status)}</td>
-                    <td className="py-4 px-4 text-gray-600 text-xs font-medium">{user.location}</td>
-                    <td className="py-4 px-4 text-gray-600 text-xs font-medium">{user.joinDate}</td>
+                    <td className="py-4 px-4 text-gray-600 text-xs font-medium">{user.location || 'N/A'}</td>
+                    <td className="py-4 px-4 text-gray-600 text-xs font-medium">{user.created_at || user.joinDate || 'N/A'}</td>
 
-                    {/* Edit & Delete Actions */}
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-center gap-1.5">
                         <button 
                           onClick={() => handleOpenModal(user)}
-                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition" 
+                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition cursor-pointer" 
                           title="Edit User"
                         >
                           <Edit2 size={16} />
                         </button>
                         <button 
                           onClick={() => handleDeleteUser(user.id)}
-                          className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" 
+                          className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" 
                           title="Delete User"
                         >
                           <Trash2 size={16} />
@@ -366,7 +357,7 @@ export default function ManageUsers() {
         <div className="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
           <button 
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 font-semibold hover:text-gray-900 transition bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200"
+            className="flex items-center gap-1.5 font-semibold hover:text-gray-900 transition bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer"
           >
             <Download size={14} /> Export CSV
           </button>
@@ -375,15 +366,15 @@ export default function ManageUsers() {
 
       </div>
 
-      {/* 3. Add / Edit User Modal Popup */}
+      {/* Modal Popup */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="font-extrabold text-gray-900 text-base">
                 {editingUser ? 'Edit User Profile' : 'Add New User'}
               </h3>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600 transition">
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600 transition cursor-pointer">
                 <X size={20} />
               </button>
             </div>
@@ -449,7 +440,7 @@ export default function ManageUsers() {
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-orange-500"
-                  placeholder="e.g. Seattle, WA"
+                  placeholder="e.g. Phnom Penh"
                 />
               </div>
 
@@ -457,14 +448,16 @@ export default function ManageUsers() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#f96b44] hover:bg-[#e05630] rounded-xl shadow-xs transition"
+                  disabled={submitting}
+                  className="flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-[#f96b44] hover:bg-[#e05630] rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
+                  {submitting && <Loader2 size={14} className="animate-spin" />}
                   {editingUser ? 'Save Changes' : 'Create User'}
                 </button>
               </div>

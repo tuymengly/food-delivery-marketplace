@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Search, 
   Users, 
@@ -12,50 +12,16 @@ import {
   UserPlus, 
   X, 
   Edit2, 
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
-
-const initialDrivers = [
-  {
-    id: 1,
-    name: 'Sokha Mean',
-    vehicle: 'Moto',
-    status: 'Online',
-    completedOrders: 128,
-    avgRating: 4.9,
-    earningsWk: 345.50,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    email: 'sokha@example.com',
-    phone: '+855 12 345 678'
-  },
-  {
-    id: 2,
-    name: 'Dara Vuthy',
-    vehicle: 'Bike',
-    status: 'Offline',
-    completedOrders: 45,
-    avgRating: 4.7,
-    earningsWk: 85.20,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    email: 'dara@example.com',
-    phone: '+855 98 765 432'
-  },
-  {
-    id: 3,
-    name: 'Borey Samnang',
-    vehicle: 'Car',
-    status: 'Pending',
-    completedOrders: 0,
-    avgRating: null,
-    earningsWk: 0.00,
-    avatar: null,
-    email: 'borey@example.com',
-    phone: '+855 77 112 233'
-  }
-];
+import { createDriver, deleteDriver, getDrivers, updateDriver } from '../../../services/driverService';
 
 export default function ManageDrivers() {
-  const [drivers, setDrivers] = useState(initialDrivers);
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -74,6 +40,80 @@ export default function ManageDrivers() {
     status: 'Online'
   });
 
+  useEffect(() => {
+    let isMounted = true;
+
+    getDrivers()
+      .then((response) => {
+        if (!isMounted) return;
+
+        const resData = response.data;
+        const driverList = Array.isArray(resData) ? resData : (resData.data || []);
+        setDrivers(driverList);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setError(err.response?.data?.message || err.message || 'ពុំអាចទាញទិន្នន័យបានទេ');
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. POST / PUT: Create or Update Driver
+  const handleSaveDriver = async (e) => {
+    e.preventDefault();
+    try {
+      const response = editingDriver
+        ? await updateDriver(editingDriver.id, formData)
+        : await createDriver(formData);
+      const resData = response.data;
+      const savedDriver = resData.data || resData;
+
+      if (editingDriver) {
+        setDrivers((currentDrivers) => currentDrivers.map(d => d.id === editingDriver.id ? savedDriver : d));
+      } else {
+        setDrivers((currentDrivers) => [savedDriver, ...currentDrivers]);
+      }
+
+      setIsModalOpen(false);
+      setEditingDriver(null);
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message || 'មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ'}`);
+    }
+  };
+
+  // 3. PATCH / PUT: Verify Driver (Change status to Online)
+  const handleVerify = async (id) => {
+    try {
+      const response = await updateDriver(id, { status: 'Online' });
+      const resData = response.data;
+      const updatedDriver = resData.data || resData;
+
+      setDrivers((currentDrivers) => currentDrivers.map(d => d.id === id ? updatedDriver : d));
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message || 'ពុំអាចផ្លាស់ប្ដូរ Status បានទេ'}`);
+    }
+  };
+
+  // 4. DELETE: Remove Driver
+  const handleDeleteDriver = async (id) => {
+    if (window.confirm('តើអ្នកប្រាកដថាចង់លុប Driver នេះមែនទេ?')) {
+      try {
+        await deleteDriver(id);
+
+        setDrivers((currentDrivers) => currentDrivers.filter(d => d.id !== id));
+      } catch (err) {
+        alert(`Error: ${err.response?.data?.message || err.message || 'ពុំអាចលុប Driver នេះបានទេ'}`);
+      }
+    }
+  };
+
   // Calculate Stat Cards
   const totalDrivers = drivers.length;
   const activeNow = drivers.filter(d => d.status === 'Online').length;
@@ -81,8 +121,8 @@ export default function ManageDrivers() {
 
   // Filter Data
   const filteredDrivers = drivers.filter((driver) => {
-    const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          driver.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = driver.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          driver.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesVehicle = vehicleFilter === 'All' || driver.vehicle === vehicleFilter;
     const matchesStatus = statusFilter === 'All' || driver.status === statusFilter;
     return matchesSearch && matchesVehicle && matchesStatus;
@@ -93,11 +133,11 @@ export default function ManageDrivers() {
     if (driver) {
       setEditingDriver(driver);
       setFormData({
-        name: driver.name,
-        email: driver.email,
+        name: driver.name || '',
+        email: driver.email || '',
         phone: driver.phone || '',
-        vehicle: driver.vehicle,
-        status: driver.status
+        vehicle: driver.vehicle || 'Moto',
+        status: driver.status || 'Online'
       });
     } else {
       setEditingDriver(null);
@@ -110,37 +150,6 @@ export default function ManageDrivers() {
       });
     }
     setIsModalOpen(true);
-  };
-
-  // Save Driver (Create / Edit)
-  const handleSaveDriver = (e) => {
-    e.preventDefault();
-    if (editingDriver) {
-      setDrivers(drivers.map(d => d.id === editingDriver.id ? { ...d, ...formData } : d));
-    } else {
-      const newDriver = {
-        id: Date.now(),
-        ...formData,
-        completedOrders: 0,
-        avgRating: null,
-        earningsWk: 0.00,
-        avatar: null
-      };
-      setDrivers([newDriver, ...drivers]);
-    }
-    setIsModalOpen(false);
-  };
-
-  // Verify Driver
-  const handleVerify = (id) => {
-    setDrivers(drivers.map(d => d.id === id ? { ...d, status: 'Online' } : d));
-  };
-
-  // Delete Driver
-  const handleDeleteDriver = (id) => {
-    if (window.confirm('តើអ្នកប្រាកដថាចង់លុប Driver នេះមែនទេ?')) {
-      setDrivers(drivers.filter(d => d.id !== id));
-    }
   };
 
   // Vehicle Icon helper
@@ -259,111 +268,121 @@ export default function ManageDrivers() {
 
         {/* Table Overflow Container */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[650px]">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
-                <th className="py-3.5 px-4 sm:px-6">Driver Name</th>
-                <th className="py-3.5 px-4 sm:px-6">Status</th>
-                <th className="py-3.5 px-4 sm:px-6">Completed Orders</th>
-                <th className="py-3.5 px-4 sm:px-6">Avg. Rating</th>
-                <th className="py-3.5 px-4 sm:px-6">Earnings (Wk)</th>
-                <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
-              {filteredDrivers.map((driver) => (
-                <tr key={driver.id} className="hover:bg-orange-50/10 transition">
-                  {/* Driver Name & Avatar */}
-                  <td className="py-4 px-4 sm:px-6">
-                    <div className="flex items-center gap-3">
-                      {driver.avatar ? (
-                        <img src={driver.avatar} alt={driver.name} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0">
-                          {driver.name.charAt(0)}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-900 leading-tight truncate">{driver.name}</p>
-                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                          {renderVehicleIcon(driver.vehicle)} {driver.vehicle}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
-                    {driver.status === 'Online' && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100/80 text-emerald-700">Online</span>
-                    )}
-                    {driver.status === 'Offline' && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100/80 text-rose-600">Offline</span>
-                    )}
-                    {driver.status === 'Pending' && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100/80 text-orange-600">Pending</span>
-                    )}
-                  </td>
-
-                  {/* Orders */}
-                  <td className="py-4 px-4 sm:px-6 font-medium text-gray-700 whitespace-nowrap">{driver.completedOrders}</td>
-
-                  {/* Rating */}
-                  <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
-                    {driver.avgRating ? (
-                      <span className="flex items-center gap-1 font-semibold text-gray-800 text-xs">
-                        <Star size={14} className="text-blue-500 fill-blue-500" /> {driver.avgRating}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">N/A</span>
-                    )}
-                  </td>
-
-                  {/* Earnings */}
-                  <td className="py-4 px-4 sm:px-6 font-semibold text-gray-800 whitespace-nowrap">
-                    ${driver.earningsWk.toFixed(2)}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {driver.status === 'Pending' ? (
-                        <button 
-                          onClick={() => handleVerify(driver.id)}
-                          className="px-3 py-1.5 bg-[#f96b44] hover:bg-[#e05630] text-white text-xs font-semibold rounded-lg shadow-sm transition"
-                        >
-                          Verify
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => { setSelectedDriver(driver); setIsDetailOpen(true); }}
-                          className="px-2.5 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-lg transition"
-                        >
-                          Details
-                        </button>
-                      )}
-
-                      <button 
-                        onClick={() => handleOpenModal(driver)}
-                        className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
-                        title="Edit Driver"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-
-                      <button 
-                        onClick={() => handleDeleteDriver(driver.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Delete Driver"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-gray-500 gap-2">
+              <Loader2 className="animate-spin" size={20} /> Loading drivers...
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-500">{error}</div>
+          ) : (
+            <table className="w-full text-left border-collapse min-w-[650px]">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
+                  <th className="py-3.5 px-4 sm:px-6">Driver Name</th>
+                  <th className="py-3.5 px-4 sm:px-6">Status</th>
+                  <th className="py-3.5 px-4 sm:px-6">Completed Orders</th>
+                  <th className="py-3.5 px-4 sm:px-6">Avg. Rating</th>
+                  <th className="py-3.5 px-4 sm:px-6">Earnings (Wk)</th>
+                  <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-sm">
+                {filteredDrivers.map((driver) => (
+                  <tr key={driver.id} className="hover:bg-orange-50/10 transition">
+                    {/* Driver Name & Avatar */}
+                    <td className="py-4 px-4 sm:px-6">
+                      <div className="flex items-center gap-3">
+                        {driver.avatar ? (
+                          <img src={driver.avatar} alt={driver.name} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0">
+                            {driver.name ? driver.name.charAt(0) : 'D'}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 leading-tight truncate">{driver.name}</p>
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                            {renderVehicleIcon(driver.vehicle)} {driver.vehicle || 'Moto'}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
+                      {driver.status === 'Online' && (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100/80 text-emerald-700">Online</span>
+                      )}
+                      {driver.status === 'Offline' && (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100/80 text-rose-600">Offline</span>
+                      )}
+                      {driver.status === 'Pending' && (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100/80 text-orange-600">Pending</span>
+                      )}
+                    </td>
+
+                    {/* Orders */}
+                    <td className="py-4 px-4 sm:px-6 font-medium text-gray-700 whitespace-nowrap">
+                      {driver.completedOrders ?? 0}
+                    </td>
+
+                    {/* Rating */}
+                    <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
+                      {driver.avgRating ? (
+                        <span className="flex items-center gap-1 font-semibold text-gray-800 text-xs">
+                          <Star size={14} className="text-blue-500 fill-blue-500" /> {driver.avgRating}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">N/A</span>
+                      )}
+                    </td>
+
+                    {/* Earnings */}
+                    <td className="py-4 px-4 sm:px-6 font-semibold text-gray-800 whitespace-nowrap">
+                      ${Number(driver.earningsWk || 0).toFixed(2)}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {driver.status === 'Pending' ? (
+                          <button 
+                            onClick={() => handleVerify(driver.id)}
+                            className="px-3 py-1.5 bg-[#f96b44] hover:bg-[#e05630] text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                          >
+                            Verify
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => { setSelectedDriver(driver); setIsDetailOpen(true); }}
+                            className="px-2.5 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-lg transition"
+                          >
+                            Details
+                          </button>
+                        )}
+
+                        <button 
+                          onClick={() => handleOpenModal(driver)}
+                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                          title="Edit Driver"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+
+                        <button 
+                          onClick={() => handleDeleteDriver(driver.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          title="Delete Driver"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination Footer */}
@@ -487,18 +506,18 @@ export default function ManageDrivers() {
             </button>
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-600 mx-auto flex items-center justify-center font-bold text-xl mb-3">
-                {selectedDriver.name.charAt(0)}
+                {selectedDriver.name ? selectedDriver.name.charAt(0) : 'D'}
               </div>
               <h3 className="font-bold text-lg text-gray-900">{selectedDriver.name}</h3>
               <p className="text-xs text-gray-500">{selectedDriver.email}</p>
               
               <div className="mt-4 pt-4 border-t border-gray-100 text-left space-y-2.5 text-sm">
                 <p className="flex justify-between"><strong className="text-gray-600">Phone:</strong> {selectedDriver.phone || 'N/A'}</p>
-                <p className="flex justify-between"><strong className="text-gray-600">Vehicle:</strong> {selectedDriver.vehicle}</p>
+                <p className="flex justify-between"><strong className="text-gray-600">Vehicle:</strong> {selectedDriver.vehicle || 'Moto'}</p>
                 <p className="flex justify-between"><strong className="text-gray-600">Status:</strong> {selectedDriver.status}</p>
-                <p className="flex justify-between"><strong className="text-gray-600">Orders Completed:</strong> {selectedDriver.completedOrders}</p>
+                <p className="flex justify-between"><strong className="text-gray-600">Orders Completed:</strong> {selectedDriver.completedOrders ?? 0}</p>
                 <p className="flex justify-between"><strong className="text-gray-600">Rating:</strong> {selectedDriver.avgRating || 'N/A'}</p>
-                <p className="flex justify-between"><strong className="text-gray-600">Earnings (Wk):</strong> ${selectedDriver.earningsWk.toFixed(2)}</p>
+                <p className="flex justify-between"><strong className="text-gray-600">Earnings (Wk):</strong> ${Number(selectedDriver.earningsWk || 0).toFixed(2)}</p>
               </div>
             </div>
           </div>

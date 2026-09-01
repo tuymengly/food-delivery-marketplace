@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import RestaurantSidebar from './RestaurantSidebar';
 import { Bell, ChevronDown, Menu, X, Search, UtensilsCrossed } from 'lucide-react';
@@ -58,7 +58,7 @@ export default function RestaurantLayout() {
             {/* Live Order Counter Badge (Hidden on mobile) */}
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold">
               <UtensilsCrossed size={16} className="animate-pulse" />
-              <span>3 New Orders</span>
+              <span>Live Orders</span>
             </div>
 
             {/* Notification Bell */}

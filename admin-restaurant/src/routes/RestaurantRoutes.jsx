@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import RestaurantLayout from '../modules/restaurant/components/RestaurantLayout';
 import ManageCategories from '../modules/restaurant/pages/ManageCategories';

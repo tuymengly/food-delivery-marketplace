@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -18,7 +17,7 @@ import logoImg from '../../../assets/logo.png';
 export default function RestaurantSidebar({ onClose }) {
   const menuItems = [
     { name: 'Dashboard', path: '/restaurant/dashboard', icon: LayoutDashboard },
-    { name: 'Orders', path: '/restaurant/orders', icon: ShoppingBag, badge: 3 },
+    { name: 'Orders', path: '/restaurant/orders', icon: ShoppingBag },
     { name: 'Manage Foods', path: '/restaurant/foods', icon: UtensilsCrossed },
     { name: 'Categories', path: '/restaurant/categories', icon: FolderTree },
     { name: 'Sales & Earnings', path: '/restaurant/sales', icon: DollarSign },
