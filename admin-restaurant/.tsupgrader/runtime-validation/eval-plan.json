@@ -1,0 +1,23 @@
+{
+  "projectType": "webapp",
+  "projectName": "admin-restaurant",
+  "projectDescription": "Admin Restaurant React Application using Vite",
+  "baseCommand": "npm",
+  "nodeVersion": ">=18",
+  "assertions": [
+    {
+      "name": "build-succeeds",
+      "command": "npm run build",
+      "type": "exit-code",
+      "expected": "0",
+      "description": "Vite build should complete successfully"
+    },
+    {
+      "name": "lint-succeeds",
+      "command": "npm run lint",
+      "type": "exit-code",
+      "expected": "0",
+      "description": "ESLint should pass without errors"
+    }
+  ]
+}
