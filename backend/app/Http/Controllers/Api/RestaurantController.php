@@ -57,6 +57,7 @@ class RestaurantController extends Controller
 
     public function update(Request $request, Restaurant $restaurant): JsonResponse
     {
+        $restaurant = $this->findUserRestaurant($request, $restaurant);
         $validated = $request->validate($this->rules());
 
         $restaurant->update($validated);
@@ -87,6 +88,7 @@ class RestaurantController extends Controller
 
     public function destroy(Restaurant $restaurant): JsonResponse
     {
+        $restaurant = $this->findUserRestaurant($request, $restaurant);
         $restaurant->delete();
 
         return response()->json([
@@ -109,5 +111,14 @@ class RestaurantController extends Controller
             'image' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending'])],
         ];
+    }
+
+    private function findUserRestaurant(Request $request, Restaurant $restaurant): Restaurant
+    {
+        if ($request->user()->role === 'admin' || $request->user()->id === $restaurant->user_id) {
+            return $restaurant;
+        }
+
+        abort(403, 'You do not have permission to modify this restaurant.');
     }
 }

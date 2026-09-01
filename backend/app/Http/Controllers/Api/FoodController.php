@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Food;
+use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -74,6 +75,7 @@ class FoodController extends Controller
      */
     public function destroy(Food $food): JsonResponse
     {
+        $this->findUserFood($request, $food);
         $food->delete();
 
         return response()->json([
