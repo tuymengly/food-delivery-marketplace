@@ -11,7 +11,7 @@ class CategoryController extends Controller
 {
     public function index(): JsonResponse
     {
-        $categories = Category::latest()->get();
+        $categories = Category::withCount('foods')->latest()->get();
 
         return response()->json([
             'success' => true,
