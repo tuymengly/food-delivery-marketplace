@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
+import { createRestaurantOrder } from '../services/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -62,6 +65,9 @@ const Checkout = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    if (apiError) {
+      setApiError('');
+    }
   };
 
   const validateForm = () => {
@@ -99,21 +105,68 @@ const Checkout = () => {
     return subtotal + delivery;
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // Create order object
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const restaurantId = Number(
+      localStorage.getItem('restaurant_id') ||
+      import.meta.env.VITE_RESTAURANT_ID ||
+      1
+    );
+    const subtotal = calculateSubtotal();
+    const delivery = 2.00;
+    const total = calculateTotal();
+
+    const payload = {
+      restaurant_id: restaurantId,
+      user_id: Number.isInteger(Number(currentUser.id)) ? Number(currentUser.id) : undefined,
+      customer_name: formData.fullName,
+      customer_email: currentUser.email,
+      customer_phone: formData.phone,
+      delivery_address: formData.address,
+      city: formData.city,
+      notes: formData.notes,
+      payment_method: formData.paymentMethod,
+      total_price: total,
+      status: 'new',
+      items: cartItems.map((item) => ({
+        food_id: Number(item.food_id || item.id),
+        name: item.name,
+        category: item.category,
+        type: item.type,
+        quantity: Number(item.quantity || 1),
+        price: Number(item.price || 0),
+      })),
+    };
+
+    let savedOrder;
+    try {
+      setIsSubmitting(true);
+      setApiError('');
+      const response = await createRestaurantOrder(payload);
+      savedOrder = response.order;
+    } catch (error) {
+      console.error('Failed to place order:', error);
+      setApiError(error.message || 'Cannot connect to the restaurant server. Please try again.');
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    // Create customer-side order object for receipt/history screens.
     const order = {
-      id: Date.now(),
+      id: savedOrder?.id || Date.now(),
+      remoteId: savedOrder?.id,
       date: new Date().toISOString(),
       items: cartItems,
       customerInfo: formData,
-      subtotal: calculateSubtotal(),
-      delivery: 2.00,
-      total: calculateTotal(),
-      status: 'pending'
+      subtotal,
+      delivery,
+      total,
+      status: savedOrder?.status || 'new'
     };
 
     // Store order in localStorage
@@ -293,6 +346,12 @@ const Checkout = () => {
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
+              {apiError && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {apiError}
+                </div>
+              )}
+
               {/* Items List */}
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
                 {cartItems.map((item) => (
@@ -338,9 +397,10 @@ const Checkout = () => {
               {/* Place Order Button */}
               <button
                 onClick={handlePlaceOrder}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 mb-4"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 transition-all duration-300 mb-4"
               >
-                Place Order
+                {isSubmitting ? 'Placing Order...' : 'Place Order'}
               </button>
 
               <button
