@@ -19,6 +19,7 @@ export default function ManageFoods() {
   const [categories, setCategories] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -160,6 +161,7 @@ export default function ManageFoods() {
   // Save Form (Create or Update)
   const handleSave = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
     try {
       const payload = {
@@ -183,11 +185,13 @@ export default function ManageFoods() {
         setFoods([created.id ? created : { id: Date.now(), ...payload, rating: 5.0, status: 'available' }, ...foods]);
       }
       setIsModalOpen(false);
-      fetchFoods(); // ទាញយកទិន្នន័យថ្មីមកបង្ហាញ
+      fetchFoods(); 
     } catch (error) {
       console.error('Detailed Error:', error.response?.data);
       const errorMsg = error.response?.data?.message || JSON.stringify(error.response?.data?.errors) || 'Please check your inputs.';
       alert('Failed to save food item: ' + errorMsg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -479,13 +483,21 @@ export default function ManageFoods() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Image URL (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                  />
+                  <img 
+                    src={formData.image || DEFAULT_FOOD_IMAGE} 
+                    alt="Preview" 
+                    className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0"
+                    onError={(e) => { e.target.src = DEFAULT_FOOD_IMAGE; }}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3">
@@ -498,9 +510,10 @@ export default function ManageFoods() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#ea580c] text-white text-xs font-bold rounded-xl hover:bg-orange-700 transition"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-[#ea580c] text-white text-xs font-bold rounded-xl hover:bg-orange-700 transition disabled:opacity-50"
                 >
-                  {editingFood ? 'Save Changes' : 'Add Item'}
+                  {submitting ? 'Saving...' : (editingFood ? 'Save Changes' : 'Add Item')}
                 </button>
               </div>
             </form>

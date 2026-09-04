@@ -21,31 +21,37 @@ class RestaurantController extends Controller
         ]);
     }
 
-   public function store(Request $request): JsonResponse
-{
-    $validated = $request->validate($this->rules());
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate($this->rules());
 
-    // ស្វែងរក User ដែលកំពុង Login ឬយក User ទី១ ដែលមានស្រាប់ក្នុង Database
-    $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user() ?? \App\Models\User::first();
 
-    if (!$user) {
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'សូម Register ឬបង្កើត User យ៉ាងហោចណាស់មួយក្នុង Database ជាមុនសិន!',
+            ], 400);
+        }
+
+        // ដោះស្រាយការបញ្ចូលរូបភាព (Image / Cover Image) បើមានផ្ញើមកជា File
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('restaurants', 'public');
+            $validated['image'] = asset('storage/' . $imagePath);
+        }
+
+        $restaurant = Restaurant::create([
+            ...$validated,
+            'user_id' => $user->id,
+        ]);
+
         return response()->json([
-            'success' => false,
-            'message' => 'សូម Register ឬបង្កើត User យ៉ាងហោចណាស់មួយក្នុង Database ជាមុនសិន!',
-        ], 400);
+            'success' => true,
+            'message' => 'Restaurant created successfully.',
+            'data' => $restaurant->load('user:id,name,email,role'),
+        ], 201);
     }
 
-    $restaurant = Restaurant::create([
-        ...$validated,
-        'user_id' => $user->id,
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Restaurant created successfully.',
-        'data' => $restaurant->load('user:id,name,email,role'),
-    ], 201);
-}
     public function show(Restaurant $restaurant): JsonResponse
     {
         return response()->json([
@@ -59,6 +65,11 @@ class RestaurantController extends Controller
     {
         $restaurant = $this->findUserRestaurant($request, $restaurant);
         $validated = $request->validate($this->rules());
+
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('restaurants', 'public');
+            $validated['image'] = asset('storage/' . $imagePath);
+        }
 
         $restaurant->update($validated);
 
@@ -86,8 +97,9 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function destroy(Restaurant $restaurant): JsonResponse
+    public function destroy(Request $request, Restaurant $restaurant): JsonResponse
     {
+        // បានបន្ថែម $request ទៅក្នុងនេះដើម្បីជៀសវាង Undefined variable error
         $restaurant = $this->findUserRestaurant($request, $restaurant);
         $restaurant->delete();
 
@@ -108,17 +120,85 @@ class RestaurantController extends Controller
             'description' => ['nullable', 'string'],
             'address' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
-            'image' => ['nullable', 'string', 'max:255'],
+            // កែសម្រួលឱ្យទទួលយកទាំង String ឬ File រូបភាព
+            'image' => ['nullable', 'sometimes'], 
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending'])],
         ];
     }
 
     private function findUserRestaurant(Request $request, Restaurant $restaurant): Restaurant
     {
-        if ($request->user()->role === 'admin' || $request->user()->id === $restaurant->user_id) {
+        $user = $request->user();
+
+        // អនុញ្ញាតបើជា admin, super_admin ឬម្ចាស់ហាងផ្ទាល់
+        if ($user && ($user->role === 'admin' || $user->role === 'super_admin' || $user->id === $restaurant->user_id)) {
             return $restaurant;
         }
 
         abort(403, 'You do not have permission to modify this restaurant.');
+    }
+    // ទាញយក Profile របស់ Restaurant តាម User ដែលកំពុង Login
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $restaurant = Restaurant::where('user_id', $user->id)->first();
+
+        if (! $restaurant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant profile not found for this user.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Restaurant profile retrieved successfully.',
+            'data' => $restaurant->load('user:id,name,email,role'),
+        ]);
+    }
+
+    // អាប់ដេត Profile របស់ Restaurant តាម User ដែលកំពុង Login
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $restaurant = Restaurant::where('user_id', $user->id)->first();
+
+        if (! $restaurant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant profile not found.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'address' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:50'],
+            'image' => ['nullable', 'sometimes'],
+            'cuisine' => ['nullable', 'string', 'max:255'],
+            'delivery_fee' => ['nullable', 'numeric'],
+            'min_order' => ['nullable', 'numeric'],
+            'avg_delivery_time' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('restaurants', 'public');
+            $validated['image'] = asset('storage/' . $imagePath);
+        }
+
+        // បើផ្ញើមកជា cover_image ពី frontend
+        if ($request->hasFile('cover_image')) {
+            $imagePath = $request->file('cover_image')->store('restaurants', 'public');
+            $validated['image'] = asset('storage/' . $imagePath);
+        }
+
+        $restaurant->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => $restaurant->load('user:id,name,email,role'),
+        ]);
     }
 }

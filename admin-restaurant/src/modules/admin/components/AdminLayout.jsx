@@ -1,11 +1,54 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
-import { Bell, ChevronDown, Menu, Search } from 'lucide-react';
+import { Bell, ChevronDown, Menu, Search, LogOut, User as UserIcon } from 'lucide-react';
+import { getAdminProfile } from '../../../services/adminService'; 
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('admin_user');
+    if (savedUser && savedUser !== "undefined") {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        return { name: 'Admin', role: 'Super Admin' };
+      }
+    }
+    return { name: 'Admin', role: 'Super Admin' };
+  });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await getAdminProfile();
+        const userData = response.data.data || response.data;
+        if (userData) {
+          setUser({
+            name: userData.name || 'Admin',
+            role: userData.role || 'Super Admin'
+          });
+          localStorage.setItem('admin_user', JSON.stringify(userData));
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin profile from API:', error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // មុខងារសម្រាប់ Logout ចេញពីប្រព័ន្ធ Admin
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('admin_user');
+    navigate('/login');
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 relative">
@@ -16,20 +59,19 @@ export default function AdminLayout() {
           className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
         />
       )}
-
-      {/* Sidebar - Drawer for Mobile, Fixed/Sticky for Desktop */}
+      
+      {/* Sidebar */}
       <div className={`fixed md:sticky top-0 z-50 h-screen transition-transform duration-300 ease-in-out ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         <AdminSidebar onClose={() => setIsSidebarOpen(false)} />
       </div>
-
+ 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
         <header className="flex justify-between items-center px-4 md:px-8 py-3 bg-white border-b border-gray-100 sticky top-0 z-30 gap-2 md:gap-4">
           
-          {/* Menu Button & Search */}
           <div className="flex items-center gap-2 md:gap-3 flex-1 max-w-md">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -52,24 +94,51 @@ export default function AdminLayout() {
           </div>
 
           {/* User & Notification Controls */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0 pl-2">
-            {/* Notification Icon */}
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0 pl-2 relative">
             <button className="relative p-2 hover:bg-gray-50 rounded-full transition">
               <Bell size={20} className="text-gray-600" />
               <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
 
-            {/* Profile Info */}
-            <div className="flex items-center gap-2 sm:gap-3 cursor-pointer sm:pl-4 sm:border-l sm:border-gray-200">
-              <div className="w-9 h-9 bg-orange-100 text-[#e03a11] rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                T
+            {/* Profile Info - អាចចុចបាន (Dropdown Menu) */}
+            <div className="relative">
+              <div 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="flex items-center gap-2 sm:gap-3 cursor-pointer sm:pl-4 sm:border-l sm:border-gray-200 select-none py-1 px-2 rounded-lg hover:bg-gray-50 transition"
+              >
+                <div className="w-9 h-9 bg-orange-100 text-[#e03a11] rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <div className="hidden sm:flex flex-col">
+                  <span className="font-bold text-gray-800 text-xs leading-tight">{user.name}</span>
+                  <span className="text-[10px] text-gray-400 font-medium capitalize">{user.role}</span>
+                </div>
+                <ChevronDown size={16} className={`text-gray-400 hidden sm:inline transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
-              <div className="hidden sm:flex flex-col">
-                <span className="font-bold text-gray-800 text-xs leading-tight">Tom Wright</span>
-                <span className="text-[10px] text-gray-400 font-medium">Super Admin</span>
-              </div>
-              <ChevronDown size={16} className="text-gray-400 hidden sm:inline" />
+
+              {/* Profile Dropdown Menu */}
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50">
+                  <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
+                    <p className="font-bold text-gray-800 text-xs">{user.name}</p>
+                    <p className="text-[10px] text-gray-400 capitalize">{user.role}</p>
+                  </div>
+                  <button 
+                    onClick={() => { setIsProfileDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <UserIcon size={16} /> My Profile
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition"
+                  >
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              )}
             </div>
+
           </div>
 
         </header>

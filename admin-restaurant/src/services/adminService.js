@@ -16,13 +16,12 @@ export const createCategory = (data) => API.post('/categories', data);
 export const updateCategory = (id, data) => API.put(`/categories/${id}`, data);
 export const deleteCategory = (id) => API.delete(`/categories/${id}`);
 
-// Orders APIs
 export const getOrders = async () => {
-  return await API.get('/orders');
+  return await API.get('/admin/orders');
 };
 
 export const updateOrderStatus = async (id, status) => {
-  return await API.put(`/orders/${id}/status`, { status });
+  return await API.put(`/admin/orders/${id}/status`, { status });
 };
 
 // Restaurant APIs
@@ -65,6 +64,7 @@ export const updateUser = async (id, userData) => {
 export const deleteUser = async (id) => {
   return await API.delete(`/admin/users/${id}`);
 };
+
 // Settings APIs
 export const getAdminProfile = async () => {
   return await API.get('/admin/profile');
@@ -76,7 +76,8 @@ export const updateAdminProfile = async (data) => {
 
 export const updateAdminPassword = async (data) => {
   return await API.put('/admin/change-password', data);
-};
+}; // <--- បានលុបលេខ ១ ចេញរួចរាល់
+
 export const getPaymentStats = () => {
   return API.get('/admin/payments');
 };

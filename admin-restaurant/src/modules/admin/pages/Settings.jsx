@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Shield, Save, Lock, Loader2, KeyRound } from 'lucide-react';
+import { User, Bell, Shield, Save, Loader2, KeyRound } from 'lucide-react';
 import { getAdminProfile, updateAdminProfile, updateAdminPassword } from '../../../services/adminService';
 
 export default function Settings() {
@@ -9,12 +9,12 @@ export default function Settings() {
 
   // Profile State
   const [profile, setProfile] = useState({
-    name: 'Tom Wright',
-    email: 'tom.wright@biterush.com',
+    name: '',
+    email: '',
     role: 'Super Admin',
   });
 
-  // Notifications State (Save locally or send to API)
+  // Notifications State
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem('admin_notifications');
     return saved ? JSON.parse(saved) : {
@@ -31,21 +31,24 @@ export default function Settings() {
     confirmPassword: '',
   });
 
-  // Fetch Current Profile Data
+  // Fetch Current Profile Data ពី API ពេលទំព័រត្រូវបាន Load
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
         const res = await getAdminProfile();
-        if (res.data) {
+        const userData = res.data.data || res.data; // ទាញយកទិន្នន័យតាមទម្រង់ Response របស់ Backend
+        
+        if (userData) {
           setProfile({
-            name: res.data.name || '',
-            email: res.data.email || '',
-            role: res.data.role || 'Super Admin',
+            name: userData.name || '',
+            email: userData.email || '',
+            role: userData.role || 'Super Admin',
           });
         }
       } catch (error) {
         console.error('Failed to load profile:', error);
+        alert('មានបញ្ហាក្នុងการទាញយកទិន្នន័យ Profile!');
       } finally {
         setLoading(false);
       }
@@ -54,21 +57,22 @@ export default function Settings() {
     fetchProfile();
   }, []);
 
-  // Save Profile & Notifications
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
       setSubmitting(true);
       
-      // Save notification to localStorage
       localStorage.setItem('admin_notifications', JSON.stringify(notifications));
 
-      // Save Profile to Backend
-      await updateAdminProfile(profile);
+      await updateAdminProfile({
+        name: profile.name,
+        email: profile.email,
+      });
+
       alert('ការកំណត់ត្រូវបានរក្សាទុកដោយជោគជ័យ!');
     } catch (error) {
       console.error('Save failed:', error);
-      const msg = error.response?.data?.message || 'មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!';
+      const msg = error.response?.data?.message || error.response?.data?.error || 'មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!';
       alert(msg);
     } finally {
       setSubmitting(false);
@@ -88,12 +92,14 @@ export default function Settings() {
       await updateAdminPassword({
         current_password: passwords.currentPassword,
         new_password: passwords.newPassword,
+        new_password_confirmation: passwords.confirmPassword, // បន្ថើមកន្លែងនេះបើ Backendទាមទារការផ្ទៀងផ្ទាត់
       });
+
       alert('ប្តូរពាក្យសម្ងាត់បានជោគជ័យ!');
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       console.error('Password change failed:', error);
-      const msg = error.response?.data?.message || 'ពាក្យសម្ងាត់ចាស់មិនត្រឹមត្រូវ!';
+      const msg = error.response?.data?.message || error.response?.data?.error || 'ពាក្យសម្ងាត់ចាស់មិនត្រឹមត្រូវ ឬមានបញ្តហាកើតឡើង!';
       alert(msg);
     } finally {
       setPwdSubmitting(false);

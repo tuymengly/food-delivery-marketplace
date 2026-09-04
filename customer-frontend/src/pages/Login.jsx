@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import api from '../api/axios'; // ហៅប្រើប្រាស់ Axios instance ដែលបានបង្កើតខាងលើ
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -19,30 +21,36 @@ const Login = () => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Find user
-    const user = users.find(u => u.email === formData.email && u.password === formData.password);
-    
-    if (user) {
-      // Store logged in user
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: user.id,
-        name: user.name,
-        email: user.email
-      }));
-      
-      // Notify navbar of auth change
-      window.dispatchEvent(new Event('authChanged'));
-      
-      // Redirect to home
-      navigate('/home');
-    } else {
-      setError('Invalid email or password');
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.post('/login', {
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (response.data.success) {
+        const { user, token } = response.data.data;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+
+        window.dispatchEvent(new Event('authChanged'));
+
+        navigate('/home');
+      }
+    } catch (err) {
+      if (err.response && err.response.data) {
+        // បង្ហាញសាររឿង Validation ឬបញ្ហាគណនីពី Backend
+        setError(err.response.data.message || 'Invalid email or password.');
+      } else {
+        setError('មានបញ្តហាកើតឡើង សូមព្យាយាមម្តងទៀត។');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,23 +132,13 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-orange-600 rounded" />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
-              </label>
-              <a href="#" className="text-sm text-orange-600 hover:text-orange-700 font-semibold">
-                Forgot Password?
-              </a>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50"
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
 
@@ -152,13 +150,6 @@ const Login = () => {
                 Sign Up
               </Link>
             </p>
-          </div>
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl">
-            <p className="text-sm font-semibold text-gray-900 mb-2">Demo Credentials:</p>
-            <p className="text-xs text-gray-700">Email: demo@delish.com</p>
-            <p className="text-xs text-gray-700">Password: demo123</p>
           </div>
         </div>
 

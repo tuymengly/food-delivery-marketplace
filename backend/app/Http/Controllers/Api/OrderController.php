@@ -59,7 +59,7 @@ class OrderController extends Controller
    /**
      * Create New Order
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $request->validate([
             'restaurant_id'    => 'required|integer',
@@ -128,15 +128,16 @@ class OrderController extends Controller
             $foodMap = [];
             foreach ($request->items as $item) {
                 $food = Food::find($item['food_id']);
+                $categoryName = $item['category'] ?? 'General';
+                
+                $category = Category::firstOrCreate(
+                    ['name' => $categoryName],
+                    ['description' => $categoryName . ' Food Category']
+                );
 
+                $foodName = $item['name'] ?? ('Food Item #' . $item['food_id']);
+                
                 if (!$food) {
-                    $categoryName = $item['category'] ?? 'General';
-                    $category = Category::firstOrCreate(
-                        ['name' => $categoryName],
-                        ['description' => $categoryName . ' Food Category']
-                    );
-
-                    $foodName = $item['name'] ?? ('Food Item #' . $item['food_id']);
                     $food = Food::where('restaurant_id', $restaurant->id)
                         ->where('name', $foodName)
                         ->first();
@@ -155,11 +156,12 @@ class OrderController extends Controller
                 $foodMap[$item['food_id']] = $food->id;
             }
 
+            // កំណត់ Status ឱ្យចេញជា Placed ពេលបញ្ជាទិញថ្មី (ត្រូវជាមួយ Tab ใน Frontend)
             $order = Order::create([
                 'restaurant_id' => $restaurant->id,
                 'user_id'       => $user->id,
                 'total_price'   => $request->total_price,
-                'status'        => strtolower($request->status ?? 'new'),
+                'status'        => ucfirst(strtolower($request->status ?? 'Placed')),
             ]);
 
             foreach ($request->items as $item) {

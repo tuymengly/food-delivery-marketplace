@@ -44,11 +44,11 @@ export default function AdminSidebar({ onClose }) {
           </button>
 
           <div className="flex flex-col items-center justify-center space-y-2 pt-1">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white/5 p-1 border border-white/10 shadow-lg">
+            <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-white/5 p-1 border border-white/10 shadow-lg">
               <img 
                 src={logoImg} 
                 alt="24 Hour Food Logo" 
-                className="w-full h-full object-cover rounded-xl"
+                className="w-full h-full object-cover rounded-full"
               />
             </div>
             <div>

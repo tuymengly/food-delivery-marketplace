@@ -24,6 +24,7 @@ class FoodController extends Controller
             'data' => $foods,
         ]);
     }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -34,7 +35,9 @@ class FoodController extends Controller
         if (empty($validatedData['image'])) {
             $validatedData['image'] = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&auto=format&fit=crop&q=80';
         }
+        
         $food = Food::create($validatedData);
+
         return response()->json([
             'success' => true,
             'message' => 'Food created successfully.',
@@ -75,7 +78,7 @@ class FoodController extends Controller
      */
     public function destroy(Food $food): JsonResponse
     {
-        $this->findUserFood($request, $food);
+        // បានលុបកូដដែលហៅរក $request ត្រង់នេះចេញ ព្រោះវាធ្វើឱ្យខុស Error 500
         $food->delete();
 
         return response()->json([

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Search, X, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { Eye, Search, X, ShoppingBag } from 'lucide-react';
 import { getOrders, updateOrderStatus } from '../../../services/adminService';
-const filterTabs = ['All', 'Placed', 'Accepted', 'Preparing', 'Ready', 'Out For Delivery', 'Delivered', 'Cancelled'];
+
+const filterTabs = ['All', 'Placed', 'Accepted', 'Preparing', 'Ready', 'Out For Delivery', 'Delivered', 'Completed', 'Cancelled'];
+
 export default function ManageOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +15,10 @@ export default function ManageOrders() {
     try {
       setLoading(true);
       const response = await getOrders();
-      setOrders(response.data.data || response.data || []);
+      console.log("API Orders Response:", response.data);
+      
+      const ordersData = response.data.orders || response.data.data || response.data || [];
+      setOrders(ordersData);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -25,37 +30,39 @@ export default function ManageOrders() {
     fetchOrdersData();
   }, []);
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  const handleStatusChange = async (realId, newStatus) => {
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(realId, { status: newStatus });
       fetchOrdersData();
       if (selectedOrder) {
         setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
       }
     } catch (error) {
+      console.error('Status update error:', error);
       alert('បរាជ័យក្នុងការប្តូរ Status!');
     }
   };
 
-  // Filter Orders
+  // Filter Orders (Case-insensitive match)
   const filteredOrders = orders.filter((order) => {
     const matchesTab = activeTab === 'All' || order.status?.toLowerCase() === activeTab.toLowerCase();
     const matchesSearch =
       order.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.restaurant?.toLowerCase().includes(searchTerm.toLowerCase());
+      order.restaurant_name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Placed': return 'bg-blue-100 text-blue-600';
-      case 'Accepted': return 'bg-indigo-100 text-indigo-600';
-      case 'Preparing': return 'bg-amber-100 text-amber-700';
-      case 'Ready': return 'bg-emerald-100 text-emerald-700';
-      case 'Out For Delivery': return 'bg-orange-100 text-orange-700';
-      case 'Delivered': return 'bg-green-100 text-green-600';
-      case 'Cancelled': return 'bg-red-100 text-red-600';
+    switch (status?.toLowerCase()) {
+      case 'placed': return 'bg-blue-100 text-blue-600';
+      case 'accepted': return 'bg-indigo-100 text-indigo-600';
+      case 'preparing': return 'bg-amber-100 text-amber-700';
+      case 'ready': return 'bg-emerald-100 text-emerald-700';
+      case 'out for delivery': return 'bg-orange-100 text-orange-700';
+      case 'delivered': return 'bg-green-100 text-green-600';
+      case 'completed': return 'bg-green-100 text-green-700';
+      case 'cancelled': return 'bg-red-100 text-red-600';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
@@ -114,7 +121,7 @@ export default function ManageOrders() {
                 <th className="py-3.5 px-4 sm:px-6">Customer</th>
                 <th className="py-3.5 px-4 sm:px-6">Restaurant</th>
                 <th className="py-3.5 px-4 sm:px-6">Total</th>
-                <th className="py-3.5 px-4 sm:px-6">Date</th>
+                <th className="py-3.5 px-4 sm:px-6">Time</th>
                 <th className="py-3.5 px-4 sm:px-6">Status</th>
                 <th className="py-3.5 px-4 sm:px-6 text-center">Action</th>
               </tr>
@@ -122,16 +129,16 @@ export default function ManageOrders() {
             <tbody className="divide-y divide-gray-100 text-sm">
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-orange-50/20 transition">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-gray-800 whitespace-nowrap">#{order.id}</td>
-                    <td className="py-4 px-4 sm:px-6 font-bold text-gray-900 whitespace-nowrap">{order.customer || order.user?.name}</td>
-                    <td className="py-4 px-4 sm:px-6 text-gray-500 whitespace-nowrap">{order.restaurant || order.restaurant?.name}</td>
-                    <td className="py-4 px-4 sm:px-6 font-bold text-gray-900 whitespace-nowrap">${order.total || order.total_amount}</td>
-                    <td className="py-4 px-4 sm:px-6 text-gray-400 text-xs whitespace-nowrap">{order.date || order.created_at}</td>
+                  <tr key={order.real_id} className="hover:bg-orange-50/20 transition">
+                    <td className="py-4 px-4 sm:px-6 font-semibold text-gray-800 whitespace-nowrap">{order.id}</td>
+                    <td className="py-4 px-4 sm:px-6 font-bold text-gray-900 whitespace-nowrap">{order.customer}</td>
+                    <td className="py-4 px-4 sm:px-6 text-gray-500 whitespace-nowrap">{order.restaurant_name}</td>
+                    <td className="py-4 px-4 sm:px-6 font-bold text-gray-900 whitespace-nowrap">{order.price}</td>
+                    <td className="py-4 px-4 sm:px-6 text-gray-400 text-xs whitespace-nowrap">{order.time}</td>
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
                       <select
                         value={order.status}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        onChange={(e) => handleStatusChange(order.real_id, e.target.value)}
                         className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer border-none outline-none ${getStatusBadge(order.status)}`}
                       >
                         {filterTabs.filter(t => t !== 'All').map((status) => (
@@ -170,7 +177,7 @@ export default function ManageOrders() {
               <div className="flex items-center gap-2">
                 <ShoppingBag size={20} className="text-[#e03a11]" />
                 <h3 className="font-bold text-gray-900 text-base sm:text-lg">
-                  Order #{selectedOrder.id}
+                  Order {selectedOrder.id}
                 </h3>
               </div>
               <button 
@@ -191,30 +198,26 @@ export default function ManageOrders() {
 
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Customer Info</p>
-                <p className="font-bold text-gray-900">{selectedOrder.customer || selectedOrder.user?.name}</p>
-                <p className="text-gray-500 text-xs">{selectedOrder.phone || selectedOrder.user?.phone}</p>
-                <p className="text-gray-500 text-xs">{selectedOrder.address}</p>
+                <p className="font-bold text-gray-900">{selectedOrder.customer}</p>
+                <p className="text-gray-500 text-xs">{selectedOrder.phone || 'N/A'}</p>
+                <p className="text-gray-500 text-xs">{selectedOrder.address || 'N/A'}</p>
               </div>
 
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Restaurant</p>
-                <p className="font-medium text-gray-800">{selectedOrder.restaurant || selectedOrder.restaurant?.name}</p>
+                <p className="font-medium text-gray-800">{selectedOrder.restaurant_name}</p>
               </div>
 
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Order Items</p>
-                <ul className="bg-gray-50 rounded-xl p-3 space-y-1.5 text-xs text-gray-700">
-                  {selectedOrder.items?.map((item, idx) => (
-                    <li key={idx} className="flex justify-between">
-                      <span>{typeof item === 'string' ? item : `${item.food_name} x ${item.quantity}`}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700">
+                  <p>{selectedOrder.items}</p>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-base font-bold text-gray-900">
                 <span>Total Amount:</span>
-                <span className="text-[#e03a11]">${selectedOrder.total || selectedOrder.total_amount}</span>
+                <span className="text-[#e03a11]">{selectedOrder.price}</span>
               </div>
             </div>
 

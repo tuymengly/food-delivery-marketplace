@@ -1,24 +1,61 @@
-import { useState, useRef } from 'react';
-import { Upload, CheckCircle2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import API from '../../../services/api'; 
 
 export default function RestaurantProfile() {
   const fileInputRef = useRef(null);
   const [showToast, setShowToast] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState('');
 
   // Form State
   const [profile, setProfile] = useState({
-    coverImage: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=1200&auto=format&fit=crop&q=80',
-    name: 'The Burger Lab',
-    cuisine: 'American · Burgers',
-    phone: '+44 20 7946 0958',
-    email: 'hello@burgerlab.com',
-    address: '12 Burger Lane, London EC1A',
-    deliveryFee: '2.99',
-    minOrder: '15.00',
-    avgDeliveryTime: '20-30 min',
-    description:
-      'Craft burgers with premium locally-sourced beef. Our secret sauce has been perfected over 10 years of obsessive tinkering.',
+    coverImage: '',
+    name: '',
+    cuisine: '',
+    phone: '',
+    email: '',
+    address: '',
+    deliveryFee: '',
+    minOrder: '',
+    avgDeliveryTime: '',
+    description: '',
   });
+
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // ១. ទាញយកទិន្នន័យ Profile ដើមពេល Load ទំព័រ
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setFetching(true);
+      // ផ្លាស់ប្តូរ Endpoint ទៅតាម Backend របស់អ្នក (ឧទាហរណ៍: /restaurant/profile ឬ /profile)
+      const response = await API.get('/restaurant/profile'); 
+      const data = response.data.data || response.data;
+      
+      setProfile({
+        coverImage: data.cover_image || 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=1200&auto=format&fit=crop&q=80',
+        name: data.name || '',
+        cuisine: data.cuisine || '',
+        phone: data.phone || '',
+        email: data.email || '',
+        address: data.address || '',
+        deliveryFee: data.delivery_fee || '',
+        minOrder: data.min_order || '',
+        avgDeliveryTime: data.avg_delivery_time || '',
+        description: data.description || '',
+      });
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Failed to load restaurant profile.');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,17 +65,61 @@ export default function RestaurantProfile() {
   const handleCoverUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setSelectedFile(file); // រក្សាទុក File សម្រាប់ Upload ទៅ Backend
       const imageUrl = URL.createObjectURL(file);
       setProfile((prev) => ({ ...prev, coverImage: imageUrl }));
     }
   };
 
-  // Save Changes Handler
-  const handleSubmit = (e) => {
+  // ២. រក្សាទុកទិន្នន័យបញ្ជូនទៅ Backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    setLoading(true);
+    setError('');
+
+    try {
+      // ដោយសារមានការ Upload រូបភាព គួរប្រើ FormData
+      const formData = new FormData();
+      formData.append('name', profile.name);
+      formData.append('cuisine', profile.cuisine);
+      formData.append('phone', profile.phone);
+      formData.append('email', profile.email);
+      formData.append('address', profile.address);
+      formData.append('delivery_fee', profile.deliveryFee);
+      formData.append('min_order', profile.minOrder);
+      formData.append('avg_delivery_time', profile.avgDeliveryTime);
+      formData.append('description', profile.description);
+
+      if (selectedFile) {
+        formData.append('cover_image', selectedFile);
+      }
+
+      // ប្រសិនបើ Backend ត្រូវការ PUT method តែប្រើ FormData ពេលខ្លះត្រូវប្រើ POST ព្រមទាំង _method: PUT
+      formData.append('_method', 'PUT');
+
+      await API.post('/restaurant/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fcfbfa]">
+        <Loader2 className="animate-spin text-orange-500" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-[#fcfbfa] min-h-screen space-y-6 text-gray-800">
@@ -47,6 +128,14 @@ export default function RestaurantProfile() {
         <div className="fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-3 bg-gray-900 text-white text-xs font-semibold rounded-xl shadow-xl transition-all">
           <CheckCircle2 size={16} className="text-emerald-400" />
           <span>Profile changes saved successfully!</span>
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-xs flex items-center gap-2">
+          <AlertCircle size={16} className="shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
@@ -85,11 +174,8 @@ export default function RestaurantProfile() {
         {/* Profile Details Form Card */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Restaurant Name */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Restaurant Name
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Restaurant Name</label>
               <input
                 type="text"
                 name="name"
@@ -99,11 +185,8 @@ export default function RestaurantProfile() {
               />
             </div>
 
-            {/* Cuisine Type */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Cuisine Type
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Cuisine Type</label>
               <input
                 type="text"
                 name="cuisine"
@@ -113,11 +196,8 @@ export default function RestaurantProfile() {
               />
             </div>
 
-            {/* Phone */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Phone
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Phone</label>
               <input
                 type="text"
                 name="phone"
@@ -127,11 +207,8 @@ export default function RestaurantProfile() {
               />
             </div>
 
-            {/* Email */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Email
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Email</label>
               <input
                 type="email"
                 name="email"
@@ -141,11 +218,8 @@ export default function RestaurantProfile() {
               />
             </div>
 
-            {/* Address */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Address
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Address</label>
               <input
                 type="text"
                 name="address"
@@ -155,11 +229,8 @@ export default function RestaurantProfile() {
               />
             </div>
 
-            {/* Delivery Fee */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Delivery Fee ($)
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Delivery Fee ($)</label>
               <input
                 type="text"
                 name="deliveryFee"
@@ -169,11 +240,8 @@ export default function RestaurantProfile() {
               />
             </div>
 
-            {/* Min. Order */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Min. Order ($)
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Min. Order ($)</label>
               <input
                 type="text"
                 name="minOrder"
@@ -184,9 +252,7 @@ export default function RestaurantProfile() {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                Avg. Delivery Time
-              </label>
+              <label className="block text-[11px] font-bold text-gray-500 mb-1">Avg. Delivery Time</label>
               <input
                 type="text"
                 name="avgDeliveryTime"
@@ -197,11 +263,8 @@ export default function RestaurantProfile() {
             </div>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-[11px] font-bold text-gray-500 mb-1">
-              Description
-            </label>
+            <label className="block text-[11px] font-bold text-gray-500 mb-1">Description</label>
             <textarea
               rows={3}
               name="description"
@@ -216,9 +279,11 @@ export default function RestaurantProfile() {
         <div>
           <button
             type="submit"
-            className="px-6 py-2.5 bg-[#ea580c] hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+            disabled={loading}
+            className="px-6 py-2.5 bg-[#ea580c] hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2 disabled:opacity-50"
           >
-            Save Changes
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            <span>Save Changes</span>
           </button>
         </div>
       </form>

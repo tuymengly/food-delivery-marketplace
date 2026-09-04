@@ -7,7 +7,6 @@ const API = axios.create({
     'Accept': 'application/json',
   },
 });
-
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
@@ -20,5 +19,4 @@ API.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
 export default API;

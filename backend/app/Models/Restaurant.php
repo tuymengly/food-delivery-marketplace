@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Restaurant extends Model
 {
     use HasFactory;
-
     protected $fillable = [
         'user_id',
         'name',

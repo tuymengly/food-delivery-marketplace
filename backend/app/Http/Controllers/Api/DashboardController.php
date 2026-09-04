@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-
 use App\Http\Controllers\Controller;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -16,16 +15,13 @@ class DashboardController extends Controller
 {
     private string $timezone = 'Asia/Phnom_Penh';
 
-    /**
-     * Admin Dashboard Statistics
-     */
     public function stats(): JsonResponse
     {
         $totalUsers = User::count();
         $totalRestaurants = Restaurant::count();
         $totalOrders = Order::count();
 
-        $totalRevenue = Order::whereIn('status', ['completed', 'Completed', 'delivered', 'Delivered'])->sum('total_price');
+        $totalRevenue = Order::whereIn('status', ['completed', 'Completed', 'delivered', 'Delivered'])->sum('total');
 
         $pendingRestaurants = Restaurant::where('status', 'pending')
             ->with('user:id,name,email')
@@ -48,7 +44,7 @@ class DashboardController extends Controller
             ->whereYear('created_at', $currentYear)
             ->select(
                 DB::raw($monthExpression . ' as month'),
-                DB::raw('SUM(total_price) as total')
+                DB::raw('SUM(total) as total')
             )
             ->groupByRaw($monthExpression)
             ->pluck('total', 'month');
@@ -64,17 +60,19 @@ class DashboardController extends Controller
         }
 
         // Recent Orders សម្រាប់ Admin
-        $recentOrdersRaw = Order::with(['user:id,name', 'restaurant:id,name'])
+        $recentOrdersRaw = Order::with(['user:id,name', 'items.food:id,name,restaurant_id', 'items.food.restaurant:id,name'])
             ->latest()
             ->take(10)
             ->get();
 
         $recentOrders = $recentOrdersRaw->map(function ($order) {
+            $restaurantName = $order->items->first()->food->restaurant->name ?? 'N/A';
+
             return [
                 'id' => '#ORD-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
                 'customer' => $order->user->name ?? 'Guest Customer',
-                'restaurant' => $order->restaurant->name ?? 'N/A',
-                'total' => '$' . number_format((float)($order->total_price ?? 0), 2),
+                'restaurant' => $restaurantName,
+                'total' => '$' . number_format((float)($order->total ?? 0), 2),
                 'time' => $order->created_at ? Carbon::parse($order->created_at)->setTimezone($this->timezone)->diffForHumans() : 'Just now',
                 'status' => ucfirst($order->status ?? 'New')
             ];
@@ -96,9 +94,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Restaurant Dashboard Statistics
-     */
     public function restaurantStats(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -109,14 +104,16 @@ class DashboardController extends Controller
                 $ownedRestaurantIds = Restaurant::where('user_id', $user->id)->pluck('id');
 
                 if ($ownedRestaurantIds->isNotEmpty()) {
-                    $restaurantId = Order::whereIn('restaurant_id', $ownedRestaurantIds)
+                    $restaurantId = Order::whereHas('items.food', fn($q) => $q->whereIn('restaurant_id', $ownedRestaurantIds))
                         ->latest()
-                        ->value('restaurant_id') ?? $ownedRestaurantIds->first();
+                        ->with('items.food')
+                        ->first()?->items->first()?->food->restaurant_id
+                        ?? $ownedRestaurantIds->first();
                 }
             }
 
             if (!$restaurantId) {
-                $restaurantId = Order::latest()->value('restaurant_id') ?? Restaurant::query()->value('id');
+                $restaurantId = Restaurant::query()->value('id');
             }
         }
 
@@ -130,7 +127,7 @@ class DashboardController extends Controller
         $today = Carbon::today($this->timezone);
         $yesterday = Carbon::yesterday($this->timezone);
 
-        $baseOrderQuery = Order::where('restaurant_id', $restaurantId);
+        $baseOrderQuery = Order::whereHas('items.food', fn($q) => $q->where('restaurant_id', $restaurantId));
 
         $todayOrdersQuery = (clone $baseOrderQuery)->whereDate('created_at', $today);
         $yesterdayOrdersQuery = (clone $baseOrderQuery)->whereDate('created_at', $yesterday);
@@ -139,11 +136,11 @@ class DashboardController extends Controller
 
         $todayRevenue = (clone $todayOrdersQuery)
             ->whereIn('status', $validStatuses)
-            ->sum('total_price');
+            ->sum('total');
 
         $yesterdayRevenue = (clone $yesterdayOrdersQuery)
             ->whereIn('status', $validStatuses)
-            ->sum('total_price');
+            ->sum('total');
 
         $revenueGrowth = 0;
         $revenueGrowthAmount = (float) $todayRevenue - (float) $yesterdayRevenue;
@@ -175,7 +172,7 @@ class DashboardController extends Controller
             ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
             ->select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_price) as total')
+                DB::raw('SUM(total) as total')
             )
             ->groupBy('date')
             ->pluck('total', 'date');
@@ -204,7 +201,7 @@ class DashboardController extends Controller
             $itemsSummary = 'No items';
             if (isset($order->items) && count($order->items) > 0) {
                 $itemsSummary = $order->items->map(function ($item) {
-                    $foodName = $item->food->name ?? $item->name ?? 'Item';
+                    $foodName = $item->food->name ?? $item->food_name ?? 'Item';
                     $qty = $item->quantity ?? 1;
                     return "{$foodName} × {$qty}";
                 })->implode(', ');
@@ -214,7 +211,7 @@ class DashboardController extends Controller
                 'id' => '#BR-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
                 'customer' => $order->user->name ?? 'Guest Customer',
                 'items' => $itemsSummary,
-                'total' => '$' . number_format((float)($order->total_price ?? 0), 2),
+                'total' => '$' . number_format((float)($order->total ?? 0), 2),
                 'time' => $order->created_at ? Carbon::parse($order->created_at)->setTimezone($this->timezone)->diffForHumans() : 'Just now',
                 'status' => ucfirst($order->status ?? 'New')
             ];
@@ -253,14 +250,15 @@ class DashboardController extends Controller
         );
 
         $paidStatuses = ['completed', 'Completed', 'delivered', 'Delivered'];
-        $periodOrders = Order::where('restaurant_id', $restaurantId)
+
+        $periodOrders = Order::whereHas('items.food', fn($q) => $q->where('restaurant_id', $restaurantId))
             ->whereBetween('created_at', [$startDate, $endDate]);
 
-        $previousOrders = Order::where('restaurant_id', $restaurantId)
+        $previousOrders = Order::whereHas('items.food', fn($q) => $q->where('restaurant_id', $restaurantId))
             ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
 
-        $totalRevenue = (clone $periodOrders)->whereIn('status', $paidStatuses)->sum('total_price');
-        $previousRevenue = (clone $previousOrders)->whereIn('status', $paidStatuses)->sum('total_price');
+        $totalRevenue = (clone $periodOrders)->whereIn('status', $paidStatuses)->sum('total');
+        $previousRevenue = (clone $previousOrders)->whereIn('status', $paidStatuses)->sum('total');
         $totalOrders = (clone $periodOrders)->count();
         $previousTotalOrders = (clone $previousOrders)->count();
         $avgOrderValue = $totalOrders > 0 ? (float) $totalRevenue / $totalOrders : 0;
@@ -280,7 +278,7 @@ class DashboardController extends Controller
                         ? Carbon::parse($order->created_at)->setTimezone($this->timezone)->format('Y-m-d')
                         : null,
                     'customer' => $order->user->name ?? 'Guest Customer',
-                    'amount' => (float) ($order->total_price ?? 0),
+                    'amount' => (float) ($order->total ?? 0),
                     'payment' => $order->payment_method ?? 'Online Order',
                     'status' => ucfirst($order->status ?? 'Pending'),
                 ];
@@ -322,13 +320,18 @@ class DashboardController extends Controller
             $ownedRestaurantIds = Restaurant::where('user_id', $user->id)->pluck('id');
 
             if ($ownedRestaurantIds->isNotEmpty()) {
-                return (int) (Order::whereIn('restaurant_id', $ownedRestaurantIds)
+                $firstOwned = $ownedRestaurantIds->first();
+
+                $latestOrderRestaurantId = Order::whereHas('items.food', fn($q) => $q->whereIn('restaurant_id', $ownedRestaurantIds))
                     ->latest()
-                    ->value('restaurant_id') ?? $ownedRestaurantIds->first());
+                    ->with('items.food')
+                    ->first()?->items->first()?->food->restaurant_id;
+
+                return (int) ($latestOrderRestaurantId ?? $firstOwned);
             }
         }
 
-        return (int) (Order::latest()->value('restaurant_id') ?? Restaurant::query()->value('id'));
+        return (int) (Restaurant::query()->value('id'));
     }
 
     private function salesDateRange(string $range): array
@@ -374,11 +377,13 @@ class DashboardController extends Controller
 
     private function restaurantPaymentMethods(int $restaurantId, Carbon $startDate, Carbon $endDate, array $paidStatuses): array
     {
+        $baseQuery = Order::whereHas('items.food', fn($q) => $q->where('restaurant_id', $restaurantId))
+            ->whereIn('status', $paidStatuses)
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
         if (Schema::hasColumn('orders', 'payment_method')) {
-            return Order::where('restaurant_id', $restaurantId)
-                ->whereIn('status', $paidStatuses)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->select('payment_method', DB::raw('SUM(total_price) as total'))
+            return (clone $baseQuery)
+                ->select('payment_method', DB::raw('SUM(total) as total'))
                 ->groupBy('payment_method')
                 ->get()
                 ->map(fn ($item) => [
@@ -389,10 +394,7 @@ class DashboardController extends Controller
                 ->all();
         }
 
-        $total = Order::where('restaurant_id', $restaurantId)
-            ->whereIn('status', $paidStatuses)
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->sum('total_price');
+        $total = (clone $baseQuery)->sum('total');
 
         return [
             [

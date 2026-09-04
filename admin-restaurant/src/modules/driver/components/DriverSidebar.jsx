@@ -34,11 +34,12 @@ export default function Sidebar({
             </button>
 
             <div className="flex flex-col items-center justify-center space-y-2 pt-1">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white/5 p-1 border border-white/10 shadow-lg">
+              {/* កែប្រែត្រង់នេះ: ដាក់ rounded-full */}
+              <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-white/5 p-1 border border-white/10 shadow-lg">
                 <img
                   src={logoImg}
                   alt="Logo"
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded-full"
                 />
               </div>
 

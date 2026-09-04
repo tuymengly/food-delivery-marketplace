@@ -12,9 +12,11 @@ import {
   Trash2,
   X,
   Filter,
-  Loader2
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { getUsers, createUser, updateUser, deleteUser } from "../../../services/adminService";
+
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,7 @@ export default function ManageUsers() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '', // បន្ថែម password field នៅទីនេះ
     role: 'Customer',
     status: 'Active',
     location: ''
@@ -59,6 +62,7 @@ export default function ManageUsers() {
       setFormData({
         name: user.name || '',
         email: user.email || '',
+        password: '', // ពេល Edit ទុក password ទទេ សឹមដាក់បើសិនចង់ប្តូរ
         role: user.role || 'Customer',
         status: user.status || 'Active',
         location: user.location || ''
@@ -68,6 +72,7 @@ export default function ManageUsers() {
       setFormData({
         name: '',
         email: '',
+        password: '',
         role: 'Customer',
         status: 'Active',
         location: ''
@@ -87,16 +92,23 @@ export default function ManageUsers() {
     e.preventDefault();
     try {
       setSubmitting(true);
+      
+      // បើពេល Edit ហើយអត់បានវាយ password ថ្មី អាចលុប property password ចោលកុំឱ្យវា update ទៅជា string ទទេ
+      const dataToSend = { ...formData };
+      if (editingUser && !dataToSend.password) {
+        delete dataToSend.password;
+      }
+
       if (editingUser) {
-        await updateUser(editingUser.id, formData);
+        await updateUser(editingUser.id, dataToSend);
       } else {
-        await createUser(formData);
+        await createUser(dataToSend);
       }
       await fetchUsersData(); // Refresh list after save
       handleCloseModal();
     } catch (error) {
       console.error('Failed to save user:', error);
-      alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!');
+      alert(error.response?.data?.message || 'មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!');
     } finally {
       setSubmitting(false);
     }
@@ -402,6 +414,24 @@ export default function ManageUsers() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-orange-500"
                   placeholder="e.g. sarah@example.com"
                 />
+              </div>
+
+              {/* Input Password សម្រាប់បង្កើត ឬកែប្រែ User */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Password {editingUser && <span className="text-gray-400 font-normal">(Leave blank to keep current)</span>}
+                </label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="password"
+                    required={!editingUser} // บังคับដាក់ password ពេល Add New User ប៉ុន្តែមិនบังคับពេល Edit
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-orange-500"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
