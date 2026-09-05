@@ -65,6 +65,9 @@ const Checkout = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    if (apiError) {
+      setApiError('');
+    }
   };
 
   const validateForm = () => {
@@ -346,6 +349,12 @@ const Checkout = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
+
+              {apiError && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {apiError}
+                </div>
+              )}
 
               {/* Items List */}
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">

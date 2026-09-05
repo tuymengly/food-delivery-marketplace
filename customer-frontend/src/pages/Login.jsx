@@ -11,6 +11,7 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -113,23 +114,13 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-orange-600 rounded" />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
-              </label>
-              <a href="#" className="text-sm text-orange-600 hover:text-orange-700 font-semibold">
-                Forgot Password?
-              </a>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50"
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
 
@@ -141,13 +132,6 @@ const Login = () => {
                 Sign Up
               </Link>
             </p>
-          </div>
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl">
-            <p className="text-sm font-semibold text-gray-900 mb-2">Demo Credentials:</p>
-            <p className="text-xs text-gray-700">Email: demo@delish.com</p>
-            <p className="text-xs text-gray-700">Password: demo123</p>
           </div>
         </div>
 

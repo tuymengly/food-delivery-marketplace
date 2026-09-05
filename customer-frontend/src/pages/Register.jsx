@@ -6,15 +6,15 @@ import { getRoleRedirect, registerUser, saveAuthSession } from '../api/app';
 const Register = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
-    confirmPassword: ''
+    password_confirmation: '',
+    role: 'customer' // តម្លៃលំនាំដើមសម្រាប់ customer
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -26,11 +26,46 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+    setError('');
+    setLoading(true);
+
+    try {
+      // ផ្ញើសំណើទៅកាន់ Laravel API /api/register
+      const response = await api.post('/register', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        password_confirmation: formData.password_confirmation,
+        role: formData.role,
+      });
+
+      if (response.data.success) {
+        const { user, token } = response.data.data;
+
+        // រក្សាទុក Token និងព័ត៌មាន User ក្នុង localStorage
+        localStorage.setItem('token', token);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+
+        // ផ្ដល់ដំណឹងដល់ Navbar ថាមានការប្តូរស្ថានភាព Login/Auth
+        window.dispatchEvent(new Event('authChanged'));
+
+        // បញ្ជូនទៅកាន់ទំព័រ Home
+        navigate('/home');
+      }
+    } catch (err) {
+      if (err.response && err.response.data) {
+        // បង្ហាញសារកំហុស Validation ពី Laravel Backend (ឧ. Email ជាន់គ្នាជាដើម)
+        if (err.response.data.errors) {
+          const firstErrorKey = Object.keys(err.response.data.errors)[0];
+          setError(err.response.data.errors[firstErrorKey][0]);
+        } else {
+          setError(err.response.data.message || 'ការចុះឈ្មោះមិនជោគជ័យ។');
+        }
+      } else {
+        setError('មានបញ្ហាកើតឡើង សូមព្យាយាមម្តងទៀត។');
+      }
+    } finally {
+      setLoading(false);
     }
 
     if (formData.password.length < 8) {
@@ -87,7 +122,7 @@ const Register = () => {
           <h1 className="text-4xl font-extrabold text-transparent bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text mb-2">
             Create Account
           </h1>
-          <p className="text-gray-600">Join Delish-Kh today!</p>
+          <p className="text-gray-600">Join Delish-Kh today</p>
         </div>
 
         {/* Register Form */}
@@ -101,7 +136,7 @@ const Register = () => {
 
             {/* Name */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Full Name</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">Full Name</label>
               <div className="relative">
                 <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -109,8 +144,8 @@ const Register = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                  placeholder="John Doe"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
+                  placeholder="Your Name"
                   required
                 />
               </div>
@@ -118,7 +153,7 @@ const Register = () => {
 
             {/* Email */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Email Address</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">Email Address</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -126,25 +161,8 @@ const Register = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
                   placeholder="your@email.com"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">Phone Number</label>
-              <div className="relative">
-                <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                  placeholder="+855 12 345 678"
                   required
                 />
               </div>
@@ -152,7 +170,7 @@ const Register = () => {
 
             {/* Password */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Password</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">Password</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -160,8 +178,8 @@ const Register = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                  placeholder="Create password"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
+                  placeholder="At least 8 characters"
                   required
                 />
                 <button
@@ -176,57 +194,34 @@ const Register = () => {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Confirm Password</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">Confirm Password</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
+                  type={showPassword ? 'text' : 'password'}
+                  name="password_confirmation"
+                  value={formData.password_confirmation}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
                   placeholder="Confirm password"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
               </div>
-            </div>
-
-            {/* Terms & Conditions */}
-            <div>
-              <label className="flex items-start cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 mt-1 accent-orange-600 rounded" required />
-                <span className="ml-2 text-sm text-gray-600">
-                  I agree to the{' '}
-                  <a href="#" className="text-orange-600 hover:text-orange-700 font-semibold">
-                    Terms & Conditions
-                  </a>{' '}
-                  and{' '}
-                  <a href="#" className="text-orange-600 hover:text-orange-700 font-semibold">
-                    Privacy Policy
-                  </a>
-                </span>
-              </label>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-base shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 mt-2"
             >
-              Create Account
+              {loading ? 'Creating Account...' : 'Sign Up'}
             </button>
           </form>
 
           {/* Login Link */}
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               Already have an account?{' '}
               <Link to="/login" className="text-orange-600 hover:text-orange-700 font-bold">
                 Sign In
@@ -237,7 +232,7 @@ const Register = () => {
 
         {/* Back to Home */}
         <div className="text-center mt-6">
-          <Link to="/home" className="text-gray-600 hover:text-gray-900 font-semibold">
+          <Link to="/home" className="text-gray-600 hover:text-gray-900 font-semibold text-sm">
             ← Back to Home
           </Link>
         </div>
