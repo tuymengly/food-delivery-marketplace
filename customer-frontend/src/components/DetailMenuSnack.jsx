@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { khmerSnacks } from '../data';
+import { addCartItem, fetchFoodDetail } from '../api/foodApi';
 import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaArrowLeft, FaHeart } from 'react-icons/fa';
 import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
@@ -13,8 +13,15 @@ const DetailMenuSnack = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [snack, setSnack] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const snack = khmerSnacks.find((item) => item.id === parseInt(id));
+  useEffect(() => {
+    fetchFoodDetail(id)
+      .then(setSnack)
+      .catch((error) => console.error('Error fetching snack:', error))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
     if (snack) {
@@ -41,6 +48,8 @@ const DetailMenuSnack = () => {
         price: snack.price,
         image: snack.image,
         category: snack.category,
+        restaurant_id: snack.restaurant_id || snack.restaurant?.id,
+        food_id: snack.id,
         qty: snack.qty,
         type: 'snack',
         detailLink: `/MenuSnack/${snack.id}`,
@@ -51,6 +60,10 @@ const DetailMenuSnack = () => {
     }
     window.dispatchEvent(new Event('favoritesUpdated'));
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading snack...</div>;
+  }
 
   if (!snack) {
     return (
@@ -75,12 +88,26 @@ const DetailMenuSnack = () => {
 
   const totalPrice = (snack.price * quantity).toFixed(2);
 
-  const addToCart = () => {
-    const currentUser = localStorage.getItem('currentUser');
+  const addToCart = async () => {
+    const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('token');
     if (!currentUser) {
       setToastMessage('Please login to add items to cart');
       setShowToast(true);
       setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
+    if (!localStorage.getItem('token')) {
+      setToastMessage('Please login to add items to cart');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      await addCartItem(snack.id, quantity);
+    } catch (error) {
+      setToastMessage(error?.response?.data?.message || 'Could not add item to cart. Please try again.');
+      setShowToast(true);
       return;
     }
 
@@ -98,6 +125,8 @@ const DetailMenuSnack = () => {
         price: snack.price,
         image: snack.image,
         category: snack.category,
+        restaurant_id: snack.restaurant_id || snack.restaurant?.id,
+        food_id: snack.id,
         qty: snack.qty,
         type: 'snack',
         quantity,

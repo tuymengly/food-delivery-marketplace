@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import API from '../../../services/api'; 
+import { uploadImageToCloudinary } from '../../../services/cloudinary';
 
 export default function RestaurantProfile() {
   const fileInputRef = useRef(null);
@@ -25,11 +26,6 @@ export default function RestaurantProfile() {
 
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // ១. ទាញយកទិន្នន័យ Profile ដើមពេល Load ទំព័រ
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       setFetching(true);
@@ -38,11 +34,11 @@ export default function RestaurantProfile() {
       const data = response.data.data || response.data;
       
       setProfile({
-        coverImage: data.cover_image || 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=1200&auto=format&fit=crop&q=80',
+        coverImage: data.image || data.cover_image || 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=1200&auto=format&fit=crop&q=80',
         name: data.name || '',
         cuisine: data.cuisine || '',
         phone: data.phone || '',
-        email: data.email || '',
+        email: data.user?.email || data.email || '',
         address: data.address || '',
         deliveryFee: data.delivery_fee || '',
         minOrder: data.min_order || '',
@@ -56,6 +52,11 @@ export default function RestaurantProfile() {
       setFetching(false);
     }
   };
+
+  // ១. ទាញយកទិន្នន័យ Profile ដើមពេល Load ទំព័រ
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,36 +79,56 @@ export default function RestaurantProfile() {
     setError('');
 
     try {
-      // ដោយសារមានការ Upload រូបភាព គួរប្រើ FormData
-      const formData = new FormData();
-      formData.append('name', profile.name);
-      formData.append('cuisine', profile.cuisine);
-      formData.append('phone', profile.phone);
-      formData.append('email', profile.email);
-      formData.append('address', profile.address);
-      formData.append('delivery_fee', profile.deliveryFee);
-      formData.append('min_order', profile.minOrder);
-      formData.append('avg_delivery_time', profile.avgDeliveryTime);
-      formData.append('description', profile.description);
+      const image = selectedFile
+        ? await uploadImageToCloudinary(selectedFile, 'restaurants')
+        : profile.coverImage;
 
-      if (selectedFile) {
-        formData.append('cover_image', selectedFile);
-      }
-
-      // ប្រសិនបើ Backend ត្រូវការ PUT method តែប្រើ FormData ពេលខ្លះត្រូវប្រើ POST ព្រមទាំង _method: PUT
-      formData.append('_method', 'PUT');
-
-      await API.post('/restaurant/profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await API.put('/restaurant/profile', {
+        name: profile.name,
+        cuisine: profile.cuisine,
+        phone: profile.phone,
+        email: profile.email,
+        address: profile.address,
+        delivery_fee: profile.deliveryFee,
+        min_order: profile.minOrder,
+        avg_delivery_time: profile.avgDeliveryTime,
+        description: profile.description,
+        ...(image ? { image } : {}),
       });
+
+      setSelectedFile(null);
+      const saved = response.data.data || response.data;
+      const updatedProfile = {
+        ...profile,
+        coverImage: saved.image || image || profile.coverImage,
+        name: saved.name || profile.name,
+        cuisine: saved.cuisine || profile.cuisine,
+        phone: saved.phone || profile.phone,
+        email: saved.user?.email || profile.email,
+        address: saved.address || profile.address,
+        deliveryFee: saved.delivery_fee ?? profile.deliveryFee,
+        minOrder: saved.min_order ?? profile.minOrder,
+        avgDeliveryTime: saved.avg_delivery_time || profile.avgDeliveryTime,
+        description: saved.description || profile.description,
+      };
+      setProfile(updatedProfile);
+      const updatedRestaurant = {
+        ...saved,
+        image: updatedProfile.coverImage,
+        name: updatedProfile.name,
+      };
+      localStorage.setItem('restaurant', JSON.stringify(updatedRestaurant));
+      window.dispatchEvent(new Event('restaurantUpdated'));
 
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
       console.error('Error updating profile:', err);
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      const validationErrors = err.response?.data?.errors;
+      const details = validationErrors
+        ? Object.values(validationErrors).flat().join(' ')
+        : err.response?.data?.message || err.message;
+      setError(details || 'Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }

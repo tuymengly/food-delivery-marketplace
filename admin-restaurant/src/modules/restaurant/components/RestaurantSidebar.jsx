@@ -15,6 +15,13 @@ import {
 } from 'lucide-react';
 
 import logoImg from '../../../assets/logo.png';
+import API from '../../../services/api';
+
+const resolveImageUrl = (image) => {
+  if (!image) return logoImg;
+  if (/^https?:\/\//i.test(image)) return image;
+  return `http://127.0.0.1:8000/storage/${image}`;
+};
 
 export default function RestaurantSidebar({ onClose }) {
   const [restaurantData, setRestaurantData] = useState({
@@ -24,31 +31,50 @@ export default function RestaurantSidebar({ onClose }) {
   });
 
   useEffect(() => {
-    try {
+    const applyRestaurantInfo = (parsedData) => {
+      if (!parsedData) return;
+      setRestaurantData({
+        name: parsedData.name || '24 HOUR FOOD',
+        image: resolveImageUrl(parsedData.image),
+        isOpen: parsedData.status === 'active' || parsedData.is_open === true,
+      });
+    };
+
+    const loadRestaurantInfo = async () => {
+      try {
+        const response = await API.get('/restaurant/profile');
+        const profile = response.data.data || response.data;
+        if (profile?.id) {
+          localStorage.setItem('restaurant', JSON.stringify(profile));
+          localStorage.setItem('restaurant_id', String(profile.id));
+        }
+        applyRestaurantInfo(profile);
+        return;
+      } catch (error) {
+        console.warn('Could not load restaurant profile for sidebar:', error);
+      }
+
+      try {
       const storedRestaurant = localStorage.getItem('restaurant');
       if (storedRestaurant) {
-        const parsedData = JSON.parse(storedRestaurant);
-        setRestaurantData({
-          name: parsedData.name || '24 HOUR FOOD',
-          image: parsedData.image ? `http://127.0.0.1:8000/storage/${parsedData.image}` : logoImg, // អាស្រ័យលើ URL រូបភាព backend របស់អ្នក
-          isOpen: parsedData.status === 'active' || parsedData.is_open === true
-        });
+        applyRestaurantInfo(JSON.parse(storedRestaurant));
       } else {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const user = JSON.parse(storedUser);
           if (user.restaurant) {
-            setRestaurantData({
-              name: user.restaurant.name || '24 HOUR FOOD',
-              image: user.restaurant.image ? `http://127.0.0.1:8000/storage/${user.restaurant.image}` : logoImg,
-              isOpen: user.restaurant.status === 'active'
-            });
+            applyRestaurantInfo(user.restaurant);
           }
         }
       }
-    } catch (error) {
-      console.error('Failed to load restaurant info from localStorage:', error);
-    }
+      } catch (error) {
+        console.error('Failed to load restaurant info from localStorage:', error);
+      }
+    };
+
+    void loadRestaurantInfo();
+    window.addEventListener('restaurantUpdated', loadRestaurantInfo);
+    return () => window.removeEventListener('restaurantUpdated', loadRestaurantInfo);
   }, []);
 
   const menuItems = [
@@ -62,7 +88,7 @@ export default function RestaurantSidebar({ onClose }) {
   ];
 
   return (
-    <aside className="w-64 bg-[#1e130c] text-gray-300 flex flex-col justify-between p-4 h-full overflow-y-auto">
+    <aside className="w-64 bg-[linear-gradient(180deg,#ff5a00_0%,#ff5a00_72%,#ff3045_100%)] text-white flex flex-col justify-between p-4 h-full overflow-y-auto">
       <div>
         <div className="relative mb-6 pt-2 pb-4 border-b border-white/10 text-center">
           <button 
@@ -86,7 +112,7 @@ export default function RestaurantSidebar({ onClose }) {
             <div>
               {/* បង្ហាញឈ្មោះ Restaurant ដែលទាញបាន */}
               <h1 className="font-bold text-white text-base leading-tight tracking-wide">{restaurantData.name}</h1>
-              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium mt-1">
+              <span className="inline-flex items-center gap-1.5 text-xs text-white font-medium mt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 
                 {restaurantData.isOpen ? 'Open for Orders' : 'Closed'}
               </span>
@@ -105,7 +131,7 @@ export default function RestaurantSidebar({ onClose }) {
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center justify-between px-4 py-3 rounded-xl font-medium transition ${
-                    isActive ? 'bg-[#e03a11] text-white shadow-md' : 'hover:bg-white/5 text-gray-400 hover:text-white'
+                    isActive ? 'bg-white/20 text-white shadow-md' : 'hover:bg-white/15 text-white/90 hover:text-white'
                   }`
                 }
               >
@@ -130,7 +156,7 @@ export default function RestaurantSidebar({ onClose }) {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#e03a11] hover:bg-[#c7320e] text-white font-medium rounded-xl transition text-sm mb-3 shadow-sm"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-medium rounded-xl transition text-sm mb-3 shadow-sm"
         >
           <ExternalLink size={16} /> View Store Online
         </a>
@@ -140,7 +166,7 @@ export default function RestaurantSidebar({ onClose }) {
           onClick={onClose}
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium transition text-sm ${
-              isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:text-white hover:bg-white/15'
             }`
           }
         >
@@ -149,7 +175,7 @@ export default function RestaurantSidebar({ onClose }) {
 
         <button 
           onClick={onClose}
-          className="flex items-center gap-3 px-4 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition w-full text-left text-sm"
+           className="flex items-center gap-3 px-4 py-2.5 text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition w-full text-left text-sm"
         >
           <LogOut size={18} /> Logout Store
         </button>

@@ -29,7 +29,8 @@ class CartController extends Controller
 
         $food = Food::findOrFail($validated['food_id']);
 
-        if ($food->status !== 'available') {
+        // Treat legacy null status as available; only an explicit non-available status blocks checkout.
+        if ($food->status !== null && strtolower((string) $food->status) !== 'available') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unavailable food cannot be added to the cart.',

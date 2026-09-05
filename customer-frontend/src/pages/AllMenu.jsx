@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'; // ថែម useSearchParams
 import { useTranslation } from 'react-i18next';
-import { khmerFoods, khmerSnacks, khmerDessert, MenuSoup } from '../data';
+import { addCartItem, fetchFoods } from '../api/foodApi';
 import { FaHeart, FaRegHeart, FaShoppingCart, FaStar, FaFilter, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { IoSearch } from 'react-icons/io5';
 import Toast from '../components/Toast';
@@ -15,15 +15,8 @@ const AllMenu = () => {
   const discountParam = searchParams.get('discount');
   const filterParam = searchParams.get('filter');
 
-  // Combine all menu items
-  const allMenuItems = [
-    ...khmerFoods.map(item => ({ ...item, type: 'food' })),
-    ...khmerSnacks.map(item => ({ ...item, type: 'snack' })),
-    ...khmerDessert.map(item => ({ ...item, type: 'dessert' })),
-    ...MenuSoup.map(item => ({ ...item, type: 'soup' }))
-  ];
-
   // State management
+  const [allMenuItems, setAllMenuItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
@@ -34,6 +27,18 @@ const AllMenu = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const itemsPerPage = 12;
+
+  useEffect(() => {
+    fetchFoods()
+      .then((foods) => setAllMenuItems(foods.map((item) => {
+        const category = item.category?.toLowerCase() || '';
+        const type = category.includes('dessert') ? 'dessert' :
+          category.includes('snack') ? 'snack' :
+          category.includes('soup') ? 'soup' : 'food';
+        return { ...item, type };
+      })))
+      .catch((error) => console.error('Error fetching menu:', error));
+  }, []);
 
   // Load favorites
   useEffect(() => {
@@ -52,11 +57,20 @@ const AllMenu = () => {
   // Filter and search logic (បានបន្ថែម URL Params Filter)
   const filteredItems = allMenuItems.filter(item => {
     // 1. Search filter
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch = [item.name, item.category, item.description]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(term));
     
     // 2. Category filter
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const categoryText = String(item.category || '').toLowerCase();
+    const matchesCategory = selectedCategory === 'all' || (
+      selectedCategory === 'main' ? /main|food|dish/.test(categoryText) :
+      selectedCategory === 'snack' ? /snack|street/.test(categoryText) :
+      selectedCategory === 'dessert' ? /dessert|sweet/.test(categoryText) :
+      selectedCategory === 'soup' ? /soup|broth/.test(categoryText) :
+      false
+    );
     
     // 3. Price filter
     let matchesPrice = true;
@@ -124,9 +138,9 @@ const AllMenu = () => {
     return favorites.some(fav => fav.id === itemId && fav.type === itemType);
   };
 
-  const addToCart = (item) => {
-    const currentUser = localStorage.getItem('currentUser');
-    if (!currentUser) {
+  const addToCart = async (item) => {
+    const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('user');
+    if (!currentUser || !localStorage.getItem('token')) {
       setToastMessage(t('favorites.loginRequired'));
       setShowToast(true);
       setTimeout(() => {
@@ -135,21 +149,16 @@ const AllMenu = () => {
       return;
     }
 
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItemIndex = cart.findIndex(
-      cartItem => cartItem.id === item.id && cartItem.type === item.type
-    );
-
-    if (existingItemIndex > -1) {
-      cart[existingItemIndex].quantity += 1;
-      setToastMessage(`${item.name} ${t('menu.add')}ed!`);
-    } else {
-      cart.push({ ...item, quantity: 1 });
+    try {
+      await addCartItem(item.id, 1);
       setToastMessage(`${item.name} ${t('favorites.addedToCart')}`);
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (error) {
+      setToastMessage(
+        error?.response?.data?.message || 'Could not add item to cart. Please try again.'
+      );
     }
 
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('cartUpdated'));
     setShowToast(true);
   };
 
@@ -170,10 +179,10 @@ const AllMenu = () => {
   // Categories for filter
   const categories = [
     { value: 'all', label: t('menu.allItems') },
-    { value: 'Main Dish', label: t('menu.mainDish') },
-    { value: 'Khmer Snacks', label: t('menu.snacks') },
-    { value: 'Khmer Desserts', label: t('menu.desserts') },
-    { value: 'Khmer Soups', label: t('menu.soups') }
+    { value: 'main', label: t('menu.mainDish') },
+    { value: 'snack', label: t('menu.snacks') },
+    { value: 'dessert', label: t('menu.desserts') },
+    { value: 'soup', label: t('menu.soups') }
   ];
 
   return (

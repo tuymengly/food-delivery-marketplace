@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, ChevronDown, Menu, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, ChevronDown, Menu, LogOut, User as UserIcon } from 'lucide-react';
 import API from "../../../services/api";
+import NotificationBell from '../../../components/ui/NotificationBell';
 
 export default function Header({ 
   setIsSidebarOpen, 
@@ -80,10 +81,7 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="relative p-2 text-gray-600 hover:text-gray-900 transition">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
-        </button>
+        <NotificationBell role="driver" />
 
         <div className="h-8 w-[1px] bg-gray-200" />
 

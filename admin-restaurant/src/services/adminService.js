@@ -21,7 +21,8 @@ export const getOrders = async () => {
 };
 
 export const updateOrderStatus = async (id, status) => {
-  return await API.put(`/admin/orders/${id}/status`, { status });
+  const payload = typeof status === 'object' ? status : { status };
+  return await API.put(`/admin/orders/${id}/status`, payload);
 };
 
 // Restaurant APIs
@@ -31,6 +32,14 @@ export const getRestaurants = async () => {
 
 export const createRestaurant = async (data) => {
   return await API.post('/restaurants', data);
+};
+
+export const updateRestaurant = async (id, data) => {
+  return await API.put(`/restaurants/${id}`, data);
+};
+
+export const deleteRestaurant = async (id) => {
+  return await API.delete(`/restaurants/${id}`);
 };
 
 export const updateRestaurantStatus = async (id, status) => {

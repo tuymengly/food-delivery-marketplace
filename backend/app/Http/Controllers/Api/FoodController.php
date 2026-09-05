@@ -8,15 +8,22 @@ use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Services\CloudinaryImageService;
 
 class FoodController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $foods = Food::with(['restaurant', 'category'])->latest()->get();
+        $query = Food::with(['restaurant', 'category'])->latest();
+
+        if ($this->isRestaurantUser($request)) {
+            $query->whereIn('restaurant_id', $this->ownedRestaurantIds($request));
+        }
+
+        $foods = $query->get();
 
         return response()->json([
             'success' => true,
@@ -28,11 +35,20 @@ class FoodController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, CloudinaryImageService $imageService): JsonResponse
     {
         $validatedData = $request->validate($this->rules());
+        $this->validateUploadedImage($request);
+        $this->ensureFoodManager($request);
 
-        if (empty($validatedData['image'])) {
+        if ($this->isRestaurantUser($request)) {
+            $ownedRestaurantIds = $this->ownedRestaurantIds($request);
+            abort_unless(in_array((int) $validatedData['restaurant_id'], $ownedRestaurantIds, true), 403, 'You can only manage food for your own restaurant.');
+        }
+
+        if ($request->hasFile('image')) {
+            $validatedData['image'] = $imageService->upload($request->file('image'), 'foods');
+        } elseif (empty($validatedData['image'])) {
             $validatedData['image'] = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&auto=format&fit=crop&q=80';
         }
         
@@ -60,9 +76,20 @@ class FoodController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Food $food): JsonResponse
+    public function update(Request $request, Food $food, CloudinaryImageService $imageService): JsonResponse
     {
+        $this->ensureFoodManager($request);
         $validatedData = $request->validate($this->rules());
+        $this->validateUploadedImage($request);
+
+        if ($this->isRestaurantUser($request)) {
+            abort_unless(in_array((int) $food->restaurant_id, $this->ownedRestaurantIds($request), true), 403, 'You can only manage food for your own restaurant.');
+            $validatedData['restaurant_id'] = $food->restaurant_id;
+        }
+
+        if ($request->hasFile('image')) {
+            $validatedData['image'] = $imageService->upload($request->file('image'), 'foods');
+        }
 
         $food->update($validatedData);
 
@@ -76,8 +103,13 @@ class FoodController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Food $food): JsonResponse
+    public function destroy(Request $request, Food $food): JsonResponse
     {
+        $this->ensureFoodManager($request);
+        if ($this->isRestaurantUser($request)) {
+            abort_unless(in_array((int) $food->restaurant_id, $this->ownedRestaurantIds($request), true), 403, 'You can only manage food for your own restaurant.');
+        }
+
         // បានលុបកូដដែលហៅរក $request ត្រង់នេះចេញ ព្រោះវាធ្វើឱ្យខុស Error 500
         $food->delete();
 
@@ -101,8 +133,51 @@ class FoodController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
-            'image' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable'],
             'status' => ['sometimes', 'string', Rule::in(['available', 'unavailable'])],
         ];
+    }
+
+    private function isRestaurantUser(Request $request): bool
+    {
+        return in_array(strtolower((string) $this->authenticatedUser($request)?->role), ['restaurant', 'restaurant admin'], true);
+    }
+
+    private function ownedRestaurantIds(Request $request): array
+    {
+        $user = $this->authenticatedUser($request);
+
+        return $user
+            ? Restaurant::where('user_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [];
+    }
+
+    private function authenticatedUser(Request $request)
+    {
+        return $request->user() ?: auth('sanctum')->user();
+    }
+
+    private function ensureFoodManager(Request $request): void
+    {
+        $role = strtolower((string) $request->user()?->role);
+
+        abort_unless(
+            in_array($role, ['admin', 'super_admin', 'super admin', 'restaurant', 'restaurant admin'], true),
+            403,
+            'You do not have permission to manage food items.'
+        );
+    }
+
+    private function validateUploadedImage(Request $request): void
+    {
+        if ($request->hasFile('image')) {
+            $request->validate([
+                'image' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            ]);
+        } elseif ($request->filled('image')) {
+            $request->validate([
+                'image' => ['string', 'max:2048'],
+            ]);
+        }
     }
 }

@@ -45,6 +45,7 @@ const Register = () => {
         // រក្សាទុក Token និងព័ត៌មាន User ក្នុង localStorage
         localStorage.setItem('token', token);
         localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('user', JSON.stringify(user));
 
         // ផ្ដល់ដំណឹងដល់ Navbar ថាមានការប្តូរស្ថានភាព Login/Auth
         window.dispatchEvent(new Event('authChanged'));

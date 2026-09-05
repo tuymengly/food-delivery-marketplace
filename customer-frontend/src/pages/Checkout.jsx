@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
+<<<<<<< HEAD
 import { createOrder } from '../api/app';
+=======
+import { createRestaurantOrder } from '../services/api';
+import { fetchFoods } from '../api/foodApi';
+>>>>>>> 7ba104d (Add Laravel project and Cloudinary integration)
 
 const Checkout = () => {
   const navigate = useNavigate();

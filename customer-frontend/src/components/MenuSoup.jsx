@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AOS from 'aos';
-import { MenuSoup as khmerSoups } from '../data'
+import { fetchFoods } from '../api/foodApi'
 import { IoSearch } from 'react-icons/io5';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next'
 
 const MenuSoup = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredSoups, setFilteredSoups] = useState(khmerSoups);
+  const [allSoups, setAllSoups] = useState([]);
+  const [filteredSoups, setFilteredSoups] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
    const { t } = useTranslation();
@@ -21,14 +23,24 @@ const MenuSoup = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = khmerSoups.filter(soup =>
+    fetchFoods()
+      .then((foods) => {
+        const soups = foods.filter((food) => /soup|broth/i.test(food.category));
+        setAllSoups(soups.length ? soups : foods);
+      })
+      .catch((error) => console.error('Error fetching soups:', error))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const filtered = allSoups.filter(soup =>
       soup.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       soup.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       soup.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredSoups(filtered);
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, allSoups]);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -89,7 +101,9 @@ const MenuSoup = () => {
 
                 {/* main card */}
                             <div className='w-full h-auto py-8 flex flex-wrap gap-5 justify-center'>
-                                {currentItems.length > 0 ? (
+                  {loading ? (
+                    <div className='w-full text-center py-20 text-gray-600'>Loading soups...</div>
+                  ) : currentItems.length > 0 ? (
                                   currentItems.map((s, index)=>(
                                 <div data-aos="fade-up"
                                      data-aos-delay={index * 100}

@@ -96,26 +96,7 @@ class DashboardController extends Controller
 
     public function restaurantStats(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $restaurantId = $request->query('restaurant_id');
-
-        if (!$restaurantId) {
-            if ($user) {
-                $ownedRestaurantIds = Restaurant::where('user_id', $user->id)->pluck('id');
-
-                if ($ownedRestaurantIds->isNotEmpty()) {
-                    $restaurantId = Order::whereHas('items.food', fn($q) => $q->whereIn('restaurant_id', $ownedRestaurantIds))
-                        ->latest()
-                        ->with('items.food')
-                        ->first()?->items->first()?->food->restaurant_id
-                        ?? $ownedRestaurantIds->first();
-                }
-            }
-
-            if (!$restaurantId) {
-                $restaurantId = Restaurant::query()->value('id');
-            }
-        }
+        $restaurantId = $this->resolveRestaurantId($request);
 
         if (!$restaurantId || !Restaurant::whereKey($restaurantId)->exists()) {
             return response()->json([
@@ -309,8 +290,14 @@ class DashboardController extends Controller
 
     private function resolveRestaurantId(Request $request): ?int
     {
+        // Restaurant stats routes are public for legacy clients, so resolve bearer tokens explicitly.
+        $user = $request->user() ?: auth('sanctum')->user();
+
+        if (in_array(strtolower((string) $user?->role), ['restaurant', 'restaurant admin'], true)) {
+            return Restaurant::where('user_id', $user->id)->value('id');
+        }
+
         $restaurantId = $request->query('restaurant_id');
-        $user = $request->user();
 
         if ($restaurantId) {
             return (int) $restaurantId;

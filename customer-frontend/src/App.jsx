@@ -91,13 +91,13 @@ const App = () => {
         <Route path='/search' element={<SearchResults/>}/>
         
         {/* Reservation page */}
-        <Route path='/Reservation' element={<Reservation/>}/>
+        <Route path='/reservation' element={<Reservation/>}/>
 
         {/* service page */}
-        < Route path='/Service' element={<Service/>}/>
+        <Route path='/service' element={<Service/>}/>
 
         {/* Contact page */}
-        < Route path='Contact' element={<Contact/>}/>
+        <Route path='/contact' element={<Contact/>}/>
 
       </Routes>
       

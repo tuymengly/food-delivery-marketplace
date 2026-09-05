@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
-import { Bell, ChevronDown, Menu, Search, LogOut, User as UserIcon } from 'lucide-react';
+import { ChevronDown, Menu, Search, LogOut, User as UserIcon } from 'lucide-react';
 import { getAdminProfile } from '../../../services/adminService'; 
+import API from '../../../services/api';
+import NotificationBell from '../../../components/ui/NotificationBell';
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,7 +13,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('admin_user');
+    const savedUser = localStorage.getItem('admin_user') || localStorage.getItem('user');
     if (savedUser && savedUser !== "undefined") {
       try {
         return JSON.parse(savedUser);
@@ -23,6 +25,15 @@ export default function AdminLayout() {
   });
 
   useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const role = String(currentUser?.role || '').toLowerCase().trim();
+    const isAdmin = ['admin', 'super_admin', 'super admin'].includes(role);
+
+    if (!isAdmin) {
+      navigate('/restaurant/dashboard', { replace: true });
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
         const response = await getAdminProfile();
@@ -40,14 +51,24 @@ export default function AdminLayout() {
     };
 
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
-  // មុខងារសម្រាប់ Logout ចេញពីប្រព័ន្ធ Admin
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('admin_user');
-    navigate('/login');
+    API.post('/logout').catch((error) => {
+      console.warn('Logout request failed; clearing local session anyway.', error);
+    }).finally(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('admin_user');
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
+    });
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/admin/foods?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -88,6 +109,7 @@ export default function AdminLayout() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 className="w-full pl-9 pr-3 py-2 bg-gray-50 hover:bg-gray-100 focus:bg-white text-xs md:text-sm text-gray-800 rounded-xl border border-gray-200 focus:outline-none focus:border-[#e03a11] transition-all"
               />
             </div>
@@ -95,10 +117,7 @@ export default function AdminLayout() {
 
           {/* User & Notification Controls */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 pl-2 relative">
-            <button className="relative p-2 hover:bg-gray-50 rounded-full transition">
-              <Bell size={20} className="text-gray-600" />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <NotificationBell role="admin" />
 
             {/* Profile Info - អាចចុចបាន (Dropdown Menu) */}
             <div className="relative">
@@ -124,7 +143,7 @@ export default function AdminLayout() {
                     <p className="text-[10px] text-gray-400 capitalize">{user.role}</p>
                   </div>
                   <button 
-                    onClick={() => { setIsProfileDropdownOpen(false); }}
+                    onClick={() => { setIsProfileDropdownOpen(false); navigate('/admin/settings'); }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
                   >
                     <UserIcon size={16} /> My Profile

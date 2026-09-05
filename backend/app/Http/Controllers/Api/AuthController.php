@@ -21,7 +21,7 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             // 'role' => ['sometimes', 'string', 'in:customer,restaurant,rider'],
-            'role' => ['sometimes', 'string', 'in:customer,restaurant,rider,driver,super_admin,admin'],
+            'role' => ['sometimes', 'string', 'in:customer,rider,driver'],
         ]);
 
         if ($validator->fails()) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MenuSoup } from '../data';
+import { addCartItem, fetchFoodDetail } from '../api/foodApi';
 import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaArrowLeft, FaHeart } from 'react-icons/fa';
 import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
@@ -13,8 +13,15 @@ const DetailMenuSoup = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [soup, setSoup] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const soup = MenuSoup.find((item) => item.id === parseInt(id));
+  useEffect(() => {
+    fetchFoodDetail(id)
+      .then(setSoup)
+      .catch((error) => console.error('Error fetching soup:', error))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
     if (soup) {
@@ -42,6 +49,8 @@ const DetailMenuSoup = () => {
         price: soup.price,
         image: soup.image,
         category: 'Soup',
+        restaurant_id: soup.restaurant_id || soup.restaurant?.id,
+        food_id: soup.id,
         qty: soup.qty || 10,
         type: 'soup',
         detailLink: `/MenuSoup/${soup.id}`,
@@ -52,6 +61,10 @@ const DetailMenuSoup = () => {
 
     window.dispatchEvent(new Event('favoritesUpdated'));
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading soup...</div>;
+  }
 
   if (!soup) {
     return (
@@ -76,12 +89,26 @@ const DetailMenuSoup = () => {
 
   const totalPrice = (soup.price * quantity).toFixed(2);
 
-  const addToCart = () => {
-    const currentUser = localStorage.getItem('currentUser');
+  const addToCart = async () => {
+    const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('token');
     if (!currentUser) {
       setToastMessage('Please login to add items to cart');
       setShowToast(true);
       setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
+    if (!localStorage.getItem('token')) {
+      setToastMessage('Please login to add items to cart');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      await addCartItem(soup.id, quantity);
+    } catch (error) {
+      setToastMessage(error?.response?.data?.message || 'Could not add item to cart. Please try again.');
+      setShowToast(true);
       return;
     }
 
@@ -99,6 +126,8 @@ const DetailMenuSoup = () => {
         price: soup.price,
         image: soup.image,
         category: 'Soup',
+        restaurant_id: soup.restaurant_id || soup.restaurant?.id,
+        food_id: soup.id,
         qty: soup.qty || 10,
         type: 'soup',
         quantity,

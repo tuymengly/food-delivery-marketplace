@@ -61,9 +61,9 @@ export default function Dashboard() {
       if (isManual) setIsRefreshing(true);
       setError(null);
 
-      const restaurantId = localStorage.getItem('restaurant_id');
-
-      const response = await getRestaurantDashboardStats(restaurantId);
+      // Let the API resolve the restaurant from the authenticated owner.
+      // This avoids using a stale restaurant_id left in localStorage.
+      const response = await getRestaurantDashboardStats();
       applyDashboardData(response.data);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -75,22 +75,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    const restaurantId = localStorage.getItem('restaurant_id');
-
-    getRestaurantDashboardStats(restaurantId)
-      .then((response) => {
-        if (!isMounted) return;
-        applyDashboardData(response.data);
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        console.error('Error fetching dashboard data:', err);
-        setError(err.response?.data?.message || 'មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ! សូមពិនិត្យមើល Backend');
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+    fetchDashboardData();
 
     // Auto Refresh ជារៀងរាល់ 5 វិនាទី ដើម្បីទទួលបាន Live Order
     const interval = setInterval(() => {
@@ -98,7 +83,6 @@ export default function Dashboard() {
     }, 5000);
 
     return () => {
-      isMounted = false;
       clearInterval(interval);
     };
   }, [fetchDashboardData]);

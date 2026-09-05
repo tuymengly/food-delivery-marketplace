@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHistory, FaCalendar, FaMapMarkerAlt, FaPhone, FaCreditCard, FaMoneyBillWave, FaChevronDown, FaChevronUp, FaShoppingBag } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
+import api from '../api/axios';
 
 const OrderHistory = () => {
   const navigate = useNavigate();
@@ -16,11 +17,33 @@ const OrderHistory = () => {
       return;
     }
 
-    // Load orders from localStorage
-    const storedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    // Sort by date (newest first)
-    const sortedOrders = storedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-    setOrders(sortedOrders);
+    const loadOrders = async () => {
+      try {
+        const response = await api.get('/orders');
+        const apiOrders = response.data.orders || response.data.data || [];
+        const normalizedOrders = apiOrders.map((order) => ({
+          ...order,
+          date: order.date || order.created_at || new Date().toISOString(),
+          total: Number(String(order.total || order.price || '0').replace(/[^0-9.]/g, '')) || 0,
+          status: String(order.status || 'placed').toLowerCase(),
+          items: Array.isArray(order.items) ? order.items : (order.items ? [{ name: order.items, quantity: 1 }] : []),
+          customerInfo: order.customerInfo || {
+            fullName: order.customer || 'Guest Customer',
+            phone: order.phone || '',
+            address: order.address || '',
+            city: '',
+            paymentMethod: 'cash',
+          },
+        }));
+        setOrders(normalizedOrders);
+      } catch (error) {
+        console.error('Error fetching order history:', error);
+        const storedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+        setOrders(storedOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
+      }
+    };
+
+    loadOrders();
   }, [navigate]);
 
   const toggleOrderExpand = (orderId) => {

@@ -1,19 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { khmerDessert } from '../data';
 import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaArrowLeft, FaHeart } from 'react-icons/fa';
 import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
+import { addCartItem, fetchFoodDetail } from '../api/foodApi';
 
 const DetailMenuDessert = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  const [dessert, setDessert] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const dessert = khmerDessert.find((item) => item.id === parseInt(id));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDessertDetail = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const dessertData = await fetchFoodDetail(id);
+        if (isMounted) {
+          setDessert(dessertData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dessert details:', error);
+        if (isMounted) {
+          setError(
+            error?.response?.data?.message ||
+              error.message ||
+              'Failed to load dessert details.'
+          );
+          setDessert(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDessertDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  // Check if the item is already in favorites
   useEffect(() => {
     if (dessert) {
       const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
@@ -24,6 +65,7 @@ const DetailMenuDessert = () => {
     }
   }, [dessert]);
 
+  // Handle favorite toggle action
   const handleFavoriteToggle = () => {
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
@@ -38,9 +80,11 @@ const DetailMenuDessert = () => {
         id: dessert.id,
         name: dessert.name,
         price: dessert.price,
-        image: dessert.image,
-        category: dessert.category,
-        qty: dessert.qty,
+        image: dessert.image_url || dessert.image,
+        category: dessert.category?.name || dessert.category,
+        restaurant_id: dessert.restaurant_id || dessert.restaurant?.id,
+        food_id: dessert.id,
+        qty: dessert.qty || 10,
         type: 'dessert',
         detailLink: `/MenuDessert/${dessert.id}`,
       };
@@ -51,14 +95,29 @@ const DetailMenuDessert = () => {
     window.dispatchEvent(new Event('favoritesUpdated'));
   };
 
+  if (loading) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
+        <p className="text-gray-600 text-lg font-medium">Loading dessert details...</p>
+      </div>
+    );
+  }
+
   if (!dessert) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Dessert Not Found</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            {error ? 'Unable to Load Dessert' : 'Dessert Not Found'}
+          </h2>
+          {error && (
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              {error}
+            </p>
+          )}
           <Link
             to="/MenuDessert"
-            className="text-orange-600 hover:text-orange-700 font-semibold"
+            className="text-orange-600 hover:text-orange-700 font-semibold inline-block"
           >
             ← Back to Desserts
           </Link>
@@ -74,12 +133,27 @@ const DetailMenuDessert = () => {
 
   const totalPrice = (dessert.price * quantity).toFixed(2);
 
-  const addToCart = () => {
-    const currentUser = localStorage.getItem('currentUser');
+  // Handle add to cart action
+  const addToCart = async () => {
+    const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('token');
     if (!currentUser) {
       setToastMessage('Please login to add items to cart');
       setShowToast(true);
       setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
+    if (!localStorage.getItem('token')) {
+      setToastMessage('Please login to add items to cart');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      await addCartItem(dessert.id, quantity);
+    } catch (error) {
+      setToastMessage(error?.response?.data?.message || 'Could not add item to cart. Please try again.');
+      setShowToast(true);
       return;
     }
 
@@ -95,9 +169,11 @@ const DetailMenuDessert = () => {
         id: dessert.id,
         name: dessert.name,
         price: dessert.price,
-        image: dessert.image,
-        category: dessert.category,
-        qty: dessert.qty,
+        image: dessert.image_url || dessert.image,
+        category: dessert.category?.name || dessert.category,
+        restaurant_id: dessert.restaurant_id || dessert.restaurant?.id,
+        food_id: dessert.id,
+        qty: dessert.qty || 10,
         type: 'dessert',
         quantity,
         detailLink: `/MenuDessert/${dessert.id}`,
@@ -130,7 +206,7 @@ const DetailMenuDessert = () => {
           <div className="relative w-full">
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img
-                src={dessert.image}
+                src={dessert.image_url || dessert.image || 'https://via.placeholder.com/500'}
                 alt={dessert.name}
                 className="w-full h-auto max-h-[450px] sm:max-h-[500px] object-cover rounded-3xl transition-transform duration-700 hover:scale-105"
               />
@@ -146,7 +222,9 @@ const DetailMenuDessert = () => {
               />
             </button>
             <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
-              <span className="text-orange-600 font-bold text-sm">{dessert.category}</span>
+              <span className="text-orange-600 font-bold text-sm">
+                {dessert.category?.name || dessert.category || 'Dessert'}
+              </span>
             </div>
           </div>
 
@@ -209,7 +287,7 @@ const DetailMenuDessert = () => {
                 </button>
                 <span className="text-gray-500 text-sm sm:text-base">
                   Available:{' '}
-                  <span className="font-semibold text-green-600">{dessert.qty} items</span>
+                  <span className="font-semibold text-green-600">{dessert.qty || 10} items</span>
                 </span>
               </div>
             </div>
@@ -246,6 +324,7 @@ const DetailMenuDessert = () => {
                 <p className="text-sm font-semibold text-gray-700">Top Rated</p>
               </div>
             </div>
+
             {/* --- Promo --- */}
             <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-2xl p-6">
               <h3 className="font-bold text-lg text-gray-900 mb-2">🍰 Sweet Ending!</h3>

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Services\CloudinaryImageService;
 
 class RestaurantController extends Controller
 {
@@ -21,29 +24,44 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, CloudinaryImageService $imageService): JsonResponse
     {
-        $validated = $request->validate($this->rules());
+        $validated = $request->validate([
+            ...$this->rules(),
+            'owner_email' => ['nullable', 'email', 'unique:users,email', 'required_with:owner_password'],
+            'owner_password' => ['nullable', 'string', 'min:8', 'required_with:owner_email'],
+        ]);
+        $this->validateUploadedImage($request);
 
-        $user = $request->user() ?? \App\Models\User::first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'សូម Register ឬបង្កើត User យ៉ាងហោចណាស់មួយក្នុង Database ជាមុនសិន!',
-            ], 400);
-        }
+        $ownerEmail = $validated['owner_email'] ?? null;
+        $ownerPassword = $validated['owner_password'] ?? null;
+        unset($validated['owner_email'], $validated['owner_password']);
 
         // ដោះស្រាយការបញ្ចូលរូបភាព (Image / Cover Image) បើមានផ្ញើមកជា File
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('restaurants', 'public');
-            $validated['image'] = asset('storage/' . $imagePath);
+            $validated['image'] = $imageService->upload($request->file('image'), 'restaurants');
         }
 
-        $restaurant = Restaurant::create([
-            ...$validated,
-            'user_id' => $user->id,
-        ]);
+        $existingOwner = $request->user();
+        $restaurant = DB::transaction(function () use ($validated, $ownerEmail, $ownerPassword, $existingOwner): Restaurant {
+            $user = $ownerEmail
+                ? \App\Models\User::create([
+                    'name' => $validated['name'],
+                    'email' => $ownerEmail,
+                    'password' => Hash::make($ownerPassword),
+                    'role' => 'Restaurant',
+                ])
+                : $existingOwner;
+
+            if (! $user) {
+                abort(422, 'An owner account is required to create a restaurant.');
+            }
+
+            return Restaurant::create([
+                ...$validated,
+                'user_id' => $user->id,
+            ]);
+        });
 
         return response()->json([
             'success' => true,
@@ -61,14 +79,14 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function update(Request $request, Restaurant $restaurant): JsonResponse
+    public function update(Request $request, Restaurant $restaurant, CloudinaryImageService $imageService): JsonResponse
     {
         $restaurant = $this->findUserRestaurant($request, $restaurant);
         $validated = $request->validate($this->rules());
+        $this->validateUploadedImage($request);
 
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('restaurants', 'public');
-            $validated['image'] = asset('storage/' . $imagePath);
+            $validated['image'] = $imageService->upload($request->file('image'), 'restaurants');
         }
 
         $restaurant->update($validated);
@@ -158,7 +176,7 @@ class RestaurantController extends Controller
     }
 
     // អាប់ដេត Profile របស់ Restaurant តាម User ដែលកំពុង Login
-    public function updateProfile(Request $request): JsonResponse
+    public function updateProfile(Request $request, CloudinaryImageService $imageService): JsonResponse
     {
         $user = $request->user();
         $restaurant = Restaurant::where('user_id', $user->id)->first();
@@ -180,25 +198,46 @@ class RestaurantController extends Controller
             'delivery_fee' => ['nullable', 'numeric'],
             'min_order' => ['nullable', 'numeric'],
             'avg_delivery_time' => ['nullable', 'string', 'max:50'],
+            'email' => [
+                'nullable',
+                'email',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
         ]);
+        $this->validateUploadedImage($request, 'cover_image');
 
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('restaurants', 'public');
-            $validated['image'] = asset('storage/' . $imagePath);
+            $validated['image'] = $imageService->upload($request->file('image'), 'restaurants');
         }
 
         // បើផ្ញើមកជា cover_image ពី frontend
         if ($request->hasFile('cover_image')) {
-            $imagePath = $request->file('cover_image')->store('restaurants', 'public');
-            $validated['image'] = asset('storage/' . $imagePath);
+            $validated['image'] = $imageService->upload($request->file('cover_image'), 'restaurants');
         }
 
-        $restaurant->update($validated);
+        $email = $validated['email'] ?? null;
+        unset($validated['email']);
+
+        DB::transaction(function () use ($restaurant, $user, $validated, $email): void {
+            $restaurant->update($validated);
+            if ($email && $email !== $user->email) {
+                $user->update(['email' => $email]);
+            }
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully.',
-            'data' => $restaurant->load('user:id,name,email,role'),
+            'data' => $restaurant->fresh()->load('user:id,name,email,role'),
         ]);
+    }
+
+    private function validateUploadedImage(Request $request, string $field = 'image'): void
+    {
+        if ($request->hasFile($field)) {
+            $request->validate([
+                $field => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            ]);
+        }
     }
 }

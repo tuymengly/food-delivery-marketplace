@@ -62,6 +62,8 @@ class ReviewController extends Controller
 
     public function reply(Request $request, Review $review): JsonResponse
     {
+        $this->ensureRestaurantAccess($request, $review);
+
         $validated = $request->validate([
             'reply' => ['required', 'string'],
         ]);
@@ -79,6 +81,8 @@ class ReviewController extends Controller
 
     public function updateStatus(Request $request, Review $review): JsonResponse
     {
+        $this->ensureRestaurantAccess($request, $review);
+
         $validated = $request->validate([
             'status' => ['required', 'string'],
         ]);
@@ -106,8 +110,9 @@ class ReviewController extends Controller
         ]);
     }
 
-    public function destroy(Review $review): JsonResponse
+    public function destroy(Request $request, Review $review): JsonResponse
     {
+        $this->ensureRestaurantAccess($request, $review);
         $review->delete();
 
         return response()->json([
@@ -119,7 +124,9 @@ class ReviewController extends Controller
 
     private function resolveRestaurantId(Request $request): ?int
     {
-        if ($request->filled('restaurant_id')) {
+        if (in_array(strtolower((string) $request->user()?->role), ['restaurant', 'restaurant admin'], true)) {
+            $restaurantId = Restaurant::where('user_id', $request->user()->id)->value('id');
+        } elseif ($request->filled('restaurant_id')) {
             return (int) $request->query('restaurant_id');
         }
 
@@ -134,5 +141,18 @@ class ReviewController extends Controller
         }
 
         return (int) Restaurant::query()->value('id');
+    }
+
+    private function ensureRestaurantAccess(Request $request, Review $review): void
+    {
+        if (!in_array(strtolower((string) $request->user()?->role), ['restaurant', 'restaurant admin'], true)) {
+            return;
+        }
+
+        $ownsReview = Restaurant::where('user_id', $request->user()->id)
+            ->whereKey($review->restaurant_id)
+            ->exists();
+
+        abort_unless($ownsReview, 403, 'You can only manage reviews for your own restaurant.');
     }
 }

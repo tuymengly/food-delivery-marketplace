@@ -3,6 +3,7 @@ import AdminRoutes from './routes/AdminRoutes';
 import RestaurantRoutes from './routes/RestaurantRoutes';
 import DriverRoutes from './routes/DriverRoutes'; 
 import Login from './pages/Login'; 
+import ProtectedRoute from './components/ui/ProtectedRoute';
 
 // មុខងារជំនួយសម្រាប់ពិនិត្យ Role និងផ្ញើទៅកន្លែងត្រឹមត្រូវពេលចូល Root (/)
 const RootRedirect = () => {
@@ -41,9 +42,30 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
       
         {/* Nested Routes សម្រាប់បែងចែកតាម Panel នីមួយៗ */}
-        <Route path="/admin/*" element={<AdminRoutes />} />
-        <Route path="/restaurant/*" element={<RestaurantRoutes />} />
-        <Route path="/driver/*" element={<DriverRoutes />} />
+        <Route
+          path="/admin/*"
+          element={(
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'super admin']}>
+              <AdminRoutes />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/restaurant/*"
+          element={(
+            <ProtectedRoute allowedRoles={['restaurant', 'restaurant admin']}>
+              <RestaurantRoutes />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/driver/*"
+          element={(
+            <ProtectedRoute allowedRoles={['driver', 'rider']}>
+              <DriverRoutes />
+            </ProtectedRoute>
+          )}
+        />
         
         {/* 
           ចំណាំ៖ កុំដាក់ Catch-all (<Route path="*" ... />) ហוុយៗ ប្រសិនបើវាធ្វើឱ្យប៉ះពាល់ដល់ការ Refresh 

@@ -18,13 +18,13 @@ export default function Sidebar({
       )}
       <aside
         className={`
-        fixed md:static top-0 left-0 h-full w-64 bg-[#17100e] text-gray-300 
-        flex flex-col justify-between p-5 z-30 transition-transform duration-300 ease-in-out shrink-0
+        fixed md:static top-0 left-0 h-full w-64 bg-[linear-gradient(180deg,#ff5a00_0%,#ff5a00_72%,#ff3045_100%)] text-white
+        flex flex-col justify-between p-5 z-30 transition-transform duration-300 ease-in-out shrink-0 shadow-[10px_0_30px_rgba(239,68,68,0.12)]
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
       `}
       >
         <div className="space-y-6">
-          <div className="relative pb-4 border-b border-[#2d211c] text-center">
+          <div className="relative pb-5 border-b border-white/20 text-center">
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden absolute right-0 top-0 text-gray-400 hover:text-white p-1 rounded-lg transition"
@@ -35,11 +35,11 @@ export default function Sidebar({
 
             <div className="flex flex-col items-center justify-center space-y-2 pt-1">
               {/* កែប្រែត្រង់នេះ: ដាក់ rounded-full */}
-              <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-white/5 p-1 border border-white/10 shadow-lg">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white/15 p-1 border border-white/30 shadow-lg shadow-red-950/10">
                 <img
                   src={logoImg}
                   alt="Logo"
-                  className="w-full h-full object-cover rounded-full"
+                  className="w-full h-full object-cover rounded-xl"
                 />
               </div>
 
@@ -47,7 +47,7 @@ export default function Sidebar({
                 <h1 className="text-base font-black text-white tracking-wide leading-tight">
                   24 HOUR FOOD
                 </h1>
-                <span className="text-[11px] font-medium text-gray-400 block mt-0.5">
+                  <span className="text-[11px] font-medium text-white/80 block mt-0.5">
                   Driver Portal
                 </span>
               </div>
@@ -68,14 +68,11 @@ export default function Sidebar({
                   }}
                   className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
                     isActive
-                      ? "bg-[#e13b11] text-white shadow-lg"
-                      : "text-gray-400 hover:bg-[#261c18] hover:text-gray-200"
+                      ? "bg-white text-[#ed4816] shadow-lg shadow-red-950/10"
+                      : "text-white/90 hover:bg-white/15 hover:text-white"
                   }`}
                 >
-                  <Icon
-                    size={20}
-                    className={isActive ? "text-white" : "text-gray-400"}
-                  />
+                  <Icon size={20} className={isActive ? "text-[#ed4816]" : "text-white/75"} />
                   {item.label}
                 </button>
               );
@@ -85,15 +82,15 @@ export default function Sidebar({
 
         {/* Footer Options */}
         <div className="space-y-3 pt-4">
-          <div className="border-t border-[#2d211c] pt-2 mb-2" />
+          <div className="border-t border-white/20 pt-2 mb-2" />
 
           <div className="space-y-1">
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#261c18] rounded-xl transition">
+              <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition">
               <HelpCircle size={18} />
               Help Center
             </button>
 
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-[#261c18] rounded-xl transition">
+            <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition">
               <LogOut size={18} />
               Exit Driver
             </button>

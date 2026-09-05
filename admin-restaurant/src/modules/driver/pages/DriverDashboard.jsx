@@ -153,24 +153,25 @@ export default function DriverDashboard() {
           user={{ name: user?.name || 'Driver', role: 'Driver' }}
         />
 
-        <main className="p-6 sm:p-8 space-y-6 w-full max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <main className="p-4 sm:p-8 space-y-6 w-full max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 capitalize">{activeTab} Overview</h2>
-              <p className="text-xs text-slate-400">Real delivery data from Laravel API</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Driver workspace</p>
+              <h2 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">{activeTab === 'requests' ? 'Ready for your next delivery?' : `${activeTab} overview`}</h2>
+              <p className="mt-2 text-sm text-slate-500">Stay on top of deliveries and keep customers moving.</p>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={loadDriverDashboard}
                 disabled={loading}
-                className="h-9 px-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                className="h-10 px-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 shadow-sm hover:border-orange-200 hover:text-orange-600 disabled:opacity-60"
               >
                 <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
                 Refresh
               </button>
 
-              <div className="flex items-center gap-3 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2">
                 <span className={`text-[11px] font-bold tracking-wider ${isOnline ? 'text-emerald-600' : 'text-slate-400'}`}>
                   {isOnline ? 'AVAILABLE' : 'OFFLINE'}
                 </span>
@@ -187,6 +188,32 @@ export default function DriverDashboard() {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            {[
+              { label: 'Today deliveries', value: summary.today_deliveries, icon: Package, tone: 'orange' },
+              { label: "Today's earnings", value: summary.today_earnings, icon: Wallet, tone: 'emerald' },
+              { label: 'This week', value: summary.week_earnings, icon: Navigation, tone: 'blue' },
+              { label: 'This month', value: summary.month_earnings, icon: CheckCircle, tone: 'rose' },
+            ].map((stat) => {
+              const StatIcon = stat.icon;
+              const tone = {
+                orange: 'bg-orange-50 text-orange-600',
+                emerald: 'bg-emerald-50 text-emerald-600',
+                blue: 'bg-blue-50 text-blue-600',
+                rose: 'bg-rose-50 text-rose-600',
+              }[stat.tone];
+              return (
+                <div key={stat.label} className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{stat.label}</p>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}><StatIcon size={17} /></span>
+                  </div>
+                  <p className="mt-4 text-xl sm:text-2xl font-black text-slate-900">{stat.value}</p>
+                </div>
+              );
+            })}
+          </div>
+
           {loading ? (
             <div className="bg-white p-10 rounded-2xl border border-slate-100 text-center text-slate-500 font-medium shadow-sm flex items-center justify-center gap-2">
               <Loader2 size={20} className="animate-spin text-orange-600" />
@@ -200,15 +227,15 @@ export default function DriverDashboard() {
           ) : (
             <>
               {activeOrder && (
-                <div className="bg-white rounded-2xl border-2 border-orange-500 shadow-md p-5 sm:p-6 space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                <div className="bg-white rounded-3xl border border-orange-200 shadow-[0_12px_35px_rgba(234,88,12,0.10)] p-5 sm:p-6 space-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <span className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold flex items-center gap-1.5">
                       <Package size={14} /> Active Delivery - {activeOrder.id}
                     </span>
                     <span className="text-xl font-bold text-slate-900">{activeOrder.price}</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-br from-slate-50 to-orange-50/40 p-4 rounded-2xl">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pickup Location</p>
                       <h4 className="text-xs sm:text-sm font-bold text-slate-800">{activeOrder.restaurant}</h4>

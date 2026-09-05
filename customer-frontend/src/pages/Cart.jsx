@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaTrash, FaMinus, FaPlus } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
+import { clearCart as clearApiCart, fetchCart, removeCartItem, updateCartItem } from '../api/foodApi';
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -10,8 +11,8 @@ const Cart = () => {
 
   // 🔸 Check authentication on mount
   useEffect(() => {
-    const currentUser = localStorage.getItem('currentUser');
-    if (!currentUser) {
+    const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('user');
+    if (!currentUser || !localStorage.getItem('token')) {
       navigate('/login');
       return;
     }
@@ -19,9 +20,26 @@ const Cart = () => {
   }, [navigate]);
 
   // 🔸 Load cart from localStorage
-  const loadCart = () => {
+  const loadCart = async () => {
     const storedCart = localStorage.getItem('cart');
-    if (storedCart) setCartItems(JSON.parse(storedCart));
+    const localCart = storedCart ? JSON.parse(storedCart) : [];
+
+    if (localStorage.getItem('token')) {
+      try {
+        const apiCart = await fetchCart();
+        // An empty API cart is authoritative; do not restore stale local items.
+        setCartItems(apiCart);
+        setSelectedItems(apiCart.map((item) => `${item.id}-${item.type}`));
+        localStorage.setItem('cart', JSON.stringify(apiCart));
+        return;
+      } catch (error) {
+        console.error('Error fetching cart:', error);
+      }
+    }
+
+    // Keep locally added items visible until they are synced to the API cart.
+    setCartItems(localCart);
+    setSelectedItems(localCart.map((item) => `${item.id}-${item.type}`));
   };
 
   // 🔸 Select / Deselect items
@@ -50,12 +68,21 @@ const Cart = () => {
     cartItems.length > 0 && selectedItems.length === cartItems.length;
 
   // 🔸 Quantity controls
-  const updateQuantity = (itemId, itemType, newQty) => {
+  const updateQuantity = async (itemId, itemType, newQty) => {
     if (newQty < 1) return;
-    const updated = cartItems.map((item) =>
-      item.id === itemId && item.type === itemType
-        ? { ...item, quantity: newQty }
-        : item
+    const item = cartItems.find((cartItem) => cartItem.id === itemId && cartItem.type === itemType);
+    if (item?.cartItemId) {
+      try {
+        await updateCartItem(item.cartItemId, newQty);
+      } catch (error) {
+        console.error('Error updating API cart item:', error);
+      }
+    }
+
+    const updated = cartItems.map((cartItem) =>
+      cartItem.id === itemId && cartItem.type === itemType
+        ? { ...cartItem, quantity: newQty }
+        : cartItem
     );
     setCartItems(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
@@ -81,7 +108,16 @@ const Cart = () => {
   };
 
   // 🔸 Remove items
-  const removeFromCart = (itemId, itemType) => {
+  const removeFromCart = async (itemId, itemType) => {
+    const item = cartItems.find((cartItem) => cartItem.id === itemId && cartItem.type === itemType);
+    if (item?.cartItemId) {
+      try {
+        await removeCartItem(item.cartItemId);
+      } catch (error) {
+        console.error('Error removing API cart item:', error);
+      }
+    }
+
     const updated = cartItems.filter(
       (item) => !(item.id === itemId && item.type === itemType)
     );
@@ -90,7 +126,14 @@ const Cart = () => {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
+    if (localStorage.getItem('token')) {
+      try {
+        await clearApiCart();
+      } catch (error) {
+        console.error('Error clearing API cart:', error);
+      }
+    }
     setCartItems([]);
     localStorage.removeItem('cart');
     window.dispatchEvent(new Event('cartUpdated'));

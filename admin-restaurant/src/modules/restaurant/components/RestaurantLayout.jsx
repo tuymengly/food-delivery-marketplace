@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import RestaurantSidebar from './RestaurantSidebar';
-import { Bell, ChevronDown, Menu, X, Search, UtensilsCrossed, LogOut, User as UserIcon } from 'lucide-react';
+import { ChevronDown, Menu, X, Search, UtensilsCrossed, LogOut, User as UserIcon } from 'lucide-react';
 import API from '../../../services/api';
+import NotificationBell from '../../../components/ui/NotificationBell';
 
 export default function RestaurantLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -28,6 +29,9 @@ export default function RestaurantLayout() {
         const response = await API.get('/restaurant/profile'); 
         const userData = response.data.data || response.data;
         if (userData) {
+          if (userData.id) {
+            localStorage.setItem('restaurant_id', String(userData.id));
+          }
           setUser({
             name: userData.name || userData.restaurant_name || 'Restaurant',
             role: userData.role || 'Restaurant'
@@ -44,10 +48,23 @@ export default function RestaurantLayout() {
 
   // មុខងារ Logout ចេញពីប្រព័ន្ធ Restaurant (លុបតែ Key របស់ខ្លួនឯង មិនប្រើ localStorage.clear() ទាំងអស់ទេ)
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('restaurant_user');
-    navigate('/login');
+    API.post('/logout').catch((error) => {
+      console.warn('Logout request failed; clearing local session anyway.', error);
+    }).finally(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('restaurant_user');
+      localStorage.removeItem('restaurant');
+      localStorage.removeItem('restaurant_id');
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
+    });
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/restaurant/foods?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -90,6 +107,7 @@ export default function RestaurantLayout() {
                 placeholder="Search food, orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 focus:bg-white text-xs sm:text-sm text-gray-800 rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 transition-all"
               />
             </div>
@@ -105,10 +123,7 @@ export default function RestaurantLayout() {
             </div>
 
             {/* Notification Bell */}
-            <button className="relative p-2 hover:bg-gray-100 rounded-xl transition text-gray-600">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
-            </button>
+            <NotificationBell role="restaurant" />
 
             {/* Profile Dropdown */}
             <div className="relative">
@@ -134,7 +149,7 @@ export default function RestaurantLayout() {
                     <p className="text-[10px] text-emerald-600 capitalize">{user?.role}</p>
                   </div>
                   <button 
-                    onClick={() => { setIsProfileDropdownOpen(false); }}
+                    onClick={() => { setIsProfileDropdownOpen(false); navigate('/restaurant/profile'); }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
                   >
                     <UserIcon size={16} /> Restaurant Profile

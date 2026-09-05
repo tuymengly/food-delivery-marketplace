@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Star, Edit, Trash2, X } from 'lucide-react';
 import API from '../../../services/api';
+import { uploadImageToCloudinary } from '../../../services/cloudinary';
 
 const DEFAULT_FOOD_IMAGE = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&auto=format&fit=crop&q=80';
 
@@ -13,11 +14,11 @@ const getFoodStatus = (food) => {
 };
 
 export default function ManageFoods() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -55,11 +56,10 @@ export default function ManageFoods() {
     }
   };
 
-  const fetchRestaurants = async () => {
+  const fetchRestaurant = async () => {
     try {
-      const response = await API.get('/restaurants');
-      const resData = response.data.data || response.data;
-      setRestaurants(Array.isArray(resData) ? resData : []);
+      const response = await API.get('/restaurant/profile');
+      setRestaurant(response.data.data || response.data);
     } catch (error) {
       console.error('Error fetching restaurants:', error);
     }
@@ -70,7 +70,7 @@ export default function ManageFoods() {
     description: food.description || food.desc || '',
     price: Number(food.price),
     category_id: Number(food.category_id || food.category?.id),
-    restaurant_id: Number(food.restaurant_id || food.restaurant?.id || restaurants[0]?.id),
+    restaurant_id: Number(food.restaurant_id || food.restaurant?.id || restaurant?.id),
     image: food.image || DEFAULT_FOOD_IMAGE,
     ...overrides,
   });
@@ -79,7 +79,7 @@ export default function ManageFoods() {
     Promise.resolve().then(() => {
       fetchFoods();
       fetchCategories();
-      fetchRestaurants();
+      fetchRestaurant();
     });
   }, []);
 
@@ -90,7 +90,7 @@ export default function ManageFoods() {
       name: '',
       description: '',
       category_id: categories[0]?.id || '',
-      restaurant_id: restaurants[0]?.id || '',
+      restaurant_id: restaurant?.id || '',
       price: '',
       image: ''
     });
@@ -104,7 +104,7 @@ export default function ManageFoods() {
       name: food.name || '',
       description: food.description || food.desc || '',
       category_id: food.category_id || food.category?.id || '',
-      restaurant_id: food.restaurant_id || food.restaurant?.id || restaurants[0]?.id || '',
+      restaurant_id: food.restaurant_id || food.restaurant?.id || restaurant?.id || '',
       price: food.price || '',
       image: food.image || '',
     });
@@ -164,13 +164,17 @@ export default function ManageFoods() {
     setSubmitting(true);
 
     try {
+      const image = formData.image instanceof File
+        ? await uploadImageToCloudinary(formData.image, 'foods')
+        : formData.image;
       const payload = {
         name: formData.name,
-        description: formData.description,
+        description: formData.description || '',
         price: Number(formData.price),
         category_id: Number(formData.category_id),
-        restaurant_id: Number(formData.restaurant_id || restaurants[0]?.id || 1),
-        image: formData.image || DEFAULT_FOOD_IMAGE,
+        restaurant_id: Number(formData.restaurant_id || restaurant?.id),
+        status: formData.status || 'available',
+        ...(image ? { image } : {}),
       };
 
       if (editingFood) {
@@ -188,7 +192,10 @@ export default function ManageFoods() {
       fetchFoods(); 
     } catch (error) {
       console.error('Detailed Error:', error.response?.data);
-      const errorMsg = error.response?.data?.message || JSON.stringify(error.response?.data?.errors) || 'Please check your inputs.';
+      const validationErrors = error.response?.data?.errors;
+      const errorMsg = validationErrors
+        ? Object.values(validationErrors).flat().join(' ')
+        : error.response?.data?.message || error.message || 'Please check your inputs.';
       alert('Failed to save food item: ' + errorMsg);
     } finally {
       setSubmitting(false);
@@ -443,17 +450,12 @@ export default function ManageFoods() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Restaurant</label>
-                  <select
+                  <input
                     required
-                    value={formData.restaurant_id}
-                    onChange={(e) => setFormData({ ...formData, restaurant_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
-                  >
-                    <option value="">Select Restaurant</option>
-                    {restaurants.map((res) => (
-                      <option key={res.id} value={res.id}>{res.name}</option>
-                    ))}
-                  </select>
+                    value={restaurant?.name || 'Loading restaurant...'}
+                    readOnly
+                    className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 focus:outline-none"
+                  />
                 </div>
               </div>
 
@@ -482,17 +484,16 @@ export default function ManageFoods() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Image URL (Optional)</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Food Image (Optional)</label>
                 <div className="flex gap-2 items-center">
                   <input
-                    type="text"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://..."
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] || '' })}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                   <img 
-                    src={formData.image || DEFAULT_FOOD_IMAGE} 
+                    src={typeof formData.image === 'string' ? (formData.image || DEFAULT_FOOD_IMAGE) : DEFAULT_FOOD_IMAGE}
                     alt="Preview" 
                     className="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0"
                     onError={(e) => { e.target.src = DEFAULT_FOOD_IMAGE; }}

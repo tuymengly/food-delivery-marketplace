@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { khmerFoods, khmerSnacks, MenuSoup, khmerDessert } from '../data';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { fetchFoods } from '../api/foodApi';
 import { IoSearch } from 'react-icons/io5';
 import { FaArrowLeft } from 'react-icons/fa';
 
@@ -9,11 +9,21 @@ const SearchResults = () => {
   const query = searchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(query);
   const [results, setResults] = useState([]);
+  const [foods, setFoods] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchFoods()
+      .then(setFoods)
+      .catch((error) => console.error('Error fetching search data:', error))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     setSearchQuery(query);
     performSearch(query);
-  }, [query]);
+  }, [query, foods]);
 
   const performSearch = (searchTerm) => {
     if (!searchTerm.trim()) {
@@ -21,28 +31,34 @@ const SearchResults = () => {
       return;
     }
 
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.trim().toLowerCase();
     
     // Search across all categories
-    const allItems = [
-      ...khmerFoods.map(item => ({ ...item, type: 'food', detailLink: `/MenuFood/${item.id}` })),
-      ...khmerSnacks.map(item => ({ ...item, type: 'snack', detailLink: `/MenuSnack/${item.id}` })),
-      ...MenuSoup.map(item => ({ ...item, type: 'soup', detailLink: `/MenuSoup/${item.id}` })),
-      ...khmerDessert.map(item => ({ ...item, type: 'dessert', detailLink: `/MenuDessert/${item.id}` }))
-    ];
+    const allItems = foods.map(item => {
+      const category = item.category?.toLowerCase() || '';
+      const type = category.includes('dessert') ? 'dessert' :
+        category.includes('snack') ? 'snack' :
+        category.includes('soup') ? 'soup' : 'food';
+      const page = type === 'dessert' ? 'MenuDessert' : type === 'snack' ? 'MenuSnack' : type === 'soup' ? 'MenuSoup' : 'MenuFood';
+      return { ...item, type, detailLink: `/${page}/${item.id}` };
+    });
 
-    const filtered = allItems.filter(item =>
-      item.name.toLowerCase().includes(term) ||
-      item.category.toLowerCase().includes(term) ||
-      (item.description && item.description.toLowerCase().includes(term))
-    );
+    const filtered = allItems.filter((item) => {
+      const searchableText = [item.name, item.category, item.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchableText.includes(term);
+    });
 
     setResults(filtered);
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+    const term = searchQuery.trim();
+    navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
   };
 
   return (
@@ -100,7 +116,9 @@ const SearchResults = () => {
         </div>
 
         {/* Results Grid */}
-        {results.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-20 text-gray-600">Searching menu...</div>
+        ) : results.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {results.map((item) => (
               <Link
@@ -152,7 +170,7 @@ const SearchResults = () => {
               onClick={() => {
                 setSearchQuery('');
                 setResults([]);
-                window.history.replaceState({}, '', '/search');
+                navigate('/search', { replace: true });
               }}
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
             >
