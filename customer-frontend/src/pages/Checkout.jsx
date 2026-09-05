@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
+import { createOrder } from '../api/app';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -99,21 +102,67 @@ const Checkout = () => {
     return subtotal + delivery;
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // Create order object
+    const currentUser = JSON.parse(
+      localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}'
+    );
+    const subtotal = calculateSubtotal();
+    const delivery = 2.00;
+    const total = calculateTotal();
+    const payload = {
+      restaurant_id: Number(
+        localStorage.getItem('restaurant_id') ||
+          import.meta.env.VITE_RESTAURANT_ID ||
+          1
+      ),
+      user_id: Number.isInteger(Number(currentUser.id))
+        ? Number(currentUser.id)
+        : undefined,
+      customer_name: formData.fullName,
+      customer_email: currentUser.email,
+      customer_phone: formData.phone,
+      delivery_address: formData.address,
+      city: formData.city,
+      notes: formData.notes,
+      payment_method: formData.paymentMethod,
+      total_price: total,
+      status: 'new',
+      items: cartItems.map((item) => ({
+        food_id: Number(item.food_id || item.id),
+        name: item.name,
+        category: item.category,
+        quantity: Number(item.quantity || 1),
+        price: Number(item.price || 0),
+      })),
+    };
+
+    let savedOrder;
+    try {
+      setIsSubmitting(true);
+      setApiError('');
+      const response = await createOrder(payload);
+      savedOrder = response.order;
+    } catch (requestError) {
+      setApiError(requestError.message);
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
     const order = {
-      id: Date.now(),
+      id: savedOrder?.id || Date.now(),
+      remoteId: savedOrder?.id,
       date: new Date().toISOString(),
       items: cartItems,
       customerInfo: formData,
-      subtotal: calculateSubtotal(),
-      delivery: 2.00,
-      total: calculateTotal(),
-      status: 'pending'
+      subtotal,
+      delivery,
+      total,
+      status: savedOrder?.status || 'new'
     };
 
     // Store order in localStorage
@@ -145,6 +194,11 @@ const Checkout = () => {
             Checkout
           </h1>
           <p className="text-gray-600 text-lg">Complete your order</p>
+          {apiError && (
+            <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-red-700">
+              {apiError}
+            </p>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -338,9 +392,10 @@ const Checkout = () => {
               {/* Place Order Button */}
               <button
                 onClick={handlePlaceOrder}
+                disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 mb-4"
               >
-                Place Order
+                {isSubmitting ? 'Placing Order...' : 'Place Order'}
               </button>
 
               <button

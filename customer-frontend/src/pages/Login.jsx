@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { getRoleRedirect, loginUser, saveAuthSession } from '../api/app';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,30 +20,18 @@ const Login = () => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Find user
-    const user = users.find(u => u.email === formData.email && u.password === formData.password);
-    
-    if (user) {
-      // Store logged in user
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: user.id,
-        name: user.name,
-        email: user.email
-      }));
-      
+    try {
+      const user = saveAuthSession(await loginUser(formData));
       // Notify navbar of auth change
       window.dispatchEvent(new Event('authChanged'));
-      
-      // Redirect to home
-      navigate('/home');
-    } else {
-      setError('Invalid email or password');
+      const redirect = getRoleRedirect(user?.role);
+      redirect.startsWith('http')
+        ? window.location.assign(redirect)
+        : navigate(redirect);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || requestError.message);
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone } from 'react-icons/fa';
+import { getRoleRedirect, registerUser, saveAuthSession } from '../api/app';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Register = () => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
@@ -32,46 +33,33 @@ const Register = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
-    // Get existing users
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Check if email already exists
-    if (users.some(u => u.email === formData.email)) {
-      setError('Email already registered');
-      return;
+    try {
+      const response = await registerUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        password_confirmation: formData.confirmPassword,
+      });
+      const user = saveAuthSession(response);
+      window.dispatchEvent(new Event('authChanged'));
+      const redirect = getRoleRedirect(user?.role);
+      redirect.startsWith('http')
+        ? window.location.assign(redirect)
+        : navigate(redirect);
+    } catch (requestError) {
+      const validationErrors = requestError.response?.data?.errors;
+      setError(
+        validationErrors
+          ? Object.values(validationErrors).flat().join(' ')
+          : requestError.message
+      );
     }
-
-    // Create new user
-    const newUser = {
-      id: Date.now(),
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password,
-      createdAt: new Date().toISOString()
-    };
-
-    // Save to localStorage
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    // Auto login
-    localStorage.setItem('currentUser', JSON.stringify({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email
-    }));
-
-    // Notify navbar of auth change
-    window.dispatchEvent(new Event('authChanged'));
-
-    // Redirect to home
-    navigate('/home');
   };
 
   return (

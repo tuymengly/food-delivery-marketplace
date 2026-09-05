@@ -22,7 +22,6 @@ import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import SearchResults from './pages/SearchResults';
-import { initDummyUsers } from './utils/initDummyData';
 import Reservation from './pages/Reservation';
 import Service from './pages/Service';
 import Contact from './pages/Contact';
@@ -33,11 +32,6 @@ import "aos/dist/aos.css";
 
 
 const App = () => {
-  // Initialize dummy users on app load
-  React.useEffect(() => {
-    initDummyUsers();
-  }, []);
-
     useEffect(() => {
     AOS.init({
       duration: 900,
