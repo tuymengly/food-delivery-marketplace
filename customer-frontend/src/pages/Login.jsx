@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import api from '../api/axios'; // ហៅប្រើប្រាស់ Axios instance ដែលបានបង្កើតខាងលើ
+import { getRoleRedirect, loginUser, saveAuthSession } from '../api/app';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,34 +23,16 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
     try {
-      const response = await api.post('/login', {
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (response.data.success) {
-        const { user, token } = response.data.data;
-
-        localStorage.setItem('token', token);
-        localStorage.setItem('currentUser', JSON.stringify(user));
-
-        window.dispatchEvent(new Event('authChanged'));
-
-        navigate('/home');
-      }
-    } catch (err) {
-      if (err.response && err.response.data) {
-        // បង្ហាញសាររឿង Validation ឬបញ្ហាគណនីពី Backend
-        setError(err.response.data.message || 'Invalid email or password.');
-      } else {
-        setError('មានបញ្តហាកើតឡើង សូមព្យាយាមម្តងទៀត។');
-      }
-    } finally {
-      setLoading(false);
+      const user = saveAuthSession(await loginUser(formData));
+      // Notify navbar of auth change
+      window.dispatchEvent(new Event('authChanged'));
+      const redirect = getRoleRedirect(user?.role);
+      redirect.startsWith('http')
+        ? window.location.assign(redirect)
+        : navigate(redirect);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || requestError.message);
     }
   };
 

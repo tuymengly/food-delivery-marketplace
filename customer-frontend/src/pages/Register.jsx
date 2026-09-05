@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import api from '../api/axios'; // ហៅប្រើប្រាស់ Axios instance
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone } from 'react-icons/fa';
+import { getRoleRedirect, registerUser, saveAuthSession } from '../api/app';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -66,6 +66,34 @@ const Register = () => {
       }
     } finally {
       setLoading(false);
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      const response = await registerUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        password_confirmation: formData.confirmPassword,
+      });
+      const user = saveAuthSession(response);
+      window.dispatchEvent(new Event('authChanged'));
+      const redirect = getRoleRedirect(user?.role);
+      redirect.startsWith('http')
+        ? window.location.assign(redirect)
+        : navigate(redirect);
+    } catch (requestError) {
+      const validationErrors = requestError.response?.data?.errors;
+      setError(
+        validationErrors
+          ? Object.values(validationErrors).flat().join(' ')
+          : requestError.message
+      );
     }
   };
 

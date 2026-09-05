@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
-import { createRestaurantOrder } from '../services/api';
+import { createOrder } from '../api/app';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -110,19 +110,21 @@ const Checkout = () => {
       return;
     }
 
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const restaurantId = Number(
-      localStorage.getItem('restaurant_id') ||
-      import.meta.env.VITE_RESTAURANT_ID ||
-      1
+    const currentUser = JSON.parse(
+      localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}'
     );
     const subtotal = calculateSubtotal();
     const delivery = 2.00;
     const total = calculateTotal();
-
     const payload = {
-      restaurant_id: restaurantId,
-      user_id: Number.isInteger(Number(currentUser.id)) ? Number(currentUser.id) : undefined,
+      restaurant_id: Number(
+        localStorage.getItem('restaurant_id') ||
+          import.meta.env.VITE_RESTAURANT_ID ||
+          1
+      ),
+      user_id: Number.isInteger(Number(currentUser.id))
+        ? Number(currentUser.id)
+        : undefined,
       customer_name: formData.fullName,
       customer_email: currentUser.email,
       customer_phone: formData.phone,
@@ -136,7 +138,6 @@ const Checkout = () => {
         food_id: Number(item.food_id || item.id),
         name: item.name,
         category: item.category,
-        type: item.type,
         quantity: Number(item.quantity || 1),
         price: Number(item.price || 0),
       })),
@@ -146,17 +147,15 @@ const Checkout = () => {
     try {
       setIsSubmitting(true);
       setApiError('');
-      const response = await createRestaurantOrder(payload);
+      const response = await createOrder(payload);
       savedOrder = response.order;
-    } catch (error) {
-      console.error('Failed to place order:', error);
-      setApiError(error.message || 'Cannot connect to the restaurant server. Please try again.');
+    } catch (requestError) {
+      setApiError(requestError.message);
       return;
     } finally {
       setIsSubmitting(false);
     }
 
-    // Create customer-side order object for receipt/history screens.
     const order = {
       id: savedOrder?.id || Date.now(),
       remoteId: savedOrder?.id,
@@ -198,6 +197,11 @@ const Checkout = () => {
             Checkout
           </h1>
           <p className="text-gray-600 text-lg">Complete your order</p>
+          {apiError && (
+            <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-red-700">
+              {apiError}
+            </p>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -398,7 +402,7 @@ const Checkout = () => {
               <button
                 onClick={handlePlaceOrder}
                 disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 transition-all duration-300 mb-4"
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 mb-4"
               >
                 {isSubmitting ? 'Placing Order...' : 'Place Order'}
               </button>

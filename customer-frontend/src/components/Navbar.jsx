@@ -6,6 +6,7 @@ import { IoSearch, IoCloseSharp } from "react-icons/io5";
 import { FaRegHeart, FaRegUser, FaBars } from "react-icons/fa";
 import { HiOutlineShoppingCart } from "react-icons/hi";
 import LanguageSwitcher from './LanguageSwitcher';
+import { clearAuthSession, logoutUser } from '../api/app';
 
 const Navbar = () => {
   const { t } = useTranslation();
@@ -256,19 +257,23 @@ const Navbar = () => {
                     {t('nav.orderHistory')}
                   </Link>
                   <button
-                    onClick={() => {
-                      // Clear user session
-                      localStorage.removeItem('currentUser');
-                      // Clear cart and favorites on logout
-                      localStorage.removeItem('cart');
-                      localStorage.removeItem('favorites');
-                      setCurrentUser(null);
-                      setCartCount(0);
-                      setFavoritesCount(0);
-                      window.dispatchEvent(new Event('authChanged'));
-                      window.dispatchEvent(new Event('cartUpdated'));
-                      window.dispatchEvent(new Event('favoritesUpdated'));
-                      navigate('/home');
+                    onClick={async () => {
+                      try {
+                        await logoutUser();
+                      } catch (requestError) {
+                        console.error('Logout request failed:', requestError);
+                      } finally {
+                        clearAuthSession();
+                        localStorage.removeItem('cart');
+                        localStorage.removeItem('favorites');
+                        setCurrentUser(null);
+                        setCartCount(0);
+                        setFavoritesCount(0);
+                        window.dispatchEvent(new Event('authChanged'));
+                        window.dispatchEvent(new Event('cartUpdated'));
+                        window.dispatchEvent(new Event('favoritesUpdated'));
+                        navigate('/home');
+                      }
                     }}
                     className="w-full text-left px-4 py-2 text-red-600
                      hover:bg-red-50 transition-colors text-sm border-t border-gray-100"
