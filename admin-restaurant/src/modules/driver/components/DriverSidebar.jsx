@@ -1,4 +1,3 @@
-import React from "react";
 import { X, LogOut, HelpCircle } from "lucide-react";
 import logoImg from '../../../assets/logo.png';
 

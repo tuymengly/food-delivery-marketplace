@@ -11,6 +11,9 @@ use Illuminate\Validation\Rule;
 
 class FoodController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index(): JsonResponse
     {
         $foods = Food::with(['restaurant', 'category'])->latest()->get();
@@ -21,25 +24,17 @@ class FoodController extends Controller
             'data' => $foods,
         ]);
     }
-
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate($this->rules());
+        $validatedData = $request->validate($this->rules());
 
-        // Check if user owns the restaurant
-        $restaurant = Restaurant::find($validated['restaurant_id']);
-        if ($request->user()->role !== 'admin' && $request->user()->id !== $restaurant->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to create food for this restaurant.',
-                'errors' => [
-                    'restaurant_id' => ['You must own this restaurant to add food to it.'],
-                ],
-            ], 403);
+        if (empty($validatedData['image'])) {
+            $validatedData['image'] = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&auto=format&fit=crop&q=80';
         }
-
-        $food = Food::create($validated);
-
+        $food = Food::create($validatedData);
         return response()->json([
             'success' => true,
             'message' => 'Food created successfully.',
@@ -47,6 +42,9 @@ class FoodController extends Controller
         ], 201);
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(Food $food): JsonResponse
     {
         return response()->json([
@@ -56,10 +54,14 @@ class FoodController extends Controller
         ]);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, Food $food): JsonResponse
     {
-        $this->findUserFood($request, $food);
-        $food->update($request->validate($this->rules()));
+        $validatedData = $request->validate($this->rules());
+
+        $food->update($validatedData);
 
         return response()->json([
             'success' => true,
@@ -68,7 +70,10 @@ class FoodController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Food $food): JsonResponse
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Food $food): JsonResponse
     {
         $this->findUserFood($request, $food);
         $food->delete();
@@ -81,6 +86,8 @@ class FoodController extends Controller
     }
 
     /**
+     * Validation rules for store and update.
+     * 
      * @return array<string, mixed>
      */
     private function rules(): array
@@ -94,18 +101,5 @@ class FoodController extends Controller
             'image' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'string', Rule::in(['available', 'unavailable'])],
         ];
-    }
-
-    private function findUserFood(Request $request, Food $food): void
-    {
-        if (! $food->relationLoaded('restaurant')) {
-            $food->load('restaurant');
-        }
-
-        if ($request->user()->role === 'admin' || $request->user()->id === $food->restaurant->user_id) {
-            return;
-        }
-
-        abort(403, 'You do not have permission to modify this food.');
     }
 }

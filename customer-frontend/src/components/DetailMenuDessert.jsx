@@ -13,9 +13,7 @@ const DetailMenuDessert = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-
   const dessert = khmerDessert.find((item) => item.id === parseInt(id));
-
   useEffect(() => {
     if (dessert) {
       const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
@@ -248,7 +246,6 @@ const DetailMenuDessert = () => {
                 <p className="text-sm font-semibold text-gray-700">Top Rated</p>
               </div>
             </div>
-
             {/* --- Promo --- */}
             <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-2xl p-6">
               <h3 className="font-bold text-lg text-gray-900 mb-2">🍰 Sweet Ending!</h3>

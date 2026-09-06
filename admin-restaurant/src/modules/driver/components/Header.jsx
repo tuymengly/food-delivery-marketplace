@@ -1,4 +1,3 @@
-import React from 'react';
 import { Search, Bell, ChevronDown, Menu } from 'lucide-react';
 
 export default function Header({ 
@@ -31,7 +30,6 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-4">
-        
         <button className="relative p-2 text-gray-600 hover:text-gray-900 transition">
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
@@ -43,7 +41,6 @@ export default function Header({
           <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center text-sm">
             {user?.name ? user.name.charAt(0) : 'T'}
           </div>
-
           <div className="hidden sm:block text-left leading-tight">
             <h4 className="text-xs font-bold text-gray-900 group-hover:text-orange-600 transition">
               {user?.name || 'Tom Wright'}
@@ -52,10 +49,8 @@ export default function Header({
               {user?.role || 'Super Admin'}
             </span>
           </div>
-
           <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-600 transition" />
         </div>
-
       </div>
     </header>
   );

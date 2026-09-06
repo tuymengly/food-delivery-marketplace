@@ -21,32 +21,31 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        if ($request->user()->role !== 'restaurant') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only users with restaurant role can create restaurants.',
-                'errors' => [
-                    'role' => ['You must have the restaurant role to create a restaurant.'],
-                ],
-            ], 403);
-        }
+   public function store(Request $request): JsonResponse
+{
+    $validated = $request->validate($this->rules());
 
-        $validated = $request->validate($this->rules());
+    // ស្វែងរក User ដែលកំពុង Login ឬយក User ទី១ ដែលមានស្រាប់ក្នុង Database
+    $user = $request->user() ?? \App\Models\User::first();
 
-        $restaurant = Restaurant::create([
-            ...$validated,
-            'user_id' => $request->user()->id,
-        ]);
-
+    if (!$user) {
         return response()->json([
-            'success' => true,
-            'message' => 'Restaurant created successfully.',
-            'data' => $restaurant->load('user:id,name,email,role'),
-        ], 201);
+            'success' => false,
+            'message' => 'សូម Register ឬបង្កើត User យ៉ាងហោចណាស់មួយក្នុង Database ជាមុនសិន!',
+        ], 400);
     }
 
+    $restaurant = Restaurant::create([
+        ...$validated,
+        'user_id' => $user->id,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Restaurant created successfully.',
+        'data' => $restaurant->load('user:id,name,email,role'),
+    ], 201);
+}
     public function show(Restaurant $restaurant): JsonResponse
     {
         return response()->json([
@@ -70,7 +69,24 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Restaurant $restaurant): JsonResponse
+    public function updateStatus(Request $request, Restaurant $restaurant): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(['active', 'inactive', 'pending'])],
+        ]);
+
+        $restaurant->update([
+            'status' => strtolower($validated['status']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Restaurant status updated successfully.',
+            'data' => $restaurant->load('user:id,name,email,role'),
+        ]);
+    }
+
+    public function destroy(Restaurant $restaurant): JsonResponse
     {
         $restaurant = $this->findUserRestaurant($request, $restaurant);
         $restaurant->delete();
@@ -93,7 +109,7 @@ class RestaurantController extends Controller
             'address' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'image' => ['nullable', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', Rule::in(['active', 'inactive'])],
+            'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending'])],
         ];
     }
 

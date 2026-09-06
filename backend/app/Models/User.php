@@ -22,12 +22,15 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-    ];
-
+    'name',
+    'email',
+    'password',
+    'role',
+    'status',
+    'location',
+    'phone',   
+    'vehicle',
+];
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -61,23 +64,8 @@ class User extends Authenticatable
         return $this->hasMany(Restaurant::class);
     }
 
-    public function addresses(): HasMany
+    public function reviews(): HasMany
     {
-        return $this->hasMany(Address::class);
-    }
-
-    public function cart(): HasOne
-    {
-        return $this->hasOne(Cart::class);
-    }
-
-    public function orders(): HasMany
-    {
-        return $this->hasMany(Order::class);
-    }
-
-    public function rider(): HasOne
-    {
-        return $this->hasOne(Rider::class);
+        return $this->hasMany(Review::class);
     }
 }
