@@ -5,6 +5,7 @@ import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaArrowLeft, FaHeart } from 'r
 import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
 import { addCartItem, fetchFoodDetail } from '../api/foodApi';
+import FoodRecommendButton from './FoodRecommendButton';
 
 const DetailMenuDessert = () => {
   const { id } = useParams();
@@ -244,6 +245,7 @@ const DetailMenuDessert = () => {
                 (4.7) • 98 Reviews
               </span>
             </div>
+            <FoodRecommendButton food={dessert} />
 
             <p className="text-gray-700 text-base sm:text-lg leading-relaxed mb-8">
               {dessert.description}

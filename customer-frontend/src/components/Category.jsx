@@ -19,7 +19,11 @@ const Category = () => {
         const fetchCategories = async () => {
             try {
                 const response = await api.get('/categories'); // ទៅកាន់ Backend Route: GET /api/categories
-                setCategories(response.data.data || response.data);
+                const categoryData = response.data.data || response.data || [];
+                const categoriesWithFood = categoryData.filter((category) => (
+                    Number(category.foods_count ?? category.foods?.length ?? 0) > 0
+                ));
+                setCategories(categoriesWithFood);
             } catch (error) {
                 console.error('Error fetching categories:', error);
             } finally {
@@ -97,7 +101,7 @@ const Category = () => {
                                     </div>
 
                                     <Link
-                                        to={s.linkUrl || `/menu/${s.id}`}
+                                        to={s.linkUrl || `/menu?category=${s.id}`}
                                         className='inline-block text-center px-6 py-2.5 rounded-xl text-white bg-gradient-to-r from-orange-500 to-red-500 
                                         hover:from-orange-600 hover:to-red-600 hover:scale-105 hover:shadow-xl hover:shadow-orange-300/50
                                         transition-all duration-300 font-semibold mt-3'

@@ -148,6 +148,9 @@ const SearchResults = () => {
                     {item.name}
                   </h3>
                   <p className="text-sm text-gray-500 mb-3">{item.category}</p>
+                  <p className="text-sm text-orange-600 font-semibold mb-3">
+                    From: {item.restaurantName}
+                  </p>
                   {item.description && (
                     <p className="text-sm text-gray-600 line-clamp-2 mb-4">{item.description}</p>
                   )}

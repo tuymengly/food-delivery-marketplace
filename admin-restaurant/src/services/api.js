@@ -10,6 +10,9 @@ const API = axios.create({
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

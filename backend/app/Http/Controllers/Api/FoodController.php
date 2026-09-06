@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Http\Controllers\Api;
-
 use App\Http\Controllers\Controller;
 use App\Models\Food;
 use App\Models\Restaurant;
@@ -17,14 +15,13 @@ class FoodController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Food::with(['restaurant', 'category'])->latest();
-
+        $query = Food::with(['restaurant', 'category'])
+            ->withCount('recommendations')
+            ->latest();
         if ($this->isRestaurantUser($request)) {
             $query->whereIn('restaurant_id', $this->ownedRestaurantIds($request));
         }
-
         $foods = $query->get();
-
         return response()->json([
             'success' => true,
             'message' => 'Foods retrieved successfully.',
@@ -53,14 +50,12 @@ class FoodController extends Controller
         }
         
         $food = Food::create($validatedData);
-
         return response()->json([
             'success' => true,
             'message' => 'Food created successfully.',
             'data' => $food->load(['restaurant', 'category']),
         ], 201);
     }
-
     /**
      * Display the specified resource.
      */
@@ -110,7 +105,13 @@ class FoodController extends Controller
             abort_unless(in_array((int) $food->restaurant_id, $this->ownedRestaurantIds($request), true), 403, 'You can only manage food for your own restaurant.');
         }
 
-        // បានលុបកូដដែលហៅរក $request ត្រង់នេះចេញ ព្រោះវាធ្វើឱ្យខុស Error 500
+        if ($food->orderItems()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This food cannot be deleted because it is part of an order. Mark it unavailable instead to preserve order history.',
+            ], 422);
+        }
+
         $food->delete();
 
         return response()->json([

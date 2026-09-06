@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaShoppingCart, FaTrash, FaMinus, FaPlus } from 'react-icons/fa';
+import { FaShoppingCart, FaTrash, FaMinus, FaPlus, FaStar, FaRegStar } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
-import { clearCart as clearApiCart, fetchCart, removeCartItem, updateCartItem } from '../api/foodApi';
+import { clearCart as clearApiCart, fetchCart, removeCartItem, toggleFoodRecommendation, updateCartItem } from '../api/foodApi';
 
 const Cart = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('favorites') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // 🔸 Check authentication on mount
   useEffect(() => {
@@ -66,6 +73,33 @@ const Cart = () => {
 
   const isAllSelected = () =>
     cartItems.length > 0 && selectedItems.length === cartItems.length;
+
+  const toggleRecommend = async (item) => {
+    const itemType = item.type || 'food';
+    const isRecommended = favorites.some(
+      (favorite) => favorite.id === item.id && favorite.type === itemType
+    );
+    const updatedFavorites = isRecommended
+      ? favorites.filter((favorite) => !(favorite.id === item.id && favorite.type === itemType))
+      : [...favorites, { ...item, type: itemType }];
+
+    setFavorites(updatedFavorites);
+    localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+    window.dispatchEvent(new Event('favoritesUpdated'));
+
+    try {
+      await toggleFoodRecommendation(item.id);
+    } catch (error) {
+      setFavorites(favorites);
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+      window.dispatchEvent(new Event('favoritesUpdated'));
+      alert(error.response?.data?.message || 'Could not update recommendation.');
+    }
+  };
+
+  const isRecommended = (item) => favorites.some(
+    (favorite) => favorite.id === item.id && favorite.type === (item.type || 'food')
+  );
 
   // 🔸 Quantity controls
   const updateQuantity = async (itemId, itemType, newQty) => {
@@ -254,10 +288,28 @@ const Cart = () => {
                   {/* Details */}
                   <div className="flex-1 flex flex-col justify-between min-w-0">
                     <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
-                        {item.name}
-                      </h3>
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+                          {item.name}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => toggleRecommend(item)}
+                          title={isRecommended(item) ? 'Remove recommendation' : 'Recommend this food'}
+                          aria-label={isRecommended(item) ? `Remove recommendation for ${item.name}` : `Recommend ${item.name}`}
+                          className="shrink-0 p-2 rounded-full hover:bg-yellow-50 transition"
+                        >
+                          {isRecommended(item) ? (
+                            <FaStar className="text-yellow-400 text-xl" />
+                          ) : (
+                            <FaRegStar className="text-gray-400 text-xl hover:text-yellow-400" />
+                          )}
+                        </button>
+                      </div>
                       <p className="text-sm text-gray-500 mb-1">{item.category}</p>
+                      <p className="text-sm text-orange-600 font-semibold mb-1">
+                        From: {item.restaurantName || 'Restaurant'}
+                      </p>
                       <p className="text-xl font-bold text-orange-600">${item.price}</p>
                     </div>
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Folder } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Folder, ImagePlus } from 'lucide-react';
 import { 
   getCategories, 
   createCategory, 
   updateCategory, 
   deleteCategory 
 } from '../../../services/adminService';
+import { uploadImageToCloudinary } from '../../../services/cloudinary';
 
 export default function ManageCategories() {
   const [categories, setCategories] = useState([]);
@@ -16,6 +17,8 @@ export default function ManageCategories() {
   // ប្រើតែ name និង description ឱ្យត្រូវជាមួយ Laravel Model
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
 
   // ១. ទាញយក Categories ពី API
   const fetchCategoriesData = async () => {
@@ -37,6 +40,8 @@ export default function ManageCategories() {
     setEditingCategory(null);
     setName('');
     setDescription('');
+    setImage(null);
+    setImagePreview('');
     setIsModalOpen(true);
   };
 
@@ -45,18 +50,25 @@ export default function ManageCategories() {
     setEditingCategory(category);
     setName(category.name);
     setDescription(category.description || '');
+    setImage(null);
+    setImagePreview(category.image || '');
     setIsModalOpen(true);
   };
 
   // ២. លុប Category តាម API
   const handleDelete = async (id, e) => {
     e.stopPropagation();
+    const category = categories.find((item) => item.id === id);
+    if ((category?.foods_count ?? category?.foods?.length ?? 0) > 0) {
+      alert('This category has food items. Move or delete the food items first.');
+      return;
+    }
     if (window.confirm('តើអ្នកពិតជាចង់លុប Category នេះមែនទេ?')) {
       try {
         await deleteCategory(id);
         fetchCategoriesData();
       } catch (error) {
-        alert('មានបញ្ហាក្នុងការលុប Category!');
+        alert(error.response?.data?.message || 'មានបញ្ហាក្នុងការលុប Category!');
       }
     }
   };
@@ -66,12 +78,17 @@ export default function ManageCategories() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const payload = {
-      name: name,
-      description: description
-    };
-
     try {
+      let imageUrl = editingCategory?.image || '';
+      if (image instanceof File) {
+        imageUrl = await uploadImageToCloudinary(image, 'categories');
+      }
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        image: imageUrl || null,
+      };
+
       if (editingCategory) {
         await updateCategory(editingCategory.id, payload);
       } else {
@@ -115,8 +132,8 @@ export default function ManageCategories() {
             className="group relative bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition"
           >
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 text-[#e03a11] rounded-2xl flex items-center justify-center shrink-0">
-                <Folder size={22} />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 text-[#e03a11] rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
+                {category.image ? <img src={category.image} alt="" className="w-full h-full object-cover" /> : <Folder size={22} />}
               </div>
               <div className="truncate">
                 <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate">
@@ -177,6 +194,32 @@ export default function ManageCategories() {
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#e03a11]"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Category Image</label>
+                <label className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#e03a11] transition">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Category preview" className="w-14 h-14 rounded-lg object-cover" />
+                  ) : (
+                    <ImagePlus size={22} className="text-[#e03a11]" />
+                  )}
+                  <span className="text-xs text-gray-500">
+                    {image ? image.name : 'Choose an image (JPG, PNG, WEBP)'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setImage(file);
+                        setImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
               </div>
 
               <div>

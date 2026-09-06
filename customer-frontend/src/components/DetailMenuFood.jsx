@@ -6,6 +6,7 @@ import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
 import { useTranslation } from 'react-i18next';
 import { addCartItem, fetchFoodDetail } from '../api/foodApi';
+import FoodRecommendButton from './FoodRecommendButton';
 
 const DetailMenuFood = () => {
   const { id } = useParams();
@@ -244,6 +245,7 @@ const DetailMenuFood = () => {
                 (4.9) • 127 Reviews
               </span>
             </div>
+            <FoodRecommendButton food={food} />
 
             <p className="text-gray-700 text-base sm:text-lg leading-relaxed mb-8">
               {food.description}
