@@ -42,4 +42,14 @@ class Food extends Model
     {
         return $this->hasMany(Review::class);
     }
+
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function recommendations(): HasMany
+    {
+        return $this->hasMany(FoodRecommendation::class);
+    }
 }

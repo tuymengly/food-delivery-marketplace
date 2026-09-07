@@ -1,13 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 import { createOrder } from '../api/app';
 
+const DELIVERY_FEE = 2;
+const FREE_DELIVERY_THRESHOLD = 20;
+
+const readStoredJson = (key, fallback) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const calculateDeliveryFee = (subtotal) => (
+  subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
+);
+
+const getCheckoutItems = () => {
+  const cart = readStoredJson('cart', []);
+  const selected = readStoredJson('selectedItems', []);
+
+  if (!Array.isArray(cart) || !Array.isArray(selected)) {
+    return [];
+  }
+
+  return cart.filter((item) => selected.includes(`${item.id}-${item.type}`));
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [cartItems] = useState(getCheckoutItems);
+  const [selectedItems] = useState(() => readStoredJson('selectedItems', []));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
   
@@ -24,36 +51,16 @@ const Checkout = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const currentUser = localStorage.getItem('currentUser');
+    const currentUser = readStoredJson('currentUser', null) || readStoredJson('user', null);
     if (!currentUser) {
       navigate('/login');
       return;
     }
 
-    // Load cart and selected items from localStorage
-    const storedCart = localStorage.getItem('cart');
-    const storedSelected = localStorage.getItem('selectedItems');
-    
-    if (storedCart) {
-      const cart = JSON.parse(storedCart);
-      const selected = storedSelected ? JSON.parse(storedSelected) : [];
-      
-      // Filter only selected items
-      const itemsToCheckout = cart.filter(item => 
-        selected.includes(`${item.id}-${item.type}`)
-      );
-      
-      if (itemsToCheckout.length === 0) {
-        navigate('/cart');
-        return;
-      }
-      
-      setCartItems(itemsToCheckout);
-      setSelectedItems(selected);
-    } else {
+    if (cartItems.length === 0) {
       navigate('/cart');
     }
-  }, [navigate]);
+  }, [cartItems.length, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -101,7 +108,7 @@ const Checkout = () => {
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    const delivery = subtotal > 0 ? 2.00 : 0;
+    const delivery = calculateDeliveryFee(subtotal);
     return subtotal + delivery;
   };
 
@@ -110,11 +117,9 @@ const Checkout = () => {
       return;
     }
 
-    const currentUser = JSON.parse(
-      localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}'
-    );
+    const currentUser = readStoredJson('currentUser', null) || readStoredJson('user', {});
     const subtotal = calculateSubtotal();
-    const delivery = 2.00;
+    const delivery = calculateDeliveryFee(subtotal);
     const total = calculateTotal();
     const payload = {
       restaurant_id: Number(
@@ -169,11 +174,13 @@ const Checkout = () => {
     };
 
     // Store order in localStorage
-    const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    localStorage.setItem('orders', JSON.stringify([...existingOrders, order]));
+    const existingOrders = readStoredJson('orders', []);
+    const savedOrders = Array.isArray(existingOrders) ? existingOrders : [];
+    localStorage.setItem('orders', JSON.stringify([...savedOrders, order]));
+    localStorage.setItem('lastOrderId', String(order.id));
 
     // Remove ordered items from cart
-    const remainingCart = JSON.parse(localStorage.getItem('cart') || '[]').filter(
+    const remainingCart = readStoredJson('cart', []).filter(
       item => !selectedItems.includes(`${item.id}-${item.type}`)
     );
     localStorage.setItem('cart', JSON.stringify(remainingCart));
@@ -185,7 +192,7 @@ const Checkout = () => {
   };
 
   const subtotal = calculateSubtotal();
-  const delivery = 2.00;
+  const delivery = calculateDeliveryFee(subtotal);
   const total = calculateTotal();
 
   return (
@@ -213,7 +220,6 @@ const Checkout = () => {
                 <MdDeliveryDining className="text-orange-600 text-3xl" />
                 Delivery Information
               </h2>
-
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -268,7 +274,6 @@ const Checkout = () => {
                   />
                   {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     City *

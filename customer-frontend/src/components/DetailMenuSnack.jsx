@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { addCartItem, fetchFoodDetail } from '../api/foodApi';
+import FoodRecommendButton from './FoodRecommendButton';
 import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaArrowLeft, FaHeart } from 'react-icons/fa';
 import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
@@ -199,6 +200,7 @@ const DetailMenuSnack = () => {
                 (4.8) • 89 Reviews
               </span>
             </div>
+            <FoodRecommendButton food={snack} />
 
             <p className="text-gray-700 text-base sm:text-lg leading-relaxed mb-8">
               {snack.description}

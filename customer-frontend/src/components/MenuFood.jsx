@@ -135,8 +135,8 @@ const MenuFood = () => {
                     <h1 className="text-gray-900 text-xl sm:text-2xl font-bold mb-2 group-hover:text-orange-600 transition-colors duration-300">
                       {s.name}
                     </h1>
-                    <p className="text-gray-500 text-sm sm:text-base">
-                      Authentic Khmer Recipe
+                    <p className="text-orange-600 text-sm sm:text-base font-semibold">
+                      From: {s.restaurantName}
                     </p>
                   </div>
                   <Link

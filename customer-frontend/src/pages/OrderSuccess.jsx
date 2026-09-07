@@ -1,28 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaCheckCircle, FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave, FaHome, FaList, FaTruck } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 
+const readStoredJson = (key, fallback) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const getSavedOrder = () => {
+  const orders = readStoredJson('orders', []);
+  const lastOrderId = localStorage.getItem('lastOrderId');
+
+  return Array.isArray(orders)
+    ? orders.find((order) => String(order.id) === lastOrderId) || null
+    : null;
+};
+
 const OrderSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [orderData, setOrderData] = useState(null);
+  const [orderData] = useState(() => location.state?.order || getSavedOrder());
 
   useEffect(() => {
-    // Get order data from location state or localStorage
-    if (location.state?.order) {
-      setOrderData(location.state.order);
-    } else {
-      // Try to get the most recent order from localStorage
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-      if (orders.length > 0) {
-        setOrderData(orders[orders.length - 1]);
-      } else {
-        // No order found, redirect to home
-        navigate('/');
-      }
+    if (!orderData) {
+      navigate('/');
     }
-  }, [location, navigate]);
+  }, [navigate, orderData]);
 
   if (!orderData) {
     return (
@@ -45,6 +53,12 @@ const OrderSuccess = () => {
       minute: '2-digit'
     });
   };
+
+  const items = Array.isArray(orderData.items) ? orderData.items : [];
+  const customerInfo = orderData.customerInfo || {};
+  const subtotal = Number(orderData.subtotal) || 0;
+  const delivery = Number(orderData.delivery) || 0;
+  const total = Number(orderData.total) || 0;
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white pt-24 pb-16 px-6 md:px-14">
@@ -92,7 +106,7 @@ const OrderSuccess = () => {
 
           {/* Ordered Items */}
           <div className="space-y-4 mb-8">
-            {orderData.items.map((item, index) => (
+            {items.map((item, index) => (
               <div
                 key={`${item.id}-${item.type}-${index}`}
                 className="flex gap-4 p-4 bg-gradient-to-r from-orange-50 to-white rounded-xl border-2 border-orange-100 hover:border-orange-300 transition-all"
@@ -110,11 +124,11 @@ const OrderSuccess = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="text-sm font-semibold text-gray-700">
-                        ${item.price.toFixed(2)} × {item.quantity}
+                        ${Number(item.price || 0).toFixed(2)} × {item.quantity}
                       </span>
                     </div>
                     <span className="text-xl font-bold text-orange-600">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      ${(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -126,19 +140,19 @@ const OrderSuccess = () => {
           <div className="border-t-2 border-gray-200 pt-6 space-y-3">
             <div className="flex justify-between text-gray-700 text-lg">
               <span>Subtotal</span>
-              <span className="font-semibold">${orderData.subtotal.toFixed(2)}</span>
+              <span className="font-semibold">${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-700 text-lg">
               <span className="flex items-center gap-2">
                 <MdDeliveryDining className="text-xl" />
                 Delivery Fee
               </span>
-              <span className="font-semibold">${orderData.delivery.toFixed(2)}</span>
+              <span className="font-semibold">${delivery.toFixed(2)}</span>
             </div>
             <div className="border-t-2 border-orange-200 pt-3">
               <div className="flex justify-between text-2xl font-bold">
                 <span className="text-gray-900">Total Paid</span>
-                <span className="text-orange-600">${orderData.total.toFixed(2)}</span>
+                <span className="text-orange-600">${total.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -157,7 +171,7 @@ const OrderSuccess = () => {
                 <FaUser className="text-orange-600 text-xl mt-1" />
                 <div>
                   <p className="text-sm font-semibold text-gray-600 mb-1">Full Name</p>
-                  <p className="text-lg font-bold text-gray-900">{orderData.customerInfo.fullName}</p>
+                  <p className="text-lg font-bold text-gray-900">{customerInfo.fullName}</p>
                 </div>
               </div>
             </div>
@@ -167,7 +181,7 @@ const OrderSuccess = () => {
                 <FaPhone className="text-orange-600 text-xl mt-1" />
                 <div>
                   <p className="text-sm font-semibold text-gray-600 mb-1">Phone Number</p>
-                  <p className="text-lg font-bold text-gray-900">{orderData.customerInfo.phone}</p>
+                  <p className="text-lg font-bold text-gray-900">{customerInfo.phone}</p>
                 </div>
               </div>
             </div>
@@ -178,18 +192,18 @@ const OrderSuccess = () => {
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-600 mb-1">Delivery Address</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {orderData.customerInfo.address}, {orderData.customerInfo.city}
+                    {customerInfo.address}, {customerInfo.city}
                   </p>
                 </div>
               </div>
             </div>
 
-            {orderData.customerInfo.notes && (
+            {customerInfo.notes && (
               <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-white p-4 rounded-xl border border-blue-100">
                 <div className="flex items-start gap-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-600 mb-1">Delivery Notes</p>
-                    <p className="text-base text-gray-700 italic">{orderData.customerInfo.notes}</p>
+                    <p className="text-base text-gray-700 italic">{customerInfo.notes}</p>
                   </div>
                 </div>
               </div>
@@ -206,7 +220,7 @@ const OrderSuccess = () => {
 
           <div className="bg-gradient-to-r from-green-50 to-white p-6 rounded-xl border-2 border-green-200">
             <div className="flex items-center gap-4">
-              {orderData.customerInfo.paymentMethod === 'cash' ? (
+              {customerInfo.paymentMethod === 'cash' ? (
                 <>
                   <FaMoneyBillWave className="text-4xl text-green-600" />
                   <div>

@@ -153,7 +153,7 @@ export default function ManageFoods() {
         setFoods(foods.filter((food) => food.id !== id));
       } catch (error) {
         console.error('Error deleting food:', error);
-        alert('Failed to delete food item.');
+        alert(error.response?.data?.message || 'Failed to delete food item.');
       }
     }
   };
@@ -282,6 +282,9 @@ export default function ManageFoods() {
                           <Star size={12} className="fill-amber-400 text-amber-400" />
                           <span>{food.rating || '5.0'}</span>
                         </div>
+                        <span className="text-[11px] text-orange-600 font-semibold">
+                          {food.recommendations_count || 0} recommends
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -369,6 +372,9 @@ export default function ManageFoods() {
                             <Star size={14} className="fill-amber-400 text-amber-400" />
                             <span>{food.rating || '5.0'}</span>
                           </div>
+                          <span className="text-[11px] text-orange-600 font-semibold mt-1">
+                            {food.recommendations_count || 0} recommends
+                          </span>
                         </td>
 
                         <td className="py-3.5 px-5">

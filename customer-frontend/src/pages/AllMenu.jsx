@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'; // ថែម useSearchParams
 import { useTranslation } from 'react-i18next';
-import { addCartItem, fetchFoods } from '../api/foodApi';
+import { addCartItem, fetchCategories, fetchFoods } from '../api/foodApi';
 import { FaHeart, FaRegHeart, FaShoppingCart, FaStar, FaFilter, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { IoSearch } from 'react-icons/io5';
 import Toast from '../components/Toast';
@@ -14,9 +14,11 @@ const AllMenu = () => {
   // ចាប់តម្លៃ filter & discount ពី URL
   const discountParam = searchParams.get('discount');
   const filterParam = searchParams.get('filter');
+  const categoryParam = searchParams.get('category');
 
   // State management
   const [allMenuItems, setAllMenuItems] = useState([]);
+  const [menuCategories, setMenuCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
@@ -38,6 +40,19 @@ const AllMenu = () => {
         return { ...item, type };
       })))
       .catch((error) => console.error('Error fetching menu:', error));
+  }, []);
+
+  useEffect(() => {
+    fetchCategories()
+      .then((categoriesData) => {
+        const availableCategories = (Array.isArray(categoriesData) ? categoriesData : [])
+          .filter((category) => Number(category.foods_count ?? category.foods?.length ?? 0) > 0)
+          .filter((category, index, categoriesData) => (
+            categoriesData.findIndex((item) => item.id === category.id) === index
+          ));
+        setMenuCategories(availableCategories);
+      })
+      .catch((error) => console.error('Error fetching categories:', error));
   }, []);
 
   // Load favorites
@@ -63,14 +78,9 @@ const AllMenu = () => {
       .some((value) => String(value).toLowerCase().includes(term));
     
     // 2. Category filter
-    const categoryText = String(item.category || '').toLowerCase();
-    const matchesCategory = selectedCategory === 'all' || (
-      selectedCategory === 'main' ? /main|food|dish/.test(categoryText) :
-      selectedCategory === 'snack' ? /snack|street/.test(categoryText) :
-      selectedCategory === 'dessert' ? /dessert|sweet/.test(categoryText) :
-      selectedCategory === 'soup' ? /soup|broth/.test(categoryText) :
-      false
-    );
+    const activeCategory = categoryParam || selectedCategory;
+    const matchesCategory = activeCategory === 'all'
+      || String(item.categoryId) === String(activeCategory);
     
     // 3. Price filter
     let matchesPrice = true;
@@ -176,13 +186,13 @@ const AllMenu = () => {
     setSearchParams({}); // លុប URL Query Params ចោលនៅពេល Reset
   };
 
-  // Categories for filter
+  // Categories for filter, loaded from the database so new categories appear automatically.
   const categories = [
     { value: 'all', label: t('menu.allItems') },
-    { value: 'main', label: t('menu.mainDish') },
-    { value: 'snack', label: t('menu.snacks') },
-    { value: 'dessert', label: t('menu.desserts') },
-    { value: 'soup', label: t('menu.soups') }
+    ...menuCategories.map((category) => ({
+      value: String(category.id),
+      label: category.name,
+    })),
   ];
 
   return (
@@ -267,6 +277,11 @@ const AllMenu = () => {
                         checked={selectedCategory === cat.value}
                         onChange={(e) => {
                           setSelectedCategory(e.target.value);
+                          if (categoryParam) {
+                            const nextParams = new URLSearchParams(searchParams);
+                            nextParams.delete('category');
+                            setSearchParams(nextParams);
+                          }
                           setCurrentPage(1);
                         }}
                         className="w-4 h-4 accent-orange-600 cursor-pointer"
@@ -430,6 +445,9 @@ const AllMenu = () => {
                           </h3>
                           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                             {item.description}
+                          </p>
+                          <p className="text-sm text-orange-600 font-semibold mb-3">
+                            From: {item.restaurantName}
                           </p>
                         </Link>
 

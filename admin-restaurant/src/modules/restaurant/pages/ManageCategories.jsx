@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Edit, Trash2, X, Layers, Folder, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Layers, Folder, Loader2, AlertCircle, ImagePlus } from 'lucide-react';
 import API from '../../../services/api';
+import { uploadImageToCloudinary } from '../../../services/cloudinary';
 
 export default function ManageCategories() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,7 +11,8 @@ export default function ManageCategories() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', image: null });
+  const [imagePreview, setImagePreview] = useState('');
   const fetchCategories = async () => {
     try {
       const response = await API.get('/categories');
@@ -33,7 +35,8 @@ export default function ManageCategories() {
 
   const handleOpenAddModal = () => {
     setEditingCategory(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', image: null });
+    setImagePreview('');
     setIsModalOpen(true);
   };
 
@@ -42,11 +45,18 @@ export default function ManageCategories() {
     setFormData({
       name: category.name || '',
       description: category.description || '',
+      image: null,
     });
+    setImagePreview(category.image || '');
     setIsModalOpen(true);
   };
 
   const handleDeleteCategory = async (id) => {
+    const category = categories.find((item) => item.id === id);
+    if (getItemCount(category || {}) > 0) {
+      alert('This category has food items. Move or delete the food items first.');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this category?')) return;
 
     try {
@@ -61,12 +71,17 @@ export default function ManageCategories() {
   const handleSave = async (e) => {
     e.preventDefault();
 
-    const payload = {
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-    };
-
     try {
+      let imageUrl = editingCategory?.image || '';
+      if (formData.image instanceof File) {
+        imageUrl = await uploadImageToCloudinary(formData.image, 'categories');
+      }
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        image: imageUrl || null,
+      };
+
       if (editingCategory) {
         const response = await API.put(`/categories/${editingCategory.id}`, payload);
         const updated = response.data.data || response.data;
@@ -135,12 +150,12 @@ export default function ManageCategories() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:hidden">
+      <div className="grid grid-cols-1 gap-3 sm:hidden">
             {filteredCategories.map((cat) => (
               <div key={cat.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[#fdf2ee] text-orange-600 flex items-center justify-center shrink-0">
-                    <Folder size={19} />
+                  <div className="w-10 h-10 rounded-xl bg-[#fdf2ee] text-orange-600 flex items-center justify-center shrink-0 overflow-hidden">
+                    {cat.image ? <img src={cat.image} alt="" className="w-full h-full object-cover" /> : <Folder size={19} />}
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-gray-900 text-sm truncate">{cat.name}</h3>
@@ -195,8 +210,8 @@ export default function ManageCategories() {
                       <tr key={cat.id} className="hover:bg-gray-50/50 transition">
                         <td className="py-3.5 px-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-[#fdf2ee] text-orange-600 flex items-center justify-center shrink-0">
-                              <Folder size={18} />
+                            <div className="w-9 h-9 rounded-xl bg-[#fdf2ee] text-orange-600 flex items-center justify-center shrink-0 overflow-hidden">
+                              {cat.image ? <img src={cat.image} alt="" className="w-full h-full object-cover" /> : <Folder size={18} />}
                             </div>
                             <span className="font-bold text-gray-900">{cat.name}</span>
                           </div>
@@ -266,6 +281,34 @@ export default function ManageCategories() {
                   placeholder="e.g. Pizza"
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Category Image
+                </label>
+                <label className="flex items-center gap-3 w-full px-3 py-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-500 transition">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Category preview" className="w-14 h-14 rounded-lg object-cover" />
+                  ) : (
+                    <ImagePlus size={22} className="text-orange-600" />
+                  )}
+                  <span className="text-xs text-gray-500">
+                    {formData.image ? formData.image.name : 'Choose an image (JPG, PNG, WEBP)'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setFormData({ ...formData, image: file });
+                        setImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
               </div>
 
               <div>

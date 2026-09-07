@@ -15,6 +15,7 @@ class Category extends Model
         'restaurant_id',
         'name',
         'description',
+        'image',
     ];
 
     public function restaurant(): BelongsTo

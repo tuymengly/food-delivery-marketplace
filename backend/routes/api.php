@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\FoodController;
+use App\Http\Controllers\Api\FoodRecommendationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RestaurantController;
@@ -48,12 +49,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('admin');
 
     Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{category}', [CategoryController::class, 'update']);
+    Route::match(['post', 'put'], '/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
     Route::post('/foods', [FoodController::class, 'store']);
     Route::put('/foods/{food}', [FoodController::class, 'update']);
     Route::delete('/foods/{food}', [FoodController::class, 'destroy']);
+    Route::post('/foods/{food}/recommend', [FoodRecommendationController::class, 'toggle']);
+    Route::get('/foods/{food}/recommendation', [FoodRecommendationController::class, 'show']);
 
     Route::get('/addresses', [AddressController::class, 'index']);
     Route::post('/addresses', [AddressController::class, 'store']);
