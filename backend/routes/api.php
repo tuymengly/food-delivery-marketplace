@@ -42,8 +42,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     // Protected marketplace write routes
     Route::post('/restaurants', [RestaurantController::class, 'store']);
     Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update']);
-    Route::put('/restaurants/{restaurant}/status', [RestaurantController::class, 'updateStatus']);
     Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
+
+    Route::put('/restaurants/{restaurant}/status', [RestaurantController::class, 'updateStatus'])
+        ->middleware('admin');
 
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
@@ -111,7 +113,7 @@ Route::post('/restaurant/reviews/{review}/reply', [ReviewController::class, 'rep
 Route::delete('/restaurant/reviews/{review}', [ReviewController::class, 'destroy']);
 
 // Admin Routes ( Super Admin Panel )
-Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
     // Admin Profile & Settings Routes
     Route::get('/profile', [UserController::class, 'getProfile']);
     Route::put('/profile', [UserController::class, 'updateProfile']);
@@ -135,9 +137,11 @@ Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
 });
 
 // Admin Dashboard & Payments Routes (Aligned with /admin/dashboard/stats)
-Route::get('/admin/dashboard/stats', [DashboardController::class, 'stats']);
-Route::get('/admin/payments', [PaymentController::class, 'getStatsAndTransactions']);
-Route::post('/admin/payments/payout', [PaymentController::class, 'processPayout']);
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('/admin/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/admin/payments', [PaymentController::class, 'getStatsAndTransactions']);
+    Route::post('/admin/payments/payout', [PaymentController::class, 'processPayout']);
+});
 
 // Driver Dashboard Routes
 Route::get('/driver/orders', [DriverController::class, 'orders']);

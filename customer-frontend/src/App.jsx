@@ -25,6 +25,7 @@ import SearchResults from './pages/SearchResults';
 import Reservation from './pages/Reservation';
 import Service from './pages/Service';
 import Contact from './pages/Contact';
+import { bootstrapSessionFromUrlToken } from './api/app';
 
 // import { Contact } from 'lucide-react';
 import AOS from "aos";
@@ -37,6 +38,14 @@ const App = () => {
       duration: 900,
       offset: 80,
       once: true,
+    });
+  }, []);
+
+  // Picks up a session handed off from the admin-restaurant app via ?token=,
+  // e.g. a customer who logged in on the wrong portal and got redirected here.
+  useEffect(() => {
+    bootstrapSessionFromUrlToken().then((didBootstrap) => {
+      if (didBootstrap) window.dispatchEvent(new Event('authChanged'));
     });
   }, []);
 

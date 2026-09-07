@@ -27,64 +27,25 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-
-    try {
-      // ផ្ញើសំណើទៅកាន់ Laravel API /api/register
-      const response = await api.post('/register', {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        password_confirmation: formData.password_confirmation,
-        role: formData.role,
-      });
-
-      if (response.data.success) {
-        const { user, token } = response.data.data;
-
-        // រក្សាទុក Token និងព័ត៌មាន User ក្នុង localStorage
-        localStorage.setItem('token', token);
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        localStorage.setItem('user', JSON.stringify(user));
-
-        // ផ្ដល់ដំណឹងដល់ Navbar ថាមានការប្តូរស្ថានភាព Login/Auth
-        window.dispatchEvent(new Event('authChanged'));
-
-        // បញ្ជូនទៅកាន់ទំព័រ Home
-        navigate('/home');
-      }
-    } catch (err) {
-      if (err.response && err.response.data) {
-        // បង្ហាញសារកំហុស Validation ពី Laravel Backend (ឧ. Email ជាន់គ្នាជាដើម)
-        if (err.response.data.errors) {
-          const firstErrorKey = Object.keys(err.response.data.errors)[0];
-          setError(err.response.data.errors[firstErrorKey][0]);
-        } else {
-          setError(err.response.data.message || 'ការចុះឈ្មោះមិនជោគជ័យ។');
-        }
-      } else {
-        setError('មានបញ្ហាកើតឡើង សូមព្យាយាមម្តងទៀត។');
-      }
-    } finally {
-      setLoading(false);
-    }
 
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
       return;
     }
 
+    setLoading(true);
+
     try {
       const response = await registerUser({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
         password: formData.password,
-        password_confirmation: formData.confirmPassword,
+        password_confirmation: formData.password_confirmation,
+        role: formData.role,
       });
-      const user = saveAuthSession(response);
+      const { user, token } = saveAuthSession(response);
       window.dispatchEvent(new Event('authChanged'));
-      const redirect = getRoleRedirect(user?.role);
+      const redirect = getRoleRedirect(user?.role, token);
       redirect.startsWith('http')
         ? window.location.assign(redirect)
         : navigate(redirect);
@@ -95,6 +56,8 @@ const Register = () => {
           ? Object.values(validationErrors).flat().join(' ')
           : requestError.message
       );
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -24,10 +24,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const user = saveAuthSession(await loginUser(formData));
+      const { user, token } = saveAuthSession(await loginUser(formData));
       // Notify navbar of auth change
       window.dispatchEvent(new Event('authChanged'));
-      const redirect = getRoleRedirect(user?.role);
+      const redirect = getRoleRedirect(user?.role, token);
       redirect.startsWith('http')
         ? window.location.assign(redirect)
         : navigate(redirect);

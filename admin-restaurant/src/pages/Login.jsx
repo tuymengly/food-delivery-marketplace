@@ -12,7 +12,10 @@ import {
   Mail,
   ShieldCheck,
 } from 'lucide-react';
-import API from '../services/api'; 
+import API from '../services/api';
+
+const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174';
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -62,7 +65,11 @@ export default function Login() {
           }
           navigate('/restaurant/dashboard'); 
         } else if (role === 'driver' || role === 'rider') {
-          navigate('/driver/dashboard'); 
+          navigate('/driver/dashboard');
+        } else if (role === 'customer') {
+          // Customers belong on the customer-facing app; hand off the
+          // session via a one-time token instead of asking them to log in twice.
+          window.location.assign(`${CUSTOMER_APP_URL}/home?token=${encodeURIComponent(token)}`);
         } else {
           setError('Access Denied: You do not have permission to access this portal.');
           localStorage.removeItem('token');

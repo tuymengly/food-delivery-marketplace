@@ -63,7 +63,7 @@ export const saveAuthSession = (response) => {
     localStorage.setItem('currentUser', serializedUser);
   }
 
-  return user;
+  return { user, token };
 };
 
 export const clearAuthSession = () => {
@@ -78,17 +78,52 @@ export const getStoredUser = () => {
   return serializedUser ? JSON.parse(serializedUser) : null;
 };
 
-export const getRoleRedirect = (role) => {
-  if (role === 'admin') {
-    return 'http://localhost:5174/admin/dashboard';
+const ADMIN_APP_URL = import.meta.env.VITE_ADMIN_APP_URL || 'http://localhost:5173';
+
+export const getRoleRedirect = (role, token) => {
+  const normalizedRole = String(role || '').toLowerCase().trim();
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+
+  if (normalizedRole === 'admin') {
+    return `${ADMIN_APP_URL}/admin/dashboard${tokenParam}`;
   }
-  if (role === 'restaurant' || role === 'restaurant_owner') {
-    return 'http://localhost:5174/restaurant/dashboard';
+  if (normalizedRole === 'restaurant' || normalizedRole === 'restaurant_owner') {
+    return `${ADMIN_APP_URL}/restaurant/dashboard${tokenParam}`;
   }
-  if (role === 'rider' || role === 'driver') {
-    return 'http://localhost:5174/rider';
+  if (normalizedRole === 'rider' || normalizedRole === 'driver') {
+    return `${ADMIN_APP_URL}/driver/dashboard${tokenParam}`;
   }
   return '/home';
+};
+
+// Lets a user land here after logging in on the admin-restaurant app (e.g. a
+// customer who signed in on the wrong portal) and pick up their session via
+// a one-time ?token= handoff instead of being asked to log in twice.
+export const bootstrapSessionFromUrlToken = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (!token) return false;
+
+  localStorage.setItem('token', token);
+
+  try {
+    const response = await apiRequest('/user');
+    const user = response?.data?.user;
+    if (user) {
+      const serializedUser = JSON.stringify(user);
+      localStorage.setItem('user', serializedUser);
+      localStorage.setItem('currentUser', serializedUser);
+    }
+  } catch (error) {
+    console.warn('Failed to bootstrap session from token handoff:', error);
+    localStorage.removeItem('token');
+  } finally {
+    params.delete('token');
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }
+
+  return true;
 };
 
 export const createOrder = (payload) =>
