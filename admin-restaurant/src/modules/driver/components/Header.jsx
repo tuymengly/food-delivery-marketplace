@@ -58,24 +58,24 @@ export default function Header({
   };
 
   return (
-    <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-10 w-full shadow-sm">
+    <header className="bg-white border-b border-slate-100 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-10 w-full shadow-sm">
 
       <div className="flex items-center gap-3 flex-1 max-w-md">
         <button 
           onClick={() => setIsSidebarOpen(true)}
-          className="md:hidden p-2 rounded-xl bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100"
+          className="md:hidden p-2 rounded-xl bg-slate-50 text-slate-600 border border-slate-100 hover:bg-slate-100"
         >
           <Menu size={20} />
         </button>
 
         <div className="relative w-full max-w-sm">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
             value={searchTerm}
             onChange={(e) => setSearchTerm && setSearchTerm(e.target.value)}
             placeholder="Search orders, deliveries..." 
-            className="w-full pl-10 pr-4 py-2 bg-gray-50/60 border border-gray-200/80 rounded-xl text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50/60 border border-slate-200/80 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
           />
         </div>
       </div>
@@ -83,38 +83,38 @@ export default function Header({
       <div className="flex items-center gap-4">
         <NotificationBell role="driver" />
 
-        <div className="h-8 w-[1px] bg-gray-200" />
+        <div className="h-8 w-[1px] bg-slate-200" />
 
         {/* Profile Dropdown Container */}
         <div className="relative">
           <div 
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="flex items-center gap-3 cursor-pointer group py-1 px-2 rounded-xl hover:bg-gray-50 transition select-none"
+            className="flex items-center gap-3 cursor-pointer group py-1 px-2 rounded-xl hover:bg-slate-50 transition select-none"
           >
-            <div className="w-9 h-9 rounded-full bg-orange-100 text-[#e03a11] font-bold flex items-center justify-center text-sm">
+            <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-sm">
               {userData?.name ? userData.name.charAt(0).toUpperCase() : 'D'}
             </div>
             <div className="hidden sm:block text-left leading-tight">
-              <h4 className="text-xs font-bold text-gray-900 group-hover:text-orange-600 transition">
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-orange-600 transition">
                 {userData?.name || 'Driver Name'}
               </h4>
-              <span className="text-[10px] text-gray-400 font-medium capitalize">
+              <span className="text-[10px] text-slate-400 font-medium capitalize">
                 {userData?.role || 'Driver'}
               </span>
             </div>
-            <ChevronDown size={14} className={`text-gray-400 group-hover:text-gray-600 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} className={`text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
 
           {/* Profile Dropdown Menu */}
           {isProfileDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50">
-              <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
-                <p className="font-bold text-gray-800 text-xs">{userData?.name || 'Driver Name'}</p>
-                <p className="text-[10px] text-gray-400 capitalize">{userData?.role || 'Driver'}</p>
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-2 z-50">
+              <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
+                <p className="font-bold text-slate-800 text-xs">{userData?.name || 'Driver Name'}</p>
+                <p className="text-[10px] text-slate-400 capitalize">{userData?.role || 'Driver'}</p>
               </div>
               <button 
                 onClick={() => { setIsProfileDropdownOpen(false); navigate('/driver/profile'); }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition text-left"
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition text-left"
               >
                 <UserIcon size={16} /> My Profile
               </button>

@@ -104,7 +104,7 @@ export default function ManageCategories() {
   };
 
   if (loading) {
-    return <div className="p-6 text-center text-gray-500 font-medium">កំពុងទាញយក Categories...</div>;
+    return <div className="p-6 text-center text-slate-500 font-medium">កំពុងទាញយក Categories...</div>;
   }
 
   return (
@@ -112,12 +112,12 @@ export default function ManageCategories() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Category Management</h2>
-          <p className="text-xs sm:text-sm text-gray-500">{categories.length} categories</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Category Management</h2>
+          <p className="text-xs sm:text-sm text-slate-500">{categories.length} categories</p>
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center justify-center gap-2 bg-[#e03a11] hover:bg-[#c6320e] text-white px-4 sm:px-5 py-2.5 rounded-2xl font-semibold text-sm transition shadow-sm cursor-pointer w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 sm:px-5 py-2.5 rounded-2xl font-semibold text-sm transition shadow-sm cursor-pointer w-full sm:w-auto"
         >
           <Plus size={18} />
           Add Category
@@ -129,17 +129,17 @@ export default function ManageCategories() {
         {categories.map((category) => (
           <div
             key={category.id}
-            className="group relative bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition"
+            className="group relative bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition"
           >
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 text-[#e03a11] rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
                 {category.image ? <img src={category.image} alt="" className="w-full h-full object-cover" /> : <Folder size={22} />}
               </div>
               <div className="truncate">
-                <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate">
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">
                   {category.name}
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">
+                <p className="text-xs text-slate-400 mt-0.5 sm:mt-1 truncate">
                   {category.description || 'No description'}
                 </p>
               </div>
@@ -172,18 +172,18 @@ export default function ManageCategories() {
           <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 sm:top-5 sm:right-5 text-gray-400 hover:text-gray-600 p-1 rounded-full cursor-pointer"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 pr-6">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-4 pr-6">
               {editingCategory ? 'Edit Category' : 'Add New Category'}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Category Name
                 </label>
                 <input
@@ -191,20 +191,20 @@ export default function ManageCategories() {
                   placeholder="e.g. Fast Food, Drinks..."
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#e03a11]"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-600"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Category Image</label>
-                <label className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#e03a11] transition">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Category Image</label>
+                <label className="flex items-center gap-3 w-full px-4 py-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-orange-600 transition">
                   {imagePreview ? (
                     <img src={imagePreview} alt="Category preview" className="w-14 h-14 rounded-lg object-cover" />
                   ) : (
-                    <ImagePlus size={22} className="text-[#e03a11]" />
+                    <ImagePlus size={22} className="text-orange-600" />
                   )}
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-slate-500">
                     {image ? image.name : 'Choose an image (JPG, PNG, WEBP)'}
                   </span>
                   <input
@@ -223,14 +223,14 @@ export default function ManageCategories() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Description
                 </label>
                 <textarea
                   placeholder="Optional description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#e03a11] h-24 resize-none"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-600 h-24 resize-none"
                 />
               </div>
 
@@ -238,13 +238,13 @@ export default function ManageCategories() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition cursor-pointer"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-[#e03a11] hover:bg-[#c6320e] text-white font-semibold text-sm rounded-xl transition cursor-pointer"
+                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-sm rounded-xl transition cursor-pointer"
                 >
                   {editingCategory ? 'Save Changes' : 'Add Category'}
                 </button>

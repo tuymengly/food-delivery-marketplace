@@ -111,37 +111,37 @@ export default function ManageCategories() {
   const getItemCount = (category) => category.foods_count ?? category.foods?.length ?? category.itemCount ?? 0;
 
   return (
-    <div className="p-4 sm:p-6 bg-[#fcfbfa] min-h-screen space-y-4 sm:space-y-6 text-gray-800">
+    <div className="p-4 sm:p-6 bg-[#fcfbfa] min-h-screen space-y-4 sm:space-y-6 text-slate-800">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Food Categories</h1>
-          <p className="text-xs text-gray-500 font-medium mt-0.5 sm:mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Food Categories</h1>
+          <p className="text-xs text-slate-500 font-medium mt-0.5 sm:mt-1">
             {filteredCategories.length} categories
           </p>
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#ea580c] hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition shadow-sm w-full sm:w-auto"
+          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition shadow-sm w-full sm:w-auto"
         >
           <Plus size={16} /> Add Category
         </button>
       </div>
 
       <div className="relative w-full sm:max-w-md">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           placeholder="Search categories..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 transition"
+          className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 transition"
         />
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100">
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-slate-100">
           <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
-          <p className="mt-3 text-xs text-gray-500 font-semibold">Loading categories...</p>
+          <p className="mt-3 text-xs text-slate-500 font-semibold">Loading categories...</p>
         </div>
       ) : error ? (
         <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center">
@@ -152,27 +152,27 @@ export default function ManageCategories() {
         <>
       <div className="grid grid-cols-1 gap-3 sm:hidden">
             {filteredCategories.map((cat) => (
-              <div key={cat.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+              <div key={cat.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-[#fdf2ee] text-orange-600 flex items-center justify-center shrink-0 overflow-hidden">
                     {cat.image ? <img src={cat.image} alt="" className="w-full h-full object-cover" /> : <Folder size={19} />}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-gray-900 text-sm truncate">{cat.name}</h3>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 font-medium mt-0.5">
+                    <h3 className="font-bold text-slate-900 text-sm truncate">{cat.name}</h3>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-medium mt-0.5">
                       <Layers size={12} /> {getItemCount(cat)} items
                     </span>
                   </div>
                 </div>
 
                 {cat.description && (
-                  <p className="text-[11px] text-gray-400 line-clamp-2">{cat.description}</p>
+                  <p className="text-[11px] text-slate-400 line-clamp-2">{cat.description}</p>
                 )}
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-50">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50">
                   <button
                     onClick={() => handleOpenEditModal(cat)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
                   >
                     <Edit size={14} /> Edit
                   </button>
@@ -187,48 +187,48 @@ export default function ManageCategories() {
             ))}
           </div>
 
-          <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="hidden sm:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#faf8f5] text-gray-400 text-xs font-semibold">
+                  <tr className="bg-[#faf8f5] text-slate-400 text-xs font-semibold">
                     <th className="py-3 px-5">Category Name</th>
                     <th className="py-3 px-5">Description</th>
                     <th className="py-3 px-5">Items Count</th>
                     <th className="py-3 px-5">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-xs font-medium">
+                <tbody className="divide-y divide-slate-100 text-xs font-medium">
                   {filteredCategories.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="py-8 text-center text-gray-400">
+                      <td colSpan="4" className="py-8 text-center text-slate-400">
                         No categories found.
                       </td>
                     </tr>
                   ) : (
                     filteredCategories.map((cat) => (
-                      <tr key={cat.id} className="hover:bg-gray-50/50 transition">
+                      <tr key={cat.id} className="hover:bg-slate-50/50 transition">
                         <td className="py-3.5 px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-[#fdf2ee] text-orange-600 flex items-center justify-center shrink-0 overflow-hidden">
                               {cat.image ? <img src={cat.image} alt="" className="w-full h-full object-cover" /> : <Folder size={18} />}
                             </div>
-                            <span className="font-bold text-gray-900">{cat.name}</span>
+                            <span className="font-bold text-slate-900">{cat.name}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-5 text-gray-500 max-w-xs truncate">
+                        <td className="py-3.5 px-5 text-slate-500 max-w-xs truncate">
                           {cat.description || 'No description'}
                         </td>
                         <td className="py-3.5 px-5">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-semibold text-[11px]">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold text-[11px]">
                             <Layers size={13} /> {getItemCount(cat)} items
                           </span>
                         </td>
                         <td className="py-3.5 px-5">
-                          <div className="flex items-center gap-3 text-gray-500">
+                          <div className="flex items-center gap-3 text-slate-500">
                             <button
                               onClick={() => handleOpenEditModal(cat)}
-                              className="hover:text-gray-900 transition"
+                              className="hover:text-slate-900 transition"
                               aria-label="Edit category"
                             >
                               <Edit size={16} />
@@ -255,13 +255,13 @@ export default function ManageCategories() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 sm:p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-sm sm:text-base font-bold text-gray-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900">
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
                 aria-label="Close modal"
               >
                 <X size={18} />
@@ -270,7 +270,7 @@ export default function ManageCategories() {
 
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Category Name
                 </label>
                 <input
@@ -279,21 +279,21 @@ export default function ManageCategories() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. Pizza"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Category Image
                 </label>
-                <label className="flex items-center gap-3 w-full px-3 py-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-500 transition">
+                <label className="flex items-center gap-3 w-full px-3 py-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-orange-500 transition">
                   {imagePreview ? (
                     <img src={imagePreview} alt="Category preview" className="w-14 h-14 rounded-lg object-cover" />
                   ) : (
                     <ImagePlus size={22} className="text-orange-600" />
                   )}
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-slate-500">
                     {formData.image ? formData.image.name : 'Choose an image (JPG, PNG, WEBP)'}
                   </span>
                   <input
@@ -312,7 +312,7 @@ export default function ManageCategories() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Description
                 </label>
                 <textarea
@@ -320,7 +320,7 @@ export default function ManageCategories() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Optional description..."
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 resize-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 resize-none"
                 />
               </div>
 
@@ -328,13 +328,13 @@ export default function ManageCategories() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition"
+                  className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#ea580c] text-white text-xs font-bold rounded-xl hover:bg-orange-700 transition"
+                  className="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl hover:bg-orange-700 transition"
                 >
                   {editingCategory ? 'Save Changes' : 'Add Category'}
                 </button>

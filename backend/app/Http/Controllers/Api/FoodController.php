@@ -41,6 +41,7 @@ class FoodController extends Controller
         if ($this->isRestaurantUser($request)) {
             $ownedRestaurantIds = $this->ownedRestaurantIds($request);
             abort_unless(in_array((int) $validatedData['restaurant_id'], $ownedRestaurantIds, true), 403, 'You can only manage food for your own restaurant.');
+            $this->ensureRestaurantApproved((int) $validatedData['restaurant_id']);
         }
 
         if ($request->hasFile('image')) {
@@ -79,6 +80,7 @@ class FoodController extends Controller
 
         if ($this->isRestaurantUser($request)) {
             abort_unless(in_array((int) $food->restaurant_id, $this->ownedRestaurantIds($request), true), 403, 'You can only manage food for your own restaurant.');
+            $this->ensureRestaurantApproved((int) $food->restaurant_id);
             $validatedData['restaurant_id'] = $food->restaurant_id;
         }
 
@@ -103,6 +105,7 @@ class FoodController extends Controller
         $this->ensureFoodManager($request);
         if ($this->isRestaurantUser($request)) {
             abort_unless(in_array((int) $food->restaurant_id, $this->ownedRestaurantIds($request), true), 403, 'You can only manage food for your own restaurant.');
+            $this->ensureRestaurantApproved((int) $food->restaurant_id);
         }
 
         if ($food->orderItems()->exists()) {
@@ -156,6 +159,21 @@ class FoodController extends Controller
     private function authenticatedUser(Request $request)
     {
         return $request->user() ?: auth('sanctum')->user();
+    }
+
+    /**
+     * Restaurant owners cannot manage food until an admin approves their
+     * restaurant (see PUT /restaurants/{restaurant}/status).
+     */
+    private function ensureRestaurantApproved(int $restaurantId): void
+    {
+        $status = Restaurant::where('id', $restaurantId)->value('status');
+
+        abort_unless(
+            strtolower((string) $status) === 'active',
+            403,
+            'Your restaurant is pending admin approval. You cannot manage food until it is approved.'
+        );
     }
 
     private function ensureFoodManager(Request $request): void

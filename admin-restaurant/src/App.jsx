@@ -4,6 +4,7 @@ import AdminRoutes from './routes/AdminRoutes';
 import RestaurantRoutes from './routes/RestaurantRoutes';
 import DriverRoutes from './routes/DriverRoutes';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import API from './services/api';
 
@@ -79,6 +80,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         
         {/* ប្រើប្រាស់ RootRedirect ដើម្បីបែងចែកទិសដៅស្វ័យប្រវត្តិ */}
         <Route path="/" element={<RootRedirect />} />

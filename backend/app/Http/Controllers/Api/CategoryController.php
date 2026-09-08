@@ -43,9 +43,10 @@ class CategoryController extends Controller
         $user = $request->user();
 
         if ($this->isRestaurantUser($request)) {
-            $restaurantId = Restaurant::where('user_id', $user->id)->value('id');
-            abort_unless($restaurantId, 403, 'Restaurant profile not found.');
-            $validated['restaurant_id'] = $restaurantId;
+            $restaurant = Restaurant::where('user_id', $user->id)->first();
+            abort_unless($restaurant, 403, 'Restaurant profile not found.');
+            $this->ensureRestaurantApproved($restaurant);
+            $validated['restaurant_id'] = $restaurant->id;
         }
 
         if ($request->hasFile('image')) {
@@ -149,8 +150,24 @@ class CategoryController extends Controller
         $role = strtolower((string) $request->user()?->role);
         if (in_array($role, ['admin', 'super_admin', 'super admin'], true)) return;
 
-        $ownedRestaurantIds = Restaurant::where('user_id', $request->user()->id)->pluck('id');
-        abort_unless($category->restaurant_id && $ownedRestaurantIds->contains($category->restaurant_id), 403, 'You can only manage categories for your own restaurant.');
+        $ownedRestaurant = Restaurant::where('user_id', $request->user()->id)
+            ->where('id', $category->restaurant_id)
+            ->first();
+        abort_unless($category->restaurant_id && $ownedRestaurant, 403, 'You can only manage categories for your own restaurant.');
+        $this->ensureRestaurantApproved($ownedRestaurant);
+    }
+
+    /**
+     * Restaurant owners cannot manage the menu until an admin approves
+     * their restaurant (see PUT /restaurants/{restaurant}/status).
+     */
+    private function ensureRestaurantApproved(Restaurant $restaurant): void
+    {
+        abort_unless(
+            strtolower((string) $restaurant->status) === 'active',
+            403,
+            'Your restaurant is pending admin approval. You cannot manage categories until it is approved.'
+        );
     }
 
     private function isRestaurantUser(Request $request): bool

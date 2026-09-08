@@ -5,6 +5,7 @@ use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 class DriverController extends Controller
 {
     private function formatOrderForDriver(Order $order): array
@@ -28,15 +29,29 @@ class DriverController extends Controller
         ];
     }
 
+    /**
+     * Both the legacy admin-created 'Driver' role and the self-registered
+     * lowercase 'rider' role represent the same delivery-partner concept.
+     */
+    private const DRIVER_ROLES = ['Driver', 'rider'];
+
     public function index()
     {
-        $drivers = User::where('role', 'Driver')->latest()->get();
+        $drivers = User::whereIn('role', self::DRIVER_ROLES)->latest()->get();
         return response()->json([
             'success' => true,
             'data' => $drivers
         ], 200);
     }
 
+    /**
+     * Admin-only: create a rider account after an off-platform interview.
+     * Riders can never self-register (see AuthController::register), so
+     * this is the sole path that produces a rider-role account. A random
+     * temporary password is generated and returned once in the response
+     * so the admin can hand it to the rider — it is never stored or
+     * shown again after this call.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -44,29 +59,34 @@ class DriverController extends Controller
             'email'    => 'required|email|unique:users,email',
             'phone'    => 'nullable|string',
             'vehicle'  => 'required|string',
-            'status'   => 'required|string',
+            'status'   => 'nullable|string',
         ]);
+
+        $temporaryPassword = Str::password(12);
 
         $driver = User::create([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'phone'    => $validated['phone'] ?? null,
             'vehicle'  => $validated['vehicle'],
-            'status'   => $validated['status'],
-            'role'     => 'Driver',
-            'password' => Hash::make('password123'),
+            'status'   => $validated['status'] ?? 'Online',
+            'role'     => 'rider',
+            'password' => Hash::make($temporaryPassword),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Driver created successfully',
-            'data'    => $driver
+            'message' => 'Rider account created successfully.',
+            'data'    => [
+                ...$driver->toArray(),
+                'temporary_password' => $temporaryPassword,
+            ],
         ], 201);
     }
 
     public function show($id)
     {
-        $driver = User::where('role', 'Driver')->findOrFail($id);
+        $driver = User::whereIn('role', self::DRIVER_ROLES)->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -76,7 +96,7 @@ class DriverController extends Controller
 
     public function update(Request $request, $id)
     {
-        $driver = User::where('role', 'Driver')->findOrFail($id);
+        $driver = User::whereIn('role', self::DRIVER_ROLES)->findOrFail($id);
 
         $validated = $request->validate([
             'name'    => 'sometimes|required|string|max:255',
@@ -95,7 +115,7 @@ class DriverController extends Controller
     }
     public function destroy($id)
     {
-        $driver = User::where('role', 'Driver')->findOrFail($id);
+        $driver = User::whereIn('role', self::DRIVER_ROLES)->findOrFail($id);
         $driver->delete();
 
         return response()->json([
@@ -104,8 +124,39 @@ class DriverController extends Controller
         ], 200);
     }
 
-    public function orders()
+    /**
+     * Reject the request unless the caller is an approved rider/driver.
+     * Riders self-registered with status 'Pending' cannot use delivery
+     * functionality until an admin approves them (see ManageDrivers "Verify").
+     */
+    private function ensureApprovedDriver(Request $request): ?\Illuminate\Http\JsonResponse
     {
+        $user = $request->user();
+        $role = strtolower((string) $user?->role);
+
+        if (! in_array($role, ['driver', 'rider'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only riders can access this endpoint.',
+            ], 403);
+        }
+
+        if (strtolower((string) $user->status) === 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your rider application is still pending admin approval.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    public function orders(Request $request)
+    {
+        if ($response = $this->ensureApprovedDriver($request)) {
+            return $response;
+        }
+
         $orders = Order::with(['user', 'restaurant', 'items.food'])->latest()->get();
 
         $availableStatuses = ['pending', 'new', 'preparing', 'ready'];
@@ -162,6 +213,10 @@ class DriverController extends Controller
 
     public function updateOrderStatus(Request $request, $id)
     {
+        if ($response = $this->ensureApprovedDriver($request)) {
+            return $response;
+        }
+
         $validated = $request->validate([
             'status' => 'required|string|in:accepted,picked_up,delivering,completed,delivered,cancelled',
         ]);

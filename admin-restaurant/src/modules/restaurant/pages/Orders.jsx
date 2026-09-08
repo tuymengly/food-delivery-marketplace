@@ -102,14 +102,14 @@ const Orders = () => {
       case 'Cancelled':
         return 'bg-rose-50 text-rose-600 border-rose-200';
       default:
-        return 'bg-gray-50 text-gray-600 border-gray-200';
+        return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };
 
   const tabs = ['All', 'New', 'Accepted', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-[#fcfbfa] min-h-screen">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>

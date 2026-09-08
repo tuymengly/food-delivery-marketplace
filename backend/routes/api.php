@@ -146,10 +146,14 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('/admin/payments/payout', [PaymentController::class, 'processPayout']);
 });
 
-// Driver Dashboard Routes
-Route::get('/driver/orders', [DriverController::class, 'orders']);
-Route::patch('/driver/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
-Route::put('/driver/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
+// Driver Dashboard Routes (self-service; requires an approved rider/driver account)
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/driver/orders', [DriverController::class, 'orders']);
+    Route::patch('/driver/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
+    Route::put('/driver/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
+});
 
-// Driver Resource Route
-Route::apiResource('drivers', DriverController::class);
+// Driver Resource Route (admin management only)
+Route::middleware(['auth:sanctum', 'admin'])->group(function (): void {
+    Route::apiResource('drivers', DriverController::class);
+});

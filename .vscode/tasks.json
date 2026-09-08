@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: php artisan serve",
+      "type": "shell",
+      "command": "php artisan serve --host=127.0.0.1 --port=8000",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "presentation": { "group": "fullstack", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Customer Frontend: npm run dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/customer-frontend" },
+      "isBackground": true,
+      "presentation": { "group": "fullstack", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Admin/Restaurant Frontend: npm run dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/admin-restaurant" },
+      "isBackground": true,
+      "presentation": { "group": "fullstack", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Full Stack (all 3 apps)",
+      "dependsOn": [
+        "Backend: php artisan serve",
+        "Customer Frontend: npm run dev",
+        "Admin/Restaurant Frontend: npm run dev"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -137,19 +137,19 @@ export default function ManageRestaurants() {
   const pendingCount = restaurants.filter((r) => r.status?.toLowerCase() === 'pending').length;
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 font-medium">កំពុងទាញយក Restaurants...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយក Restaurants...</div>;
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen space-y-6 text-gray-800">
+    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen space-y-6 text-slate-800">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Restaurant Management
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             {restaurants.length} total restaurants •{' '}
             <span className="text-orange-600 font-medium">{pendingCount} pending approval</span>
           </p>
@@ -157,7 +157,7 @@ export default function ManageRestaurants() {
 
         <button 
           onClick={handleOpenAdd}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f96b44] hover:bg-[#e05630] text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition w-full sm:w-auto cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition w-full sm:w-auto cursor-pointer"
         >
           <Plus size={16} /> Add Restaurant
         </button>
@@ -166,20 +166,20 @@ export default function ManageRestaurants() {
       {/* Filter & Search Controls */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative w-full flex-1">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search by restaurant or owner..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange-500 shadow-xs"
+            className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-orange-500 shadow-xs"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-full sm:w-auto px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none cursor-pointer shadow-xs shrink-0"
+          className="w-full sm:w-auto px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none cursor-pointer shadow-xs shrink-0"
         >
           <option value="All Status">All Status</option>
           <option value="Active">Active</option>
@@ -189,11 +189,11 @@ export default function ManageRestaurants() {
       </div>
 
       {/* Restaurant Table Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 tracking-wider uppercase bg-gray-50/50">
+              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 tracking-wider uppercase bg-slate-50/50">
                 <th className="py-3.5 px-4 sm:px-6">Restaurant</th>
                 <th className="py-3.5 px-4 sm:px-6">Owner</th>
                 <th className="py-3.5 px-4 sm:px-6">Address & Phone</th>
@@ -202,7 +202,7 @@ export default function ManageRestaurants() {
                 <th className="py-3.5 px-4 sm:px-6 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
+            <tbody className="divide-y divide-slate-100 text-sm">
               {filteredRestaurants.length > 0 ? (
                 filteredRestaurants.map((item) => (
                   <tr key={item.id} className="hover:bg-orange-50/10 transition">
@@ -211,33 +211,33 @@ export default function ManageRestaurants() {
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 bg-orange-100 text-orange-600">
                           {item.name?.charAt(0)}
                         </div>
-                        <span className="font-semibold text-gray-900">{item.name}</span>
+                        <span className="font-semibold text-slate-900">{item.name}</span>
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 sm:px-6 text-gray-600 font-medium whitespace-nowrap">
+                    <td className="py-4 px-4 sm:px-6 text-slate-600 font-medium whitespace-nowrap">
                       <div>{item.user?.name || item.owner || item.owner_name || 'N/A'}</div>
-                      <div className="text-xs text-gray-400 font-normal">{item.user?.email || 'No email'}</div>
+                      <div className="text-xs text-slate-400 font-normal">{item.user?.email || 'No email'}</div>
                     </td>
 
-                    <td className="py-4 px-4 sm:px-6 text-gray-500 text-xs whitespace-nowrap">
+                    <td className="py-4 px-4 sm:px-6 text-slate-500 text-xs whitespace-nowrap">
                       <div>{item.address || 'No address'}</div>
-                      <div className="text-gray-400">{item.phone || 'No phone'}</div>
+                      <div className="text-slate-400">{item.phone || 'No phone'}</div>
                     </td>
 
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
                         ['active', 'Active'].includes(item.status) ? 'bg-emerald-100/80 text-emerald-600' :
                         ['pending', 'Pending'].includes(item.status) ? 'bg-amber-100/80 text-amber-700' :
-                        'bg-gray-100 text-gray-500'
+                        'bg-slate-100 text-slate-500'
                       }`}>
                         {item.status}
                       </span>
                     </td>
 
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-gray-700 whitespace-nowrap">
+                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-700 whitespace-nowrap">
                       {item.rating ? (
-                        <span className="flex items-center gap-1 text-gray-800">
+                        <span className="flex items-center gap-1 text-slate-800">
                           <Star size={14} className="fill-amber-400 text-amber-400" /> {item.rating}
                         </span>
                       ) : '—'}
@@ -280,7 +280,7 @@ export default function ManageRestaurants() {
                           </button>
                         )}
 
-                        <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition ml-1 cursor-pointer">
+                        <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition ml-1 cursor-pointer">
                           <Eye size={16} />
                         </button>
                         <button
@@ -303,7 +303,7 @@ export default function ManageRestaurants() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-gray-400">
+                  <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
                     No restaurants found.
                   </td>
                 </tr>
@@ -318,8 +318,8 @@ export default function ManageRestaurants() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-gray-900 text-lg">{editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}</h3>
-              <button type="button" onClick={() => { setIsModalOpen(false); setEditingRestaurant(null); }} className="text-gray-400 hover:text-gray-600">
+              <h3 className="font-bold text-slate-900 text-lg">{editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}</h3>
+              <button type="button" onClick={() => { setIsModalOpen(false); setEditingRestaurant(null); }} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
             </div>
@@ -331,84 +331,84 @@ export default function ManageRestaurants() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Restaurant Name *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Restaurant Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                   placeholder="e.g. Pizza Hut"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Address *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Address *</label>
                 <input
                   type="text"
                   required
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                   placeholder="e.g. Phnom Penh"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number *</label>
                 <input
                   type="text"
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                     placeholder="e.g. 012345678"
                 />
               </div>
 
               {!editingRestaurant && <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Owner Gmail *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Owner Gmail *</label>
                 <input
                   type="email"
                   required
                   value={formData.owner_email}
                   onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                   placeholder="restaurant@gmail.com"
                 />
               </div>}
 
               {!editingRestaurant && <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Login Password *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Login Password *</label>
                 <input
                   type="password"
                   required
                   minLength={8}
                   value={formData.owner_password}
                   onChange={(e) => setFormData({ ...formData, owner_password: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                   placeholder="At least 8 characters"
                 />
               </div>}
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                   placeholder="Optional details..."
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Restaurant Image (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Restaurant Image (Optional)</label>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] || '' })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -416,14 +416,14 @@ export default function ManageRestaurants() {
                 <button
                   type="button"
                   onClick={() => { setIsModalOpen(false); setEditingRestaurant(null); }}
-                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200"
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-[#f96b44] hover:bg-[#e05630] text-white rounded-xl text-xs font-semibold"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold"
                 >
                   {saving ? 'Saving...' : 'Save Restaurant'}
                 </button>

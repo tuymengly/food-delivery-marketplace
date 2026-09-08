@@ -2,7 +2,6 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import Amok from '../assets/image/Amok_kh.png'
 import TypeAnimation from '../TypeAnimation'
-import 'animate.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { BiTime } from 'react-icons/bi';
 import { FaStar } from 'react-icons/fa';
@@ -13,16 +12,16 @@ const Benner = () => {
   
   return (
     <div className='w-full md:h-[550px] lg:h-[90vh] bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 px-6 md:8 lg:px-14 relative overflow-hidden'>
-      {/* Animated background circles */}
-      <div className="absolute top-20 right-10 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 left-10 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+      {/* Soft background accents */}
+      <div className="absolute top-20 right-10 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-20 left-10 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl"></div>
       <div className='w-full flex flex-wrap h-full '>
         {/* detail */}
 <div className="w-full md:w-1/2 h-full flex items-center pt-10 md:pt-0 md:pe-10 lg:pe-30">
   <div>
     <TypeAnimation/>
     <p
-      className="text-slate-800 animate__animated text-xl animate__bounceIn py-5"
+      className="text-slate-800 text-xl py-5"
     >
       {t('home.bannerSubtitle')}
     </p>
@@ -31,8 +30,8 @@ const Benner = () => {
     <div className="w-full flex gap-10 md:gap-7 lg:gap-10 pt-3">
       <button
         className="px-5 lg:px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl shadow-orange-300/50 font-bold text-base md:text-xl rounded-full
-        hover:scale-110 hover:shadow-2xl hover:shadow-orange-400/50 transition-all duration-300 cursor-pointer
-        animate__animated animate__backInLeft relative overflow-hidden group"
+        hover:scale-105 hover:shadow-2xl hover:shadow-orange-400/50 transition-all duration-300 cursor-pointer
+        relative overflow-hidden group"
       >
         <span className="relative z-10">{t('home.orderNow')}</span>
         <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -40,8 +39,8 @@ const Benner = () => {
 
       <button
         className="px-5 lg:px-8 py-3 bg-white/90 backdrop-blur-sm text-black shadow-xl shadow-orange-200/50 text-base md:text-xl rounded-full border-2 border-orange-400
-        hover:scale-110 hover:bg-orange-50 hover:border-orange-600 hover:shadow-2xl hover:shadow-orange-300/50 transition-all duration-300 cursor-pointer
-        animate__animated animate__zoomInDown font-semibold"
+        hover:scale-105 hover:bg-orange-50 hover:border-orange-600 hover:shadow-2xl hover:shadow-orange-300/50 transition-all duration-300 cursor-pointer
+        font-semibold"
       >
         {t('home.viewMenu')}
       </button>
@@ -102,7 +101,7 @@ const Benner = () => {
 </div>
 
         {/* image */}
-<div className="relative w-full md:w-1/2 h-full pe-0 py-10 animate__animated animate__bounceIn">
+<div className="relative w-full md:w-1/2 h-full pe-0 py-10">
   {/* main image */}
   <img
     className="w-full h-full object-cover hover:scale-105 transition-all duration-700 ease-in-out rounded-3xl shadow-2xl border-4 border-white/50"
@@ -112,7 +111,7 @@ const Benner = () => {
   />
 
   {/* top-left badge with glassmorphism */}
-  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl flex flex-col items-start border border-white/30 animate-pulse hover:scale-105 transition-transform duration-300">
+  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl flex flex-col items-start border border-white/30 hover:scale-105 transition-transform duration-300">
     <div className="flex text-yellow-300 mb-1 drop-shadow-lg">
       <span className="text-lg"><i className="fa-solid fa-star"></i></span>
       <span className="text-lg"><i className="fa-solid fa-star"></i></span>

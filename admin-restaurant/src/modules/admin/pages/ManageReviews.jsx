@@ -58,7 +58,7 @@ export default function ManageReviews() {
         borderColor: (item.status || '').toUpperCase() === 'FLAGGED' 
           ? 'border-l-rose-500' 
           : (item.status || '').toUpperCase() === 'HIDDEN' 
-          ? 'border-l-gray-300' 
+          ? 'border-l-slate-300' 
           : 'border-l-emerald-500'
       }));
 
@@ -143,25 +143,25 @@ export default function ManageReviews() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 font-medium">កំពុងទាញយក Reviews...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយក Reviews...</div>;
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-gray-800 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-slate-800 space-y-6">
       
       {/* 1. Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Reviews Management</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">Monitor customer feedback and manage platform ratings.</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Reviews Management</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">Monitor customer feedback and manage platform ratings.</p>
       </div>
 
       {/* 2. Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Avg. Rating */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">AVG. RATING</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
+            <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">AVG. RATING</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1 flex items-center gap-2">
               {avgRating} <Star size={22} className="text-orange-500 fill-orange-500" />
             </h3>
             <p className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-2">
@@ -174,10 +174,10 @@ export default function ManageReviews() {
         </div>
 
         {/* Total Reviews */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">TOTAL REVIEWS</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">{totalReviewsCount}</h3>
+            <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">TOTAL REVIEWS</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">{totalReviewsCount}</h3>
             <p className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-2">
               <TrendingUp size={12} /> Total recorded
             </p>
@@ -188,11 +188,11 @@ export default function ManageReviews() {
         </div>
 
         {/* Pending Response */}
-        <div className="bg-white p-5 rounded-2xl border-l-4 border-l-orange-500 border border-gray-100 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border-l-4 border-l-orange-500 border border-slate-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">PENDING RESPONSE</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">{pendingCount}</h3>
-            <p className="text-xs text-gray-500 font-medium mt-2">Low ratings needing review</p>
+            <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">PENDING RESPONSE</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">{pendingCount}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-2">Low ratings needing review</p>
           </div>
           <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
             <Clock size={20} />
@@ -202,7 +202,7 @@ export default function ManageReviews() {
         {/* Flagged Reviews */}
         <div className="bg-[#fff1eb] p-5 rounded-2xl border-l-4 border-l-rose-500 border border-rose-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-500 tracking-wider uppercase">FLAGGED REVIEWS</p>
+            <p className="text-xs font-semibold text-slate-500 tracking-wider uppercase">FLAGGED REVIEWS</p>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-1">{flaggedCount}</h3>
             <p className="text-xs text-rose-600 font-semibold mt-2">Action required immediately</p>
           </div>
@@ -213,10 +213,10 @@ export default function ManageReviews() {
       </div>
 
       {/* 3. Main Content Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
         
         {/* Navigation Tabs */}
-        <div className="flex border-b border-gray-100 bg-gray-50/30 px-4 sm:px-6 pt-4 gap-4 sm:gap-8 overflow-x-auto">
+        <div className="flex border-b border-slate-100 bg-slate-50/30 px-4 sm:px-6 pt-4 gap-4 sm:gap-8 overflow-x-auto">
           {[
             { label: 'All Reviews', badge: null },
             { label: 'Restaurant Reviews', badge: null },
@@ -228,8 +228,8 @@ export default function ManageReviews() {
               onClick={() => setActiveTab(tab.label)}
               className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap relative cursor-pointer ${
                 activeTab === tab.label 
-                  ? 'text-[#f96b44] border-b-2 border-[#f96b44]' 
-                  : 'text-gray-500 hover:text-gray-800'
+                  ? 'text-orange-600 border-b-2 border-orange-600' 
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               {tab.label}
@@ -243,15 +243,15 @@ export default function ManageReviews() {
         </div>
 
         {/* Search & Filters */}
-        <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-gray-100">
+        <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-slate-100">
           <div className="relative w-full sm:w-80 md:w-96">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search reviewer, order ID, or text..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-orange-500 shadow-xs"
+              className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-orange-500 shadow-xs"
             />
           </div>
 
@@ -259,7 +259,7 @@ export default function ManageReviews() {
             <select 
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none cursor-pointer shadow-xs"
+              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 focus:outline-none cursor-pointer shadow-xs"
             >
               <option value="All Ratings">All Ratings</option>
               <option value="5 Stars">5 Stars</option>
@@ -270,7 +270,7 @@ export default function ManageReviews() {
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none cursor-pointer shadow-xs"
+              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 focus:outline-none cursor-pointer shadow-xs"
             >
               <option value="All Statuses">All Statuses</option>
               <option value="Published">Published</option>
@@ -280,7 +280,7 @@ export default function ManageReviews() {
 
             <button 
               onClick={() => { setSearchTerm(''); setRatingFilter('All Ratings'); setStatusFilter('All Statuses'); }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 font-semibold text-xs rounded-xl hover:bg-gray-200 transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-200 transition cursor-pointer"
             >
               <Filter size={14} /> Reset
             </button>
@@ -293,15 +293,15 @@ export default function ManageReviews() {
             filteredReviews.map((rev) => (
               <div 
                 key={rev.id} 
-                className={`p-4 sm:p-5 rounded-2xl border border-gray-100 bg-white shadow-xs border-l-4 ${rev.borderColor} flex flex-col md:flex-row justify-between gap-4 items-start`}
+                className={`p-4 sm:p-5 rounded-2xl border border-slate-100 bg-white shadow-xs border-l-4 ${rev.borderColor} flex flex-col md:flex-row justify-between gap-4 items-start`}
               >
                 {/* Review Content Left */}
                 <div className="flex gap-3.5 items-start max-w-2xl w-full">
                   <img src={rev.avatar} alt={rev.reviewer} className="w-10 h-10 rounded-full object-cover shrink-0" />
                   <div className="space-y-1.5 w-full">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-gray-900 text-sm">{rev.reviewer}</span>
-                      <span className="text-xs text-gray-400 font-medium">{rev.orderId}</span>
+                      <span className="font-bold text-slate-900 text-sm">{rev.reviewer}</span>
+                      <span className="text-xs text-slate-400 font-medium">{rev.orderId}</span>
                     </div>
 
                     {/* Target Tag */}
@@ -317,11 +317,11 @@ export default function ManageReviews() {
                           <Star 
                             key={index} 
                             size={14} 
-                            className={index < rev.rating ? "fill-orange-500" : "text-gray-200 fill-gray-200"} 
+                            className={index < rev.rating ? "fill-orange-500" : "text-slate-200 fill-slate-200"} 
                           />
                         ))}
                       </div>
-                      <span className="text-xs text-gray-400 font-medium">{rev.time}</span>
+                      <span className="text-xs text-slate-400 font-medium">{rev.time}</span>
                       
                       {/* Status Badges */}
                       {rev.status === 'PUBLISHED' && (
@@ -335,14 +335,14 @@ export default function ManageReviews() {
                         </span>
                       )}
                       {rev.status === 'HIDDEN' && (
-                        <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 tracking-wider">
+                        <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 tracking-wider">
                           HIDDEN
                         </span>
                       )}
                     </div>
 
                     {/* Comment */}
-                    <p className="text-xs text-gray-700 leading-relaxed font-normal pt-1">
+                    <p className="text-xs text-slate-700 leading-relaxed font-normal pt-1">
                       "{rev.comment}"
                     </p>
 
@@ -368,7 +368,7 @@ export default function ManageReviews() {
 
                       <button 
                         onClick={() => setContactModal({ open: true, review: rev })}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                       >
                         <Mail size={14} /> Contact User
                       </button>
@@ -391,7 +391,7 @@ export default function ManageReviews() {
 
                       <button 
                         onClick={() => handleUpdateStatus(rev.id, 'HIDDEN')}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-semibold rounded-xl transition w-full md:w-auto cursor-pointer"
                       >
                         <EyeOff size={14} /> Hide
                       </button>
@@ -401,20 +401,20 @@ export default function ManageReviews() {
               </div>
             ))
           ) : (
-            <div className="py-12 text-center text-xs text-gray-400">
+            <div className="py-12 text-center text-xs text-slate-400">
               No reviews found matching your selected filters.
             </div>
           )}
         </div>
 
         {/* Pagination Footer */}
-        <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100 text-xs text-gray-500">
+        <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100 text-xs text-slate-500">
           <span>Showing 1 to {filteredReviews.length} of {reviews.length} reviews</span>
           <div className="flex items-center gap-1 font-medium">
-            <button className="p-1 hover:text-gray-800 transition"><ChevronLeft size={16} /></button>
+            <button className="p-1 hover:text-slate-800 transition"><ChevronLeft size={16} /></button>
             <button className="w-7 h-7 bg-[#b83818] text-white rounded-lg flex items-center justify-center font-bold">1</button>
-            <button className="w-7 h-7 hover:bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">2</button>
-            <button className="p-1 hover:text-gray-800 transition"><ChevronRight size={16} /></button>
+            <button className="w-7 h-7 hover:bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center">2</button>
+            <button className="p-1 hover:text-slate-800 transition"><ChevronRight size={16} /></button>
           </div>
         </div>
 
@@ -426,12 +426,12 @@ export default function ManageReviews() {
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative">
             <button 
               onClick={() => { setReplyModal({ open: false, review: null }); setReplyText(''); }} 
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X size={20} />
             </button>
-            <h3 className="font-bold text-gray-900 text-base mb-1">Reply to {replyModal.review?.reviewer}</h3>
-            <p className="text-xs text-gray-500 mb-4">Order {replyModal.review?.orderId}</p>
+            <h3 className="font-bold text-slate-900 text-base mb-1">Reply to {replyModal.review?.reviewer}</h3>
+            <p className="text-xs text-slate-500 mb-4">Order {replyModal.review?.orderId}</p>
             
             <form onSubmit={handleSendReply} className="space-y-4">
               <textarea
@@ -440,19 +440,19 @@ export default function ManageReviews() {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write your official response here..."
-                className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-orange-500"
               />
               <div className="flex justify-end gap-2">
                 <button 
                   type="button" 
                   onClick={() => { setReplyModal({ open: false, review: null }); setReplyText(''); }}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#f96b44] hover:bg-[#e05630] rounded-xl shadow-xs cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-xs cursor-pointer"
                 >
                   Send Reply
                 </button>
@@ -468,19 +468,19 @@ export default function ManageReviews() {
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative">
             <button 
               onClick={() => { setContactModal({ open: false, review: null }); setContactText(''); }} 
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X size={20} />
             </button>
-            <h3 className="font-bold text-gray-900 text-base mb-1">Contact User</h3>
-            <p className="text-xs text-gray-500 mb-4">Send a direct message regarding issue on {contactModal.review?.orderId}</p>
+            <h3 className="font-bold text-slate-900 text-base mb-1">Contact User</h3>
+            <p className="text-xs text-slate-500 mb-4">Send a direct message regarding issue on {contactModal.review?.orderId}</p>
             
             <form onSubmit={handleSendContact} className="space-y-3 text-xs">
               <input 
                 type="text" 
                 readOnly 
                 value={`To: ${contactModal.review?.reviewer}`} 
-                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-700"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
               />
               <textarea
                 required
@@ -488,13 +488,13 @@ export default function ManageReviews() {
                 value={contactText}
                 onChange={(e) => setContactText(e.target.value)}
                 placeholder="Type your official message..."
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500"
               />
               <div className="flex justify-end gap-2 pt-2">
                 <button 
                   type="button" 
                   onClick={() => { setContactModal({ open: false, review: null }); setContactText(''); }}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>

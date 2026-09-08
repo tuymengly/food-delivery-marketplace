@@ -192,6 +192,19 @@ const Register = () => {
               </Link>
             </p>
           </div>
+
+          {/* Partner Signup Link */}
+          <div className="mt-3 text-center">
+            <p className="text-gray-500 text-xs">
+              Want to list your restaurant?{' '}
+              <a
+                href={`${import.meta.env.VITE_ADMIN_APP_URL || 'http://localhost:5173'}/register`}
+                className="text-orange-600 hover:text-orange-700 font-bold"
+              >
+                Register your restaurant
+              </a>
+            </p>
+          </div>
         </div>
 
         {/* Back to Home */}

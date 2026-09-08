@@ -139,7 +139,7 @@ export default function Reviews() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfbfa]">
         <Loader2 className="w-9 h-9 text-orange-600 animate-spin" />
-        <span className="mt-3 text-sm text-gray-600 font-medium">កំពុងទាញយក Reviews...</span>
+        <span className="mt-3 text-sm text-slate-600 font-medium">កំពុងទាញយក Reviews...</span>
       </div>
     );
   }
@@ -164,27 +164,27 @@ export default function Reviews() {
   }
 
   return (
-    <div className="p-4 sm:p-6 bg-[#fcfbfa] min-h-screen space-y-4 sm:space-y-6 text-gray-800">
+    <div className="p-4 sm:p-6 bg-[#fcfbfa] min-h-screen space-y-4 sm:space-y-6 text-slate-800">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Customer Reviews</h1>
-          <p className="text-xs text-gray-500 font-medium mt-0.5 sm:mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Customer Reviews</h1>
+          <p className="text-xs text-slate-500 font-medium mt-0.5 sm:mt-1">
             Monitor feedback and respond to your customers
           </p>
         </div>
         <button
           onClick={() => fetchReviews(true)}
           disabled={isRefreshing}
-          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
+          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
         >
           <RefreshCw size={15} className={isRefreshing ? 'animate-spin text-orange-600' : ''} />
           Refresh
         </button>
       </div>
 
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-4 sm:gap-6">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-4 sm:gap-6">
         <div className="text-center md:text-left space-y-1">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
             {reviewSummary.average.toFixed(1)}
           </h2>
           <div className="flex items-center gap-1 text-amber-400 justify-center md:justify-start">
@@ -192,23 +192,23 @@ export default function Reviews() {
               <Star
                 key={i}
                 size={16}
-                className={i < Math.round(reviewSummary.average) ? 'fill-amber-400' : 'text-gray-200'}
+                className={i < Math.round(reviewSummary.average) ? 'fill-amber-400' : 'text-slate-200'}
               />
             ))}
           </div>
-          <p className="text-xs text-gray-400 font-medium">
+          <p className="text-xs text-slate-400 font-medium">
             Based on {reviewSummary.total} total reviews
           </p>
         </div>
 
-        <div className="flex-1 w-full space-y-2 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
+        <div className="flex-1 w-full space-y-2 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
           {reviewSummary.counts.map((item) => (
             <div key={item.rating} className="flex items-center gap-3 text-xs font-semibold">
-              <span className="w-12 text-gray-500 shrink-0">{item.rating} Star</span>
-              <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#ea580c] h-full" style={{ width: `${item.percent}%` }} />
+              <span className="w-12 text-slate-500 shrink-0">{item.rating} Star</span>
+              <div className="flex-1 bg-slate-100 h-2 rounded-full overflow-hidden">
+                <div className="bg-orange-600 h-full" style={{ width: `${item.percent}%` }} />
               </div>
-              <span className="w-10 text-right text-gray-400 shrink-0">{item.percent}%</span>
+              <span className="w-10 text-right text-slate-400 shrink-0">{item.percent}%</span>
             </div>
           ))}
         </div>
@@ -216,13 +216,13 @@ export default function Reviews() {
 
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative w-full flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search reviews by customer or dish..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 transition"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 transition"
           />
         </div>
 
@@ -233,8 +233,8 @@ export default function Reviews() {
               onClick={() => setSelectedRating(star)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
                 selectedRating === star
-                  ? 'bg-[#ea580c] text-white shadow-sm'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
               {star === 'All' ? 'All Rating' : `${star} Star`}
@@ -245,12 +245,12 @@ export default function Reviews() {
 
       <div className="space-y-3 sm:space-y-4">
         {filteredReviews.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-xs font-medium bg-white rounded-2xl border border-gray-100">
+          <div className="p-8 text-center text-slate-400 text-xs font-medium bg-white rounded-2xl border border-slate-100">
             No reviews match your filter criteria.
           </div>
         ) : (
           filteredReviews.map((review) => (
-            <div key={review.id} className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+            <div key={review.id} className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <img
@@ -259,30 +259,30 @@ export default function Reviews() {
                     className="w-10 h-10 rounded-full object-cover shrink-0"
                   />
                   <div>
-                    <h2 className="text-xs sm:text-sm font-bold text-gray-900">{review.customer}</h2>
+                    <h2 className="text-xs sm:text-sm font-bold text-slate-900">{review.customer}</h2>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="flex items-center text-amber-400">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             size={12}
-                            className={i < review.rating ? 'fill-amber-400' : 'text-gray-200'}
+                            className={i < review.rating ? 'fill-amber-400' : 'text-slate-200'}
                           />
                         ))}
                       </div>
-                      <span className="text-[11px] text-gray-400 font-medium">{review.date}</span>
+                      <span className="text-[11px] text-slate-400 font-medium">{review.date}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-50 sm:border-none">
-                  <span className="px-2.5 py-0.5 bg-[#fdf2ee] text-[#ea580c] rounded-full text-[10px] sm:text-[11px] font-bold truncate">
+                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-slate-50 sm:border-none">
+                  <span className="px-2.5 py-0.5 bg-[#fdf2ee] text-orange-600 rounded-full text-[10px] sm:text-[11px] font-bold truncate">
                     {review.food}
                   </span>
                   <button
                     onClick={() => handleDeleteReview(review.id)}
                     disabled={updatingId === review.id}
-                    className="text-gray-400 hover:text-rose-500 transition p-1 rounded-lg disabled:opacity-50"
+                    className="text-slate-400 hover:text-rose-500 transition p-1 rounded-lg disabled:opacity-50"
                     aria-label="Delete review"
                   >
                     <Trash2 size={16} />
@@ -290,19 +290,19 @@ export default function Reviews() {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-700 font-medium leading-relaxed">{review.comment}</p>
+              <p className="text-xs text-slate-700 font-medium leading-relaxed">{review.comment}</p>
 
               {review.reply && (
-                <div className="p-3 sm:p-3.5 bg-[#faf8f5] rounded-xl border-l-4 border-[#ea580c] space-y-0.5">
-                  <span className="text-[11px] font-bold text-[#ea580c]">Restaurant Reply</span>
-                  <p className="text-xs text-gray-600 font-medium">{review.reply}</p>
+                <div className="p-3 sm:p-3.5 bg-[#faf8f5] rounded-xl border-l-4 border-orange-600 space-y-0.5">
+                  <span className="text-[11px] font-bold text-orange-600">Restaurant Reply</span>
+                  <p className="text-xs text-slate-600 font-medium">{review.reply}</p>
                 </div>
               )}
 
-              <div className="pt-2 flex items-center justify-between border-t border-gray-50 text-xs">
+              <div className="pt-2 flex items-center justify-between border-t border-slate-50 text-xs">
                 <button
                   onClick={() => setActiveReplyId(activeReplyId === review.id ? null : review.id)}
-                  className="flex items-center gap-1.5 font-bold text-[#ea580c] hover:underline"
+                  className="flex items-center gap-1.5 font-bold text-orange-600 hover:underline"
                 >
                   <MessageSquare size={14} />
                   <span>{review.reply ? 'Edit Reply' : 'Reply to Customer'}</span>
@@ -316,12 +316,12 @@ export default function Reviews() {
                     placeholder="Write your response..."
                     value={replyText[review.id] || ''}
                     onChange={(e) => setReplyText({ ...replyText, [review.id]: e.target.value })}
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                   <button
                     onClick={() => handleSendReply(review.id)}
                     disabled={updatingId === review.id}
-                    className="px-4 py-2 bg-[#ea580c] text-white font-bold rounded-xl text-xs hover:bg-orange-700 transition flex items-center justify-center gap-1 disabled:opacity-60"
+                    className="px-4 py-2 bg-orange-600 text-white font-bold rounded-xl text-xs hover:bg-orange-700 transition flex items-center justify-center gap-1 disabled:opacity-60"
                   >
                     <Send size={13} /> {updatingId === review.id ? 'Saving...' : 'Send'}
                   </button>

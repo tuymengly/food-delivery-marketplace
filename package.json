@@ -1,0 +1,13 @@
+{
+  "name": "food-delivery-marketplace-dev",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Root dev orchestrator only. It does not merge backend/, customer-frontend/, or admin-restaurant/ — it just starts all three existing apps together for local development.",
+  "scripts": {
+    "setup": "composer install --working-dir=backend && npm install --prefix customer-frontend && npm install --prefix admin-restaurant",
+    "dev": "concurrently -n BACKEND,CUSTOMER,ADMIN -c \"#fb923c,#38bdf8,#a78bfa\" --kill-others \"cd backend && php artisan serve --host=127.0.0.1 --port=8000\" \"npm run dev --prefix customer-frontend\" \"npm run dev --prefix admin-restaurant\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -18,31 +18,31 @@ const Features = () => {
       icon: <FaLeaf className="text-5xl" />,
       title: t('home.freshIngredients'),
       description: t('home.freshIngredientsDesc'),
-      gradient: "from-green-500 to-emerald-500"
+      gradient: "from-orange-500 to-amber-500"
     },
     {
       icon: <BiDish className="text-5xl" />,
       title: t('home.authenticRecipes'),
       description: t('home.authenticRecipesDesc'),
-      gradient: "from-purple-500 to-pink-500"
+      gradient: "from-red-500 to-orange-500"
     },
     {
       icon: <FaShieldAlt className="text-5xl" />,
       title: t('home.qualityGuaranteed'),
       description: t('home.qualityGuaranteedDesc'),
-      gradient: "from-blue-500 to-cyan-500"
+      gradient: "from-amber-500 to-orange-500"
     },
     {
       icon: <FaClock className="text-5xl" />,
       title: t('home.open247'),
       description: t('home.open247Desc'),
-      gradient: "from-amber-500 to-yellow-500"
+      gradient: "from-orange-600 to-red-500"
     },
     {
       icon: <FaHeart className="text-5xl" />,
       title: t('home.madeWithLove'),
       description: t('home.madeWithLoveDesc'),
-      gradient: "from-red-500 to-pink-500"
+      gradient: "from-red-500 to-red-600"
     }
   ];
 

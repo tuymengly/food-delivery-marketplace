@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { FaRegStar, FaStar } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { getFoodRecommendation, toggleFoodRecommendation } from '../api/foodApi';
+import Toast from './Toast';
 
 const FoodRecommendButton = ({ food }) => {
   const navigate = useNavigate();
   const [rating, setRating] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (!localStorage.getItem('token')) return;
@@ -30,7 +32,7 @@ const FoodRecommendButton = ({ food }) => {
       await toggleFoodRecommendation(food.id, selectedRating);
     } catch (error) {
       setRating(previousRating);
-      alert(error.response?.data?.message || 'Could not save your rating.');
+      setErrorMessage(error.response?.data?.message || 'Could not save your rating.');
     } finally {
       setSaving(false);
     }
@@ -38,6 +40,9 @@ const FoodRecommendButton = ({ food }) => {
 
   return (
     <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-orange-50 px-4 py-2">
+      {errorMessage && (
+        <Toast message={errorMessage} type="error" onClose={() => setErrorMessage('')} />
+      )}
       <span className="text-sm font-semibold text-orange-700">Rate & recommend:</span>
       <div className="flex items-center gap-1" role="group" aria-label={`Rate ${food.name}`}>
         {[1, 2, 3, 4, 5].map((star) => (

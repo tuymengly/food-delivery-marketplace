@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowRight,
@@ -168,6 +168,14 @@ export default function Login() {
                   {loading ? <><Loader2 size={19} className="animate-spin" /><span>Signing in...</span></> : <><span>Sign in to dashboard</span><ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></>}
                 </button>
               </form>
+
+              <p className="mt-6 text-center text-sm text-slate-500">
+                Want to list your restaurant?{' '}
+                <Link to="/register" className="font-bold text-[#f04416] hover:underline">Register your restaurant</Link>
+              </p>
+              <p className="mt-2 text-center text-xs text-slate-400">
+                Riders don't self-register — an admin creates rider accounts after the interview process.
+              </p>
 
               <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-400">
                 <ShieldCheck size={16} className="text-emerald-500" /> Secure access for authorized staff

@@ -12,7 +12,7 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <ChefHat className="w-8 h-8 text-orange-500" strokeWidth={2}/>
-              <span className="text-2xl font-bold text-white">DelishHub</span>
+              <span className="text-2xl font-bold text-white">BiteRush</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Bringing authentic Khmer cuisine to your doorstep. Experience the rich flavors and traditions of Cambodia.
@@ -68,7 +68,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                <span>info@delishhub.com</span>
+                <span>info@biterush.com</span>
               </li>
             </ul>
             <div className="mt-4">
@@ -80,7 +80,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
-            <p className="text-sm text-gray-400">© 2026 DelishHub. All rights reserved.</p>
+            <p className="text-sm text-gray-400">© 2026 BiteRush. All rights reserved.</p>
             <div className="flex space-x-6 text-sm">
               <a href="#" className="hover:text-orange-500 transition-colors duration-200">Privacy</a>
               <a href="#" className="hover:text-orange-500 transition-colors duration-200">Terms</a>

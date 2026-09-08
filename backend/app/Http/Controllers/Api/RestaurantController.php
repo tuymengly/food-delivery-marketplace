@@ -37,6 +37,13 @@ class RestaurantController extends Controller
         $ownerPassword = $validated['owner_password'] ?? null;
         unset($validated['owner_email'], $validated['owner_password']);
 
+        // Only an admin may set a restaurant's status directly; anyone else
+        // creating a restaurant gets 'pending' regardless of what they sent,
+        // so approval can only happen through the admin-only status endpoint.
+        if (! $this->isAdmin($request)) {
+            $validated['status'] = 'pending';
+        }
+
         // ដោះស្រាយការបញ្ចូលរូបភាព (Image / Cover Image) បើមានផ្ញើមកជា File
         if ($request->hasFile('image')) {
             $validated['image'] = $imageService->upload($request->file('image'), 'restaurants');
@@ -84,6 +91,13 @@ class RestaurantController extends Controller
         $restaurant = $this->findUserRestaurant($request, $restaurant);
         $validated = $request->validate($this->rules());
         $this->validateUploadedImage($request);
+
+        // Status changes must go through the admin-only updateStatus()
+        // endpoint — otherwise an owner could self-approve their own
+        // pending restaurant through this general-purpose update route.
+        if (! $this->isAdmin($request)) {
+            unset($validated['status']);
+        }
 
         if ($request->hasFile('image')) {
             $validated['image'] = $imageService->upload($request->file('image'), 'restaurants');
@@ -149,11 +163,18 @@ class RestaurantController extends Controller
         $user = $request->user();
 
         // អនុញ្ញាតបើជា admin, super_admin ឬម្ចាស់ហាងផ្ទាល់
-        if ($user && ($user->role === 'admin' || $user->role === 'super_admin' || $user->id === $restaurant->user_id)) {
+        if ($user && ($this->isAdmin($request) || $user->id === $restaurant->user_id)) {
             return $restaurant;
         }
 
         abort(403, 'You do not have permission to modify this restaurant.');
+    }
+
+    private function isAdmin(Request $request): bool
+    {
+        $role = strtolower((string) $request->user()?->role);
+
+        return in_array($role, ['admin', 'super_admin', 'super admin'], true);
     }
     // ទាញយក Profile របស់ Restaurant តាម User ដែលកំពុង Login
     public function profile(Request $request): JsonResponse

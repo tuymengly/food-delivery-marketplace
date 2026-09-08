@@ -63,33 +63,33 @@ export default function ManageOrders() {
       case 'delivered': return 'bg-green-100 text-green-600';
       case 'completed': return 'bg-green-100 text-green-700';
       case 'cancelled': return 'bg-red-100 text-red-600';
-      default: return 'bg-gray-100 text-gray-600';
+      default: return 'bg-slate-100 text-slate-600';
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 font-medium">កំពុងទាញយក Orders...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយក Orders...</div>;
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-gray-800 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-slate-800 space-y-6">
       
       {/* Title & Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Order Management</h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Track and manage all customer orders in real-time.</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Order Management</h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Track and manage all customer orders in real-time.</p>
         </div>
 
         {/* Search Input */}
         <div className="relative w-full sm:w-72">
-          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search order ID, customer..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange-500 transition shadow-sm"
+            className="w-full pl-10 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-orange-500 transition shadow-sm"
           />
         </div>
       </div>
@@ -102,8 +102,8 @@ export default function ManageOrders() {
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition whitespace-nowrap shrink-0 ${
               activeTab === tab
-                ? 'bg-[#e03a11] text-white shadow-sm'
-                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                ? 'bg-orange-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             {tab}
@@ -112,11 +112,11 @@ export default function ManageOrders() {
       </div>
 
       {/* Orders Table Container */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-400 font-semibold bg-gray-50/50">
+              <tr className="border-b border-slate-100 text-xs text-slate-400 font-semibold bg-slate-50/50">
                 <th className="py-3.5 px-4 sm:px-6">Order #</th>
                 <th className="py-3.5 px-4 sm:px-6">Customer</th>
                 <th className="py-3.5 px-4 sm:px-6">Restaurant</th>
@@ -126,15 +126,15 @@ export default function ManageOrders() {
                 <th className="py-3.5 px-4 sm:px-6 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
+            <tbody className="divide-y divide-slate-100 text-sm">
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <tr key={order.real_id} className="hover:bg-orange-50/20 transition">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-gray-800 whitespace-nowrap">{order.id}</td>
-                    <td className="py-4 px-4 sm:px-6 font-bold text-gray-900 whitespace-nowrap">{order.customer}</td>
-                    <td className="py-4 px-4 sm:px-6 text-gray-500 whitespace-nowrap">{order.restaurant_name}</td>
-                    <td className="py-4 px-4 sm:px-6 font-bold text-gray-900 whitespace-nowrap">{order.price}</td>
-                    <td className="py-4 px-4 sm:px-6 text-gray-400 text-xs whitespace-nowrap">{order.time}</td>
+                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-800 whitespace-nowrap">{order.id}</td>
+                    <td className="py-4 px-4 sm:px-6 font-bold text-slate-900 whitespace-nowrap">{order.customer}</td>
+                    <td className="py-4 px-4 sm:px-6 text-slate-500 whitespace-nowrap">{order.restaurant_name}</td>
+                    <td className="py-4 px-4 sm:px-6 font-bold text-slate-900 whitespace-nowrap">{order.price}</td>
+                    <td className="py-4 px-4 sm:px-6 text-slate-400 text-xs whitespace-nowrap">{order.time}</td>
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
                       <select
                         value={order.status}
@@ -149,7 +149,7 @@ export default function ManageOrders() {
                     <td className="py-4 px-4 sm:px-6 text-center whitespace-nowrap">
                       <button 
                         onClick={() => setSelectedOrder(order)}
-                        className="text-gray-400 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition cursor-pointer"
+                        className="text-slate-400 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition cursor-pointer"
                         title="View Details"
                       >
                         <Eye size={18} />
@@ -159,7 +159,7 @@ export default function ManageOrders() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-400 text-sm">
+                  <td colSpan="7" className="py-8 text-center text-slate-400 text-sm">
                     No orders found matching your filter.
                   </td>
                 </tr>
@@ -173,58 +173,58 @@ export default function ManageOrders() {
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <ShoppingBag size={20} className="text-[#e03a11]" />
-                <h3 className="font-bold text-gray-900 text-base sm:text-lg">
+                <ShoppingBag size={20} className="text-orange-600" />
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg">
                   Order {selectedOrder.id}
                 </h3>
               </div>
               <button 
                 onClick={() => setSelectedOrder(null)} 
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto text-sm">
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 text-xs">Status</span>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <span className="text-slate-500 text-xs">Status</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(selectedOrder.status)}`}>
                   {selectedOrder.status}
                 </span>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Customer Info</p>
-                <p className="font-bold text-gray-900">{selectedOrder.customer}</p>
-                <p className="text-gray-500 text-xs">{selectedOrder.phone || 'N/A'}</p>
-                <p className="text-gray-500 text-xs">{selectedOrder.address || 'N/A'}</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Customer Info</p>
+                <p className="font-bold text-slate-900">{selectedOrder.customer}</p>
+                <p className="text-slate-500 text-xs">{selectedOrder.phone || 'N/A'}</p>
+                <p className="text-slate-500 text-xs">{selectedOrder.address || 'N/A'}</p>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Restaurant</p>
-                <p className="font-medium text-gray-800">{selectedOrder.restaurant_name}</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Restaurant</p>
+                <p className="font-medium text-slate-800">{selectedOrder.restaurant_name}</p>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Order Items</p>
-                <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Order Items</p>
+                <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-700">
                   <p>{selectedOrder.items}</p>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-base font-bold text-gray-900">
+              <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-base font-bold text-slate-900">
                 <span>Total Amount:</span>
-                <span className="text-[#e03a11]">{selectedOrder.price}</span>
+                <span className="text-orange-600">{selectedOrder.price}</span>
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
+            <div className="p-4 bg-slate-50 border-t border-slate-100 text-right">
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold rounded-xl transition cursor-pointer"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
               >
                 Close
               </button>

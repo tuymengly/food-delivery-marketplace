@@ -3,16 +3,24 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register a new user.
+     *
+     * Public registration only ever creates customer or restaurant
+     * accounts. Admin and rider accounts can never be self-registered —
+     * riders are created exclusively by an admin via POST /api/drivers
+     * after an off-platform interview, so 'rider' is deliberately absent
+     * from the allowed role list below.
      */
     public function register(Request $request): JsonResponse
     {
@@ -20,7 +28,13 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['sometimes', 'string', 'in:customer,restaurant,rider'],
+            'role' => ['sometimes', 'string', 'in:customer,restaurant'],
+
+            // Required only when registering as a restaurant owner.
+            'restaurant_name' => ['required_if:role,restaurant', 'nullable', 'string', 'max:255'],
+            'restaurant_address' => ['required_if:role,restaurant', 'nullable', 'string', 'max:255'],
+            'restaurant_phone' => ['required_if:role,restaurant', 'nullable', 'string', 'max:50'],
+            'restaurant_description' => ['nullable', 'string'],
         ]);
 
         if ($validator->fails()) {
@@ -32,21 +46,49 @@ class AuthController extends Controller
         }
 
         $validated = $validator->validated();
+        $role = $validated['role'] ?? 'customer';
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'] ?? 'customer',
-        ]);
+        $user = DB::transaction(function () use ($validated, $role): User {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => $role,
+                // Both public roles are usable immediately; restaurant
+                // owners are gated by their Restaurant's own pending
+                // status instead (see Category/FoodController), not the
+                // user account itself.
+                'status' => 'Active',
+            ]);
+
+            if ($role === 'restaurant') {
+                Restaurant::create([
+                    'user_id' => $user->id,
+                    'name' => $validated['restaurant_name'],
+                    'address' => $validated['restaurant_address'],
+                    'phone' => $validated['restaurant_phone'],
+                    'description' => $validated['restaurant_description'] ?? null,
+                    // Always pending on self-registration; only an admin can
+                    // activate it via PUT /restaurants/{restaurant}/status.
+                    'status' => 'pending',
+                ]);
+            }
+
+            return $user;
+        });
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $message = match ($role) {
+            'restaurant' => 'Registration successful. Your restaurant application is pending admin approval.',
+            default => 'Registration successful.',
+        };
+
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful.',
+            'message' => $message,
             'data' => [
-                'user' => $user,
+                'user' => $user->fresh(),
                 'token' => $token,
                 'token_type' => 'Bearer',
             ],

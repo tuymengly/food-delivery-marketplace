@@ -1,7 +1,20 @@
 import React, { useEffect } from 'react';
-import { FaCheckCircle, FaTimes } from 'react-icons/fa';
+import { FaCheckCircle, FaExclamationCircle, FaTimes } from 'react-icons/fa';
 
-const Toast = ({ message, onClose, duration = 3000 }) => {
+const VARIANTS = {
+  success: {
+    border: 'border-green-200',
+    iconBg: 'bg-gradient-to-r from-green-500 to-emerald-500',
+    Icon: FaCheckCircle,
+  },
+  error: {
+    border: 'border-red-200',
+    iconBg: 'bg-gradient-to-r from-red-500 to-rose-500',
+    Icon: FaExclamationCircle,
+  },
+};
+
+const Toast = ({ message, onClose, duration = 3000, type = 'success' }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -9,6 +22,9 @@ const Toast = ({ message, onClose, duration = 3000 }) => {
 
     return () => clearTimeout(timer);
   }, [duration, onClose]);
+
+  const variant = VARIANTS[type] || VARIANTS.success;
+  const Icon = variant.Icon;
 
   return (
     <div className="fixed top-24 right-6 z-[100] animate-[slideIn_0.3s_ease-out]">
@@ -24,9 +40,9 @@ const Toast = ({ message, onClose, duration = 3000 }) => {
           }
         }
       `}</style>
-      <div className="bg-white rounded-xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px] border border-green-200">
-        <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-          <FaCheckCircle className="text-white text-xl" />
+      <div className={`bg-white rounded-xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px] border ${variant.border}`}>
+        <div className={`w-10 h-10 ${variant.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
+          <Icon className="text-white text-xl" />
         </div>
         <div className="flex-1">
           <p className="text-gray-900 font-semibold text-sm">{message}</p>

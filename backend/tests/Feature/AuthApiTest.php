@@ -51,6 +51,22 @@ class AuthApiTest extends TestCase
             ->assertJsonValidationErrors(['role']);
     }
 
+    public function test_user_cannot_register_as_rider(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'Rider Attempt',
+            'email' => 'rider-attempt@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'rider',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['role']);
+    }
+
     public function test_user_can_login_and_receives_token(): void
     {
         User::factory()->create([

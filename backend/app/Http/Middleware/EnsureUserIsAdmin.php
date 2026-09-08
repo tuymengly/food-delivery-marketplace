@@ -10,7 +10,7 @@ class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (strtolower((string) $request->user()?->role) !== 'admin') {
+        if (! in_array(strtolower((string) $request->user()?->role), ['admin', 'super_admin', 'super admin'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Only administrators can access this resource.',

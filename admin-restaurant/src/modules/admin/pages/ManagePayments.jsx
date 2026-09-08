@@ -85,21 +85,21 @@ export default function ManagePayments() {
   });
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 font-medium">កំពុងទាញយកទិន្នន័យពិតពី Server...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយកទិន្នន័យពិតពី Server...</div>;
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-gray-800 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen text-slate-800 space-y-6">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Payment Management</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Monitor platform revenue, payouts, and transaction history.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Payment Management</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Monitor platform revenue, payouts, and transaction history.</p>
         </div>
         <button
           onClick={fetchPaymentData}
-          className="px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-medium text-sm rounded-xl shadow-sm transition w-full sm:w-auto"
+          className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-sm rounded-xl shadow-sm transition w-full sm:w-auto"
         >
           Refresh
         </button>
@@ -116,13 +116,13 @@ export default function ManagePayments() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Total Volume */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">TOTAL VOLUME</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+            <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">TOTAL VOLUME</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
               {formatCurrency(stats.total_volume)}
             </h3>
-            <p className="text-xs text-gray-400 font-medium mt-2">All completed orders</p>
+            <p className="text-xs text-slate-400 font-medium mt-2">All completed orders</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-400 flex items-center justify-center shrink-0">
             <TrendingUp size={24} />
@@ -130,13 +130,13 @@ export default function ManagePayments() {
         </div>
 
         {/* Platform Revenue */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">PLATFORM REVENUE</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+            <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">PLATFORM REVENUE</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
               {formatCurrency(stats.platform_revenue)}
             </h3>
-            <p className="text-xs text-gray-400 font-medium mt-2">Platform Earnings</p>
+            <p className="text-xs text-slate-400 font-medium mt-2">Platform Earnings</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-400 flex items-center justify-center shrink-0">
             <Landmark size={24} />
@@ -146,11 +146,11 @@ export default function ManagePayments() {
         {/* Pending Payouts */}
         <div className="bg-[#fff1eb] p-5 rounded-2xl border border-orange-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-500 tracking-wider uppercase">PENDING PAYOUTS</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+            <p className="text-xs font-semibold text-slate-500 tracking-wider uppercase">PENDING PAYOUTS</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
               {formatCurrency(stats.pending_payouts)}
             </h3>
-            <p className="text-xs text-gray-500 font-medium mt-2">Requires manual review</p>
+            <p className="text-xs text-slate-500 font-medium mt-2">Requires manual review</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-white/80 text-orange-400 flex items-center justify-center shadow-xs shrink-0">
             <Clock size={24} />
@@ -158,13 +158,13 @@ export default function ManagePayments() {
         </div>
 
         {/* Successful Payouts */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase">SUCCESSFUL PAYOUTS</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+            <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">SUCCESSFUL PAYOUTS</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
               {stats.successful_payouts}
             </h3>
-            <p className="text-xs text-gray-400 font-medium mt-2">Processed today</p>
+            <p className="text-xs text-slate-400 font-medium mt-2">Processed today</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircle2 size={24} />
@@ -174,16 +174,16 @@ export default function ManagePayments() {
       </div>
 
       {/* Transactions Table Container */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
-        <div className="flex border-b border-gray-100 bg-gray-50/40 px-6 pt-3 gap-8">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+        <div className="flex border-b border-slate-100 bg-slate-50/40 px-6 pt-3 gap-8">
           {['ALL TRANSACTIONS', 'RESTAURANT PAYOUTS', 'DRIVER PAYOUTS'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`pb-3 text-xs font-bold tracking-wider transition ${
                 activeTab === tab 
-                  ? 'text-[#f96b44] border-b-2 border-[#f96b44]' 
-                  : 'text-gray-400 hover:text-gray-600'
+                  ? 'text-orange-600 border-b-2 border-orange-600' 
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               {tab}
@@ -194,7 +194,7 @@ export default function ManagePayments() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 tracking-wider uppercase bg-gray-50/30">
+              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 tracking-wider uppercase bg-slate-50/30">
                 <th className="py-3.5 px-6">TRANSACTION ID</th>
                 <th className="py-3.5 px-6">DATE/TIME</th>
                 <th className="py-3.5 px-6">ENTITY</th>
@@ -203,28 +203,28 @@ export default function ManagePayments() {
                 <th className="py-3.5 px-6 text-center">STATUS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
+            <tbody className="divide-y divide-slate-100 text-sm">
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((txn) => (
                   <tr key={txn.id} className="hover:bg-orange-50/10 transition">
-                    <td className="py-4 px-6 font-semibold text-gray-800">{txn.id}</td>
-                    <td className="py-4 px-6 text-gray-400 text-xs font-medium">{txn.dateTime}</td>
+                    <td className="py-4 px-6 font-semibold text-slate-800">{txn.id}</td>
+                    <td className="py-4 px-6 text-slate-400 text-xs font-medium">{txn.dateTime}</td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         {txn.avatar ? (
                           <img src={txn.avatar} alt={txn.entity} className="w-8 h-8 rounded-full object-cover shrink-0" />
                         ) : (
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
                             👤
                           </div>
                         )}
-                        <span className="font-semibold text-gray-800 text-sm">{txn.entity}</span>
+                        <span className="font-semibold text-slate-800 text-sm">{txn.entity}</span>
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-xs font-medium text-gray-600">{txn.type}</span>
+                      <span className="text-xs font-medium text-slate-600">{txn.type}</span>
                     </td>
-                    <td className="py-4 px-6 font-bold text-gray-900">
+                    <td className="py-4 px-6 font-bold text-slate-900">
                       ${Number(txn.amount).toFixed(2)}
                     </td>
                     <td className="py-4 px-6 text-center">
@@ -239,7 +239,7 @@ export default function ManagePayments() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-gray-400 text-sm">
+                  <td colSpan="6" className="py-8 text-center text-slate-400 text-sm">
                     មិនទាន់មានទិន្នន័យប្រតិបត្តិការនៅឡើយទេ (No Transactions Available)
                   </td>
                 </tr>

@@ -376,7 +376,7 @@ const Navbar = () => {
                 <line x1="6" x2="18" y1="17" y2="17"></line>
               </svg>
             </div>
-            <span className="text-2xl font-bold text-white">Delish-Kh</span>
+            <span className="text-2xl font-bold text-white">BiteRush</span>
           </Link>
           <IoCloseSharp
             className="text-white text-3xl md:text-4xl cursor-pointer hover:rotate-90 transition-transform duration-300"

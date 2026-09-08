@@ -23,7 +23,11 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'role'     => ['nullable', 'string', Rule::in(['customer', 'restaurant', 'rider', 'admin'])],
+            // Rider accounts are created exclusively via POST /api/drivers
+            // (which also captures vehicle/phone and issues credentials),
+            // so 'rider' is intentionally not selectable from this
+            // general-purpose user management endpoint.
+            'role'     => ['nullable', 'string', Rule::in(['customer', 'restaurant', 'admin'])],
             'status'   => 'nullable|string',
             'location' => 'nullable|string',
             'password' => 'nullable|string|min:6',
@@ -49,7 +53,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => ['required', 'email', Rule::unique('users')->ignore($user->id)],
-            'role'     => ['nullable', 'string', Rule::in(['customer', 'restaurant', 'rider', 'admin'])],
+            'role'     => ['nullable', 'string', Rule::in(['customer', 'restaurant', 'admin'])],
             'status'   => 'nullable|string',
             'location' => 'nullable|string',
         ]);

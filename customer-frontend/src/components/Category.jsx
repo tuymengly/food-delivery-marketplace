@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios'; // ហៅ axios instance ដែលអ្នកបានបង្កើត
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import 'animate.css';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -62,7 +63,7 @@ const Category = () => {
                 {/* Loading State */}
                 {loading ? (
                     <div className="text-center py-12">
-                        <p className="text-gray-600 text-lg">กำลังโหลดข้อมูล...</p>
+                        <p className="text-gray-600 text-lg">Loading categories...</p>
                     </div>
                 ) : (
                     /* Main Card */

@@ -72,7 +72,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 relative">
+    <div className="flex min-h-screen bg-slate-50 relative">
       {/* Dark Overlay for Mobile */}
       {isSidebarOpen && (
         <div 
@@ -91,26 +91,26 @@ export default function AdminLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="flex justify-between items-center px-4 md:px-8 py-3 bg-white border-b border-gray-100 sticky top-0 z-30 gap-2 md:gap-4">
+        <header className="flex justify-between items-center px-4 md:px-8 py-3 bg-white border-b border-slate-100 sticky top-0 z-30 gap-2 md:gap-4">
           
           <div className="flex items-center gap-2 md:gap-3 flex-1 max-w-md">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg shrink-0"
+              className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg shrink-0"
               aria-label="Open Menu"
             >
               <Menu size={22} />
             </button>
 
             <div className="relative w-full">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 hover:bg-gray-100 focus:bg-white text-xs md:text-sm text-gray-800 rounded-xl border border-gray-200 focus:outline-none focus:border-[#e03a11] transition-all"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white text-xs md:text-sm text-slate-800 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-600 transition-all"
               />
             </div>
           </div>
@@ -123,28 +123,28 @@ export default function AdminLayout() {
             <div className="relative">
               <div 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 sm:gap-3 cursor-pointer sm:pl-4 sm:border-l sm:border-gray-200 select-none py-1 px-2 rounded-lg hover:bg-gray-50 transition"
+                className="flex items-center gap-2 sm:gap-3 cursor-pointer sm:pl-4 sm:border-l sm:border-slate-200 select-none py-1 px-2 rounded-lg hover:bg-slate-50 transition"
               >
-                <div className="w-9 h-9 bg-orange-100 text-[#e03a11] rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
                   {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className="hidden sm:flex flex-col">
-                  <span className="font-bold text-gray-800 text-xs leading-tight">{user.name}</span>
-                  <span className="text-[10px] text-gray-400 font-medium capitalize">{user.role}</span>
+                  <span className="font-bold text-slate-800 text-xs leading-tight">{user.name}</span>
+                  <span className="text-[10px] text-slate-400 font-medium capitalize">{user.role}</span>
                 </div>
-                <ChevronDown size={16} className={`text-gray-400 hidden sm:inline transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={16} className={`text-slate-400 hidden sm:inline transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
 
               {/* Profile Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
-                    <p className="font-bold text-gray-800 text-xs">{user.name}</p>
-                    <p className="text-[10px] text-gray-400 capitalize">{user.role}</p>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-2 z-50">
+                  <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
+                    <p className="font-bold text-slate-800 text-xs">{user.name}</p>
+                    <p className="text-[10px] text-slate-400 capitalize">{user.role}</p>
                   </div>
                   <button 
                     onClick={() => { setIsProfileDropdownOpen(false); navigate('/admin/settings'); }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition"
                   >
                     <UserIcon size={16} /> My Profile
                   </button>

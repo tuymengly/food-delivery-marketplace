@@ -93,7 +93,7 @@ export default function RestaurantSidebar({ onClose }) {
         <div className="relative mb-6 pt-2 pb-4 border-b border-white/10 text-center">
           <button 
             onClick={onClose}
-            className="lg:hidden absolute right-0 top-0 text-gray-400 hover:text-white p-1 rounded-lg transition"
+            className="lg:hidden absolute right-0 top-0 text-slate-400 hover:text-white p-1 rounded-lg transition"
             aria-label="Close Sidebar"
           >
             <X size={20} />

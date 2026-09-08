@@ -325,7 +325,7 @@ export default function DriverDashboard() {
                               className={`w-full sm:w-auto px-6 py-2.5 text-white font-bold rounded-xl text-xs transition shadow-sm ${
                                 activeOrder !== null || updatingId === request.real_id
                                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                  : 'bg-[#ea580c] hover:bg-[#c2410c]'
+                                  : 'bg-orange-600 hover:bg-[#c2410c]'
                               }`}
                             >
                               {updatingId === request.real_id ? 'Updating...' : 'Accept'}
@@ -339,7 +339,7 @@ export default function DriverDashboard() {
                   <div className="space-y-6">
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                       <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
-                        <Wallet size={16} className="text-[#ea580c]" />
+                        <Wallet size={16} className="text-orange-600" />
                         <span>Today's Earnings</span>
                       </div>
                       <h2 className="text-3xl font-black text-slate-900">{summary.today_earnings}</h2>

@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaTrash, FaMinus, FaPlus, FaStar, FaRegStar } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 import { clearCart as clearApiCart, fetchCart, removeCartItem, toggleFoodRecommendation, updateCartItem } from '../api/foodApi';
+import Toast from '../components/Toast';
 
 const Cart = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [toast, setToast] = useState(null);
   const [favorites, setFavorites] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('favorites') || '[]');
@@ -15,6 +17,8 @@ const Cart = () => {
       return [];
     }
   });
+
+  const showToast = (message, type = 'error') => setToast({ message, type });
 
   // 🔸 Check authentication on mount
   useEffect(() => {
@@ -93,7 +97,7 @@ const Cart = () => {
       setFavorites(favorites);
       localStorage.setItem('favorites', JSON.stringify(favorites));
       window.dispatchEvent(new Event('favoritesUpdated'));
-      alert(error.response?.data?.message || 'Could not update recommendation.');
+      showToast(error.response?.data?.message || 'Could not update recommendation.');
     }
   };
 
@@ -188,7 +192,7 @@ const Cart = () => {
 
   const handleProceedToCheckout = () => {
     if (selectedItems.length === 0) {
-      alert('Please select at least one item to checkout');
+      showToast('Please select at least one item to checkout', 'error');
       return;
     }
     localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
@@ -233,6 +237,9 @@ const Cart = () => {
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white pt-20 pb-16 px-4 sm:px-6 md:px-14 overflow-x-hidden">
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-10">
