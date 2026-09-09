@@ -16,7 +16,14 @@
     "myFavorites": "My Favorites",
     "myCart": "My Cart",
     "orderHistory": "Order History",
-    "orderNow": "Order Now"
+    "orderNow": "Order Now",
+    "deliverTo": "Deliver to",
+    "setLocation": "Set your location",
+    "enterAddress": "Enter your delivery address",
+    "useCurrentLocation": "Use my current location",
+    "saveAddress": "Save address",
+    "currentLocation": "My Current Location",
+    "help": "Help"
   },
   "typeAnimation": {
     "text1": "Delicious Food",
