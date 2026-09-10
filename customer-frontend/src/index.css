@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+:root {
+	--brand-navy: #0b1f3a;
+	--brand-blue: #163a63;
+	--brand-accent: #2563eb;
+	--surface: #ffffff;
+	--canvas: #f5f7fa;
+	--ink: #1f2937;
+	--muted: #64748b;
+	--line: #d1d5db;
+}
+
+@layer base {
+	html {
+		background: var(--canvas);
+	}
+
+	body {
+		margin: 0;
+		background: var(--canvas);
+		color: var(--ink);
+		font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	button,
+	input,
+	textarea,
+	select {
+		font: inherit;
+	}
+}
+
+@layer components {
+	.app-button-primary {
+		border-radius: 6px;
+		background: var(--brand-navy);
+		color: white;
+		box-shadow: 0 1px 2px rgb(11 31 58 / 15%);
+		transition: background-color 160ms ease, box-shadow 160ms ease;
+	}
+
+	.app-button-primary:hover {
+		background: var(--brand-blue);
+		box-shadow: 0 3px 8px rgb(11 31 58 / 18%);
+	}
+
+	.app-input {
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+		color: var(--ink);
+	}
+
+	.app-input:focus {
+		border-color: var(--brand-accent);
+		outline: 2px solid rgb(37 99 235 / 15%);
+		outline-offset: 0;
+	}
+}

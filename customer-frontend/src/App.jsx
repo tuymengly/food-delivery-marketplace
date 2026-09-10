@@ -3,14 +3,7 @@ import 'aos/dist/aos.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
-import MenuFood from './components/MenuFood';
-import MenuSnack from './components/MenuSnack';
-import MenuDessert from './components/MenuDessert';
-import MenuSoup from './components/MenuSoup';
-import DetailMenuFood from './components/DetailMenuFood';
-import DetailMenuSnack from './components/DetailMenuSnack';
-import DetailMenuSoup from './components/DetailMenuSoup';
-import DetailMenuDessert from './components/DetailMenuDessert';
+import FoodDetail from './pages/FoodDetail';
 import Favorites from './pages/Favorites';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -25,6 +18,9 @@ import SearchResults from './pages/SearchResults';
 import Reservation from './pages/Reservation';
 import Service from './pages/Service';
 import Contact from './pages/Contact';
+import Pickup from './pages/Pickup';
+import Shops from './pages/Shops';
+import Restaurants from './pages/Restaurants';
 import { bootstrapSessionFromUrlToken } from './api/app';
 
 // import { Contact } from 'lucide-react';
@@ -57,17 +53,8 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
 
-        {/* All Menu in Category */}
-        <Route path="/MenuFood" element={<MenuFood/>} />
-        <Route path='/MenuSnack' element={<MenuSnack/>}/>
-        <Route path='/MenuDessert' element={<MenuDessert/>}/>
-        <Route path='/MenuSoup' element={<MenuSoup/>}/>
-
-        {/* Detail menu  */}
-        <Route path='/MenuFood/:id' element={<DetailMenuFood/>}/>
-        <Route path='/MenuSnack/:id' element={<DetailMenuSnack/>}/>
-        <Route path='/MenuDessert/:id' element={<DetailMenuDessert/>}/>
-        <Route path='/MenuSoup/:id' element={<DetailMenuSoup/>}/>
+        {/* Food detail page (single page for every category - see FoodDetail.jsx) */}
+        <Route path='/food/:id' element={<FoodDetail/>}/>
 
         {/* Favorites page */}
         <Route path='/favorites' element={<Favorites/>}/>
@@ -88,6 +75,11 @@ const App = () => {
 
         {/* All Menu page */}
         <Route path='/menu' element={<AllMenu/>}/>
+
+        {/* Primary marketplace modes */}
+        <Route path='/pickup' element={<Pickup/>}/>
+        <Route path='/shops' element={<Shops/>}/>
+        <Route path='/restaurants' element={<Restaurants/>}/>
 
         {/* About page */}
         <Route path='/about' element={<About/>}/>

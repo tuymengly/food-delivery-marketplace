@@ -56,7 +56,7 @@ export default function ManageDrivers() {
       })
       .catch((err) => {
         if (!isMounted) return;
-        setError(err.response?.data?.message || err.message || 'ពុំអាចទាញទិន្នន័យបានទេ');
+        setError(err.response?.data?.message || err.message || 'Unable to load driver data.');
       })
       .finally(() => {
         if (!isMounted) return;
@@ -90,7 +90,7 @@ export default function ManageDrivers() {
       setIsModalOpen(false);
       setEditingDriver(null);
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message || 'មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ'}`);
+      alert(`Error: ${err.response?.data?.message || err.message || 'An error occurred while saving data.'}`);
     }
   };
 
@@ -103,19 +103,19 @@ export default function ManageDrivers() {
 
       setDrivers((currentDrivers) => currentDrivers.map(d => d.id === id ? updatedDriver : d));
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message || 'ពុំអាចផ្លាស់ប្ដូរ Status បានទេ'}`);
+      alert(`Error: ${err.response?.data?.message || err.message || 'An error occurred while updating status.'}`);
     }
   };
 
   // 4. DELETE: Remove Driver
   const handleDeleteDriver = async (id) => {
-    if (window.confirm('តើអ្នកប្រាកដថាចង់លុប Driver នេះមែនទេ?')) {
+    if (window.confirm('Are you sure you want to delete this driver?')) {
       try {
         await deleteDriver(id);
 
         setDrivers((currentDrivers) => currentDrivers.filter(d => d.id !== id));
       } catch (err) {
-        alert(`Error: ${err.response?.data?.message || err.message || 'ពុំអាចលុប Driver នេះបានទេ'}`);
+        alert(`Error: ${err.response?.data?.message || err.message || 'Unable to delete this driver.'}`);
       }
     }
   };

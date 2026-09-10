@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Search, X, ShoppingBag } from 'lucide-react';
 import { getOrders, updateOrderStatus } from '../../../services/adminService';
 
-const filterTabs = ['All', 'Placed', 'Accepted', 'Preparing', 'Ready', 'Out For Delivery', 'Delivered', 'Completed', 'Cancelled'];
+const filterTabs = ['All', 'Pending', 'Accepted', 'Preparing', 'Ready', 'Delivering', 'Delivered', 'Completed', 'Cancelled'];
 
 export default function ManageOrders() {
   const [orders, setOrders] = useState([]);
@@ -39,7 +39,7 @@ export default function ManageOrders() {
       }
     } catch (error) {
       console.error('Status update error:', error);
-      alert('បរាជ័យក្នុងការប្តូរ Status!');
+      alert('Failed to update order status.');
     }
   };
 
@@ -55,11 +55,11 @@ export default function ManageOrders() {
 
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
-      case 'placed': return 'bg-blue-100 text-blue-600';
+      case 'pending': return 'bg-blue-100 text-blue-600';
       case 'accepted': return 'bg-indigo-100 text-indigo-600';
       case 'preparing': return 'bg-amber-100 text-amber-700';
       case 'ready': return 'bg-emerald-100 text-emerald-700';
-      case 'out for delivery': return 'bg-orange-100 text-orange-700';
+      case 'delivering': return 'bg-orange-100 text-orange-700';
       case 'delivered': return 'bg-green-100 text-green-600';
       case 'completed': return 'bg-green-100 text-green-700';
       case 'cancelled': return 'bg-red-100 text-red-600';
@@ -68,7 +68,7 @@ export default function ManageOrders() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយក Orders...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">Loading orders...</div>;
   }
 
   return (

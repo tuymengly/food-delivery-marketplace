@@ -108,7 +108,7 @@ export default function ManageUsers() {
       handleCloseModal();
     } catch (error) {
       console.error('Failed to save user:', error);
-      alert(error.response?.data?.message || 'មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!');
+      alert(error.response?.data?.message || 'There was a problem saving the data.');
     } finally {
       setSubmitting(false);
     }
@@ -156,7 +156,7 @@ export default function ManageUsers() {
   // CSV Export
   const handleExportCSV = () => {
     if (filteredUsers.length === 0) {
-      alert('គ្មានទិន្នន័យសម្រាប់ Export ទេ!');
+      alert('There is no data available to export.');
       return;
     }
     const headers = ['ID,Name,Email,Role,Status,Location,Join Date\n'];
@@ -298,7 +298,7 @@ export default function ManageUsers() {
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-slate-400">
                     <Loader2 size={24} className="animate-spin mx-auto text-orange-500 mb-2" />
-                    កំពុងទាញទិន្នន័យ...
+                    Loading data...
                   </td>
                 </tr>
               ) : filteredUsers.length > 0 ? (

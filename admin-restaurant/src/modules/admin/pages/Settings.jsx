@@ -118,7 +118,7 @@ export default function Settings() {
     return (
       <div className="flex items-center justify-center py-20 text-slate-500 gap-2">
         <Loader2 size={24} className="animate-spin text-orange-600" />
-        កំពុងទាញយកការកំណត់...
+        Loading settings...
       </div>
     );
   }

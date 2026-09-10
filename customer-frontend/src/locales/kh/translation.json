@@ -199,8 +199,8 @@
     "invalidCredentials": "អ៊ីមែលឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ"
   },
   "common": {
-    "loading": "កំពុងផ្ទុក...",
-    "error": "កំហុស",
+    "loading": "Loading...",
+    "error": "Error",
     "success": "ជោគជ័យ",
     "confirm": "បញ្ជាក់",
     "cancel": "បោះបង់",

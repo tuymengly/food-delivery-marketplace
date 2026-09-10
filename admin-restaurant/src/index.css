@@ -1,1 +1,212 @@
 @import "tailwindcss";
+
+:root {
+	--brand-navy: #0b1f3a;
+	--brand-blue: #163a63;
+	--brand-accent: #2563eb;
+	--surface: #ffffff;
+	--canvas: #f5f7fa;
+	--ink: #1f2937;
+	--muted: #64748b;
+	--line: #d1d5db;
+}
+
+@layer base {
+	html {
+		background: var(--canvas);
+	}
+
+	body {
+		margin: 0;
+		background: var(--canvas);
+		color: var(--ink);
+		font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	button,
+	input,
+	textarea,
+	select {
+		font: inherit;
+	}
+}
+
+@layer components {
+	.dashboard-shell {
+		background: var(--canvas);
+	}
+
+	.dashboard-sidebar {
+		background: var(--brand-navy);
+	}
+
+	.dashboard-content {
+		min-height: 100vh;
+		background: var(--canvas);
+	}
+
+	.dashboard-nav-item {
+		border-radius: 5px;
+		color: rgb(255 255 255 / 78%);
+		transition: background-color 160ms ease, color 160ms ease;
+	}
+
+	.dashboard-nav-item:hover,
+	.dashboard-nav-item[data-active="true"] {
+		background: var(--brand-blue);
+		color: white;
+	}
+
+	.dashboard-surface {
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+		box-shadow: 0 1px 3px rgb(15 23 42 / 6%);
+	}
+
+	.dashboard-input {
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+	}
+
+	.dashboard-input:focus {
+		border-color: var(--brand-accent);
+		outline: 2px solid rgb(37 99 235 / 15%);
+		outline-offset: 0;
+	}
+
+	/* Keep legacy admin pages on the shared business palette while their API-driven
+	 * forms and tables continue to use the existing component structure. */
+	.dashboard-content .bg-\[\#fffaf8\] {
+		background: var(--canvas);
+	}
+
+	.dashboard-content .bg-orange-600,
+	.dashboard-content .hover\:bg-orange-700:hover {
+		background-color: var(--brand-navy);
+	}
+
+	.dashboard-content .text-orange-600,
+	.dashboard-content .hover\:text-orange-700:hover {
+		color: var(--brand-accent);
+	}
+
+	.dashboard-content .border-orange-100 {
+		border-color: var(--line);
+	}
+
+	.dashboard-content .bg-orange-50,
+	.dashboard-content .bg-orange-50\/60,
+	.dashboard-content .bg-orange-100,
+	.dashboard-content .bg-orange-100\/80 {
+		background-color: rgb(37 99 235 / 8%);
+	}
+
+	.dashboard-content .bg-\[\#fff1eb\] {
+		background-color: #f8fafc;
+	}
+
+	.dashboard-content .rounded-2xl {
+		border-radius: 6px;
+	}
+
+	/* Admin operations UI: flat, compact, and consistent across legacy pages. */
+	.dashboard-content [class*="rounded-3xl"],
+	.dashboard-content [class*="rounded-2xl"],
+	.dashboard-content [class*="rounded-xl"] {
+		border-radius: 6px;
+	}
+
+	.dashboard-content [class*="shadow-"],
+	.dashboard-content [class*="shadow["] {
+		box-shadow: none;
+	}
+
+	.dashboard-content button {
+		border-radius: 5px;
+		box-shadow: none;
+	}
+
+	.dashboard-content button[class*="rounded-full"] {
+		border-radius: 9999px;
+	}
+
+	.dashboard-content input:not([type="checkbox"]):not([type="radio"]),
+	.dashboard-content select,
+	.dashboard-content textarea {
+		border-radius: 4px;
+		box-shadow: none;
+	}
+
+	.dashboard-content input:focus,
+	.dashboard-content select:focus,
+	.dashboard-content textarea:focus {
+		border-color: var(--brand-accent);
+		outline: 2px solid rgb(37 99 235 / 14%);
+		outline-offset: 0;
+	}
+
+	.dashboard-content .bg-white[class*="border"] {
+		border-color: var(--line);
+	}
+
+	.dashboard-content table {
+		border-collapse: collapse;
+	}
+
+	.dashboard-content table thead tr {
+		background: #f8fafc;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.dashboard-content table th {
+		color: #64748b;
+		font-size: 0.6875rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.dashboard-content table tbody tr {
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	.dashboard-content table tbody tr:hover {
+		background: #f8fafc;
+	}
+
+	.dashboard-content .hover\:shadow-md:hover,
+	.dashboard-content .hover\:shadow-lg:hover,
+	.dashboard-content .hover\:shadow-xl:hover,
+	.dashboard-content .hover\:shadow-2xl:hover {
+		box-shadow: none;
+	}
+
+	.dashboard-content .hover\:-translate-y-0\.5:hover,
+	.dashboard-content .hover\:-translate-y-1:hover,
+	.dashboard-content .hover\:-translate-y-3:hover {
+		transform: none;
+	}
+
+	.dashboard-content .backdrop-blur-sm,
+	.dashboard-content .backdrop-blur-md,
+	.dashboard-content .backdrop-blur-lg {
+		backdrop-filter: none;
+	}
+
+	.dashboard-content .bg-purple-50,
+	.dashboard-content .text-purple-500,
+	.dashboard-content .bg-indigo-50,
+	.dashboard-content .text-indigo-400,
+	.dashboard-content .bg-sky-50,
+	.dashboard-content .text-sky-400 {
+		background-color: #eff6ff;
+		color: var(--brand-accent);
+	}
+
+	.dashboard-content .rounded-full:not(input):not(button) {
+		border-radius: 4px;
+	}
+}

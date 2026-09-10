@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { ChevronDown, Menu, Search, LogOut, User as UserIcon } from 'lucide-react';
 import { getAdminProfile } from '../../../services/adminService'; 
@@ -11,13 +11,27 @@ export default function AdminLayout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const pageTitle = {
+    '/admin/dashboard': 'Dashboard',
+    '/admin/users': 'Users',
+    '/admin/restaurants': 'Restaurants',
+    '/admin/drivers': 'Riders',
+    '/admin/categories': 'Categories',
+    '/admin/foods': 'Menu & Foods',
+    '/admin/orders': 'Order monitoring',
+    '/admin/payments': 'Finance',
+    '/admin/reviews': 'Reviews',
+    '/admin/help-center': 'Support',
+    '/admin/settings': 'Settings',
+  }[location.pathname] || 'Admin Panel';
 
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('admin_user') || localStorage.getItem('user');
     if (savedUser && savedUser !== "undefined") {
       try {
         return JSON.parse(savedUser);
-      } catch (e) {
+      } catch {
         return { name: 'Admin', role: 'Super Admin' };
       }
     }
@@ -72,7 +86,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative">
+    <div className="dashboard-shell flex min-h-screen relative">
       {/* Dark Overlay for Mobile */}
       {isSidebarOpen && (
         <div 
@@ -91,12 +105,12 @@ export default function AdminLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="flex justify-between items-center px-4 md:px-8 py-3 bg-white border-b border-slate-100 sticky top-0 z-30 gap-2 md:gap-4">
+        <header className="flex justify-between items-center px-4 md:px-8 py-3 bg-white border-b border-slate-200 sticky top-0 z-30 gap-2 md:gap-4">
           
-          <div className="flex items-center gap-2 md:gap-3 flex-1 max-w-md">
+          <div className="flex items-center gap-2 md:gap-5 flex-1 max-w-xl">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg shrink-0"
+              className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-md shrink-0"
               aria-label="Open Menu"
             >
               <Menu size={22} />
@@ -110,9 +124,10 @@ export default function AdminLayout() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white text-xs md:text-sm text-slate-800 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-600 transition-all"
+                className="dashboard-input w-full pl-9 pr-3 py-2 text-xs md:text-sm text-slate-800 focus:outline-none transition-all focus:border-[#2563EB]"
               />
             </div>
+            <h1 className="hidden md:block shrink-0 text-lg font-bold text-[#0B1F3A]">{pageTitle}</h1>
           </div>
 
           {/* User & Notification Controls */}
@@ -123,9 +138,9 @@ export default function AdminLayout() {
             <div className="relative">
               <div 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 sm:gap-3 cursor-pointer sm:pl-4 sm:border-l sm:border-slate-200 select-none py-1 px-2 rounded-lg hover:bg-slate-50 transition"
+                className="flex items-center gap-2 sm:gap-3 cursor-pointer sm:pl-4 sm:border-l sm:border-slate-200 select-none py-1 px-2 rounded-md hover:bg-slate-50 transition"
               >
-                <div className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-9 h-9 bg-[#163A63] text-white rounded-md flex items-center justify-center font-bold text-sm shrink-0">
                   {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className="hidden sm:flex flex-col">
@@ -137,7 +152,7 @@ export default function AdminLayout() {
 
               {/* Profile Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-2 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-300 rounded-md py-2 z-50">
                   <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
                     <p className="font-bold text-slate-800 text-xs">{user.name}</p>
                     <p className="text-[10px] text-slate-400 capitalize">{user.role}</p>
@@ -163,7 +178,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="p-4 md:p-8 flex-1 overflow-x-auto">
+        <main className="dashboard-content p-4 md:p-8 flex-1 overflow-x-auto">
           <Outlet />
         </main>
       </div>

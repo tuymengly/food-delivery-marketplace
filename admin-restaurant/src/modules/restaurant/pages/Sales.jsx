@@ -100,7 +100,7 @@ export default function Sales() {
       }
     } catch (err) {
       console.error('Error fetching sales data:', err);
-      setError(err.response?.data?.message || 'មិនអាចទាញយកទិន្នន័យ Sales បានឡើយ!');
+      setError(err.response?.data?.message || 'Unable to load sales data.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -290,7 +290,7 @@ export default function Sales() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfbfa]">
         <Loader2 className="w-9 h-9 text-orange-600 animate-spin" />
-        <span className="mt-3 text-sm text-slate-600 font-medium">កំពុងទាញយកទិន្នន័យ Sales...</span>
+        <span className="mt-3 text-sm text-slate-600 font-medium">Loading sales data...</span>
       </div>
     );
   }
@@ -300,7 +300,7 @@ export default function Sales() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfbfa] p-4">
         <div className="bg-red-50 border border-red-200 p-6 rounded-2xl max-w-md w-full text-center space-y-3">
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <h3 className="text-base font-bold text-red-900">មានបញ្ហាក្នុងការភ្ជាប់</h3>
+          <h3 className="text-base font-bold text-red-900">Connection problem</h3>
           <p className="text-xs text-red-600 font-medium">{error}</p>
           <button
             onClick={() => fetchSalesData(true)}

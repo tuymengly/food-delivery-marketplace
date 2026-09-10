@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaCheck, FaTruck, FaStore, FaUtensils, FaHome, FaBox } from 'react-icons/fa';
+import { apiRequest } from '../api/app';
 
 // ១. កំណត់បញ្ជី Status ទាំងអស់
 const STEPS = [
@@ -18,28 +19,44 @@ const OrderTracking = () => {
   const order = location.state?.order;
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [estimatedTime, setEstimatedTime] = useState(15);
+  const [apiError, setApiError] = useState('');
+  const estimatedTime = Math.max(0, 25 - currentStep * 4);
+
+  const statusToStep = (status) => {
+    const normalizedStatus = String(status || '').toLowerCase();
+
+    if (normalizedStatus === 'delivered' || normalizedStatus === 'completed') return 6;
+    if (normalizedStatus === 'delivering' || normalizedStatus === 'out_for_delivery') return 5;
+    if (normalizedStatus === 'ready') return 4;
+    if (normalizedStatus === 'preparing') return 3;
+    if (normalizedStatus === 'accepted') return 2;
+    return 1;
+  };
 
   useEffect(() => {
-    // ធ្វើ Simulation ប្តូរ Step រៀងរាល់ ៥ វិនាទី (សម្រាប់ការ Test)
-    const interval = setInterval(() => {
-      setCurrentStep((prevStep) => {
-        if (prevStep < STEPS.length) {
-          return prevStep + 1;
+    const orderId = order?.remoteId || order?.real_id || order?.id;
+    if (!orderId || !localStorage.getItem('token')) return undefined;
+
+    let isMounted = true;
+    const loadOrder = async () => {
+      try {
+        const response = await apiRequest(`/orders/${orderId}`);
+        if (isMounted) {
+          setCurrentStep(statusToStep(response?.data?.status));
+          setApiError('');
         }
-        clearInterval(interval);
-        return prevStep;
-      });
-    }, 5000); // ៥ វិនាទីដូរ ១ ដំណាក់កាល (អ្នកអាចប្តូរជា 60000 = 1 នាទី)
+      } catch (error) {
+        if (isMounted) setApiError(error.message || 'Unable to load order status.');
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // គណនាពេលវេលាដែលនៅសល់ (Estimated Minutes)
-  useEffect(() => {
-    const remaining = Math.max(0, 25 - currentStep * 4);
-    setEstimatedTime(remaining);
-  }, [currentStep]);
+    loadOrder();
+    const interval = setInterval(loadOrder, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [order]);
 
   return (
     <div className="w-full min-h-screen bg-amber-50/40 pt-24 pb-16 px-4 md:px-14 flex justify-center">
@@ -57,6 +74,9 @@ const OrderTracking = () => {
             <FaTruck className="text-3xl text-white" />
           </div>
         </div>
+        {apiError && (
+          <p className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{apiError}</p>
+        )}
 
         {/* Timeline Steps */}
         <div className="relative pl-6 space-y-8">

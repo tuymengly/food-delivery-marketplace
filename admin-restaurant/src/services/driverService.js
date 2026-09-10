@@ -23,3 +23,15 @@ export const getDriverOrders = async () => {
 export const updateDriverOrderStatus = async (id, status) => {
   return await API.patch(`/driver/orders/${id}/status`, { status });
 };
+
+export const getRiderProfile = async () => {
+  return await API.get('/rider/profile');
+};
+
+export const updateRiderLocation = async (latitude, longitude) => {
+  return await API.put('/rider/location', { latitude, longitude });
+};
+
+export const updateRiderOnlineStatus = async (isOnline) => {
+  return await API.put('/rider/online-status', { is_online: isOnline });
+};

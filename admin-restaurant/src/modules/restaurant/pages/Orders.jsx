@@ -89,7 +89,7 @@ const Orders = () => {
   // Helper Badge Styling
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'New':
+      case 'Pending':
         return 'bg-blue-50 text-blue-600 border-blue-200';
       case 'Accepted':
         return 'bg-orange-50 text-orange-600 border-orange-200';
@@ -106,7 +106,7 @@ const Orders = () => {
     }
   };
 
-  const tabs = ['All', 'New', 'Accepted', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
+  const tabs = ['All', 'Pending', 'Accepted', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
 
   return (
     <div className="p-6 space-y-6 bg-[#fcfbfa] min-h-screen">
@@ -207,7 +207,7 @@ const Orders = () => {
                   <span className="text-xs text-slate-400 font-medium px-4">Updating...</span>
                 ) : (
                   <>
-                    {order.status === 'New' && (
+                    {order.status === 'Pending' && (
                       <>
                         <button
                           onClick={() => handleUpdateStatus(order.real_id, 'Accepted')}

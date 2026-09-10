@@ -1,60 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import Toast from './Toast';
+import Toast from '../components/Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { addCartItem, fetchFoodDetail } from '../api/foodApi';
-import FoodRecommendButton from './FoodRecommendButton';
 import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaArrowLeft, FaHeart } from 'react-icons/fa';
 import { BiTime } from 'react-icons/bi';
 import { MdDeliveryDining } from 'react-icons/md';
+import { useTranslation } from 'react-i18next';
+import { addCartItem, fetchFoodDetail } from '../api/foodApi';
+import FoodRecommendButton from '../components/FoodRecommendButton';
 
-const DetailMenuSoup = () => {
+// Single detail page for every food item, regardless of category. This
+// replaces the four near-identical DetailMenuFood/Snack/Dessert/Soup
+// components that used to live at /MenuFood/:id, /MenuSnack/:id, etc. -
+// the category only ever changed a label here, never the behavior.
+const getFoodType = (category = '') => {
+  const value = String(category).toLowerCase();
+  if (value.includes('dessert')) return 'dessert';
+  if (value.includes('snack')) return 'snack';
+  if (value.includes('soup')) return 'soup';
+  return 'food';
+};
+
+const FoodDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const [food, setFood] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [soup, setSoup] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchFoodDetail(id)
-      .then(setSoup)
-      .catch((error) => console.error('Error fetching soup:', error))
-      .finally(() => setLoading(false));
+    let isMounted = true;
+
+    const loadFoodDetail = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const foodData = await fetchFoodDetail(id);
+        if (isMounted) {
+          setFood(foodData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch food details:', error);
+        if (isMounted) {
+          setError(
+            error?.response?.data?.message ||
+              error.message ||
+              'Failed to load food details.'
+          );
+          setFood(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadFoodDetail();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
+  const type = getFoodType(food?.category);
+
+  // Check if item is already in favorites
   useEffect(() => {
-    if (soup) {
+    if (food) {
       const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
       const isAlreadyFavorite = favorites.some(
-        (item) => item.id === soup.id && item.type === 'soup'
+        (item) => item.id === food.id && item.type === type
       );
       setIsFavorite(isAlreadyFavorite);
     }
-  }, [soup]);
+  }, [food, type]);
 
   const handleFavoriteToggle = () => {
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
     if (isFavorite) {
       const updated = favorites.filter(
-        (item) => !(item.id === soup.id && item.type === 'soup')
+        (item) => !(item.id === food.id && item.type === type)
       );
       localStorage.setItem('favorites', JSON.stringify(updated));
       setIsFavorite(false);
     } else {
       favorites.push({
-        id: soup.id,
-        name: soup.name,
-        price: soup.price,
-        image: soup.image,
-        category: 'Soup',
-        restaurant_id: soup.restaurant_id || soup.restaurant?.id,
-        food_id: soup.id,
-        qty: soup.qty || 10,
-        type: 'soup',
-        detailLink: `/MenuSoup/${soup.id}`,
+        id: food.id,
+        name: food.name,
+        price: food.price,
+        image: food.image_url || food.image,
+        category: food.category?.name || food.category,
+        restaurant_id: food.restaurant_id || food.restaurant?.id,
+        food_id: food.id,
+        qty: food.qty || 10,
+        type,
+        detailLink: `/food/${food.id}`,
       });
       localStorage.setItem('favorites', JSON.stringify(favorites));
       setIsFavorite(true);
@@ -64,31 +112,42 @@ const DetailMenuSoup = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading soup...</div>;
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
+        <p className="text-gray-600 text-lg font-medium">Loading food details...</p>
+      </div>
+    );
   }
 
-  if (!soup) {
+  if (!food) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Soup Not Found</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            {error ? 'Unable to Load Food' : 'Food Not Found'}
+          </h2>
+          {error && (
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              {error}
+            </p>
+          )}
           <Link
-            to="/MenuSoup"
-            className="text-orange-600 hover:text-orange-700 font-semibold"
+            to="/menu"
+            className="text-orange-600 hover:text-orange-700 font-semibold inline-block"
           >
-            ← Back to Soups
+            ← Back to Menu
           </Link>
         </div>
       </div>
     );
   }
 
-  const handleQuantityChange = (type) => {
-    if (type === 'increase') setQuantity((prev) => prev + 1);
-    else if (type === 'decrease' && quantity > 1) setQuantity((prev) => prev - 1);
+  const handleQuantityChange = (change) => {
+    if (change === 'increase') setQuantity((prev) => prev + 1);
+    else if (change === 'decrease' && quantity > 1) setQuantity((prev) => prev - 1);
   };
 
-  const totalPrice = (soup.price * quantity).toFixed(2);
+  const totalPrice = (food.price * quantity).toFixed(2);
 
   const addToCart = async () => {
     const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('token');
@@ -106,7 +165,7 @@ const DetailMenuSoup = () => {
     }
 
     try {
-      await addCartItem(soup.id, quantity);
+      await addCartItem(food.id, quantity);
     } catch (error) {
       setToastMessage(error?.response?.data?.message || 'Could not add item to cart. Please try again.');
       setShowToast(true);
@@ -114,32 +173,30 @@ const DetailMenuSoup = () => {
     }
 
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingIndex = cart.findIndex(
-      (item) => item.id === soup.id && item.type === 'soup'
-    );
+    const index = cart.findIndex((item) => item.id === food.id && item.type === type);
 
-    if (existingIndex >= 0) {
-      cart[existingIndex].quantity += quantity;
+    if (index >= 0) {
+      cart[index].quantity += quantity;
     } else {
       cart.push({
-        id: soup.id,
-        name: soup.name,
-        price: soup.price,
-        image: soup.image,
-        category: 'Soup',
-        restaurant_id: soup.restaurant_id || soup.restaurant?.id,
-        food_id: soup.id,
-        qty: soup.qty || 10,
-        type: 'soup',
+        id: food.id,
+        name: food.name,
+        price: food.price,
+        image: food.image_url || food.image,
+        category: food.category?.name || food.category,
+        restaurant_id: food.restaurant_id || food.restaurant?.id,
+        food_id: food.id,
+        qty: food.qty || 10,
+        type,
         quantity,
-        detailLink: `/MenuSoup/${soup.id}`,
+        detailLink: `/food/${food.id}`,
       });
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
 
-    setToastMessage(`${quantity} ${soup.name}${quantity > 1 ? 's' : ''} added to cart!`);
+    setToastMessage(`${quantity} ${food.name}${quantity > 1 ? 's' : ''} added to cart!`);
     setShowToast(true);
   };
 
@@ -148,22 +205,22 @@ const DetailMenuSoup = () => {
       {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
 
       <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white py-10 px-4 sm:px-6 md:px-12 lg:px-20 overflow-x-hidden">
-        {/* Back to Menu */}
+        {/* Back Button */}
         <Link
-          to="/MenuSoup"
+          to="/menu"
           className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold mb-8 group"
         >
           <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-300" />
-          Back to Soups
+          {t('button.backToMenu') || 'Back to Menu'}
         </Link>
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-start">
-          {/* 🍜 Image Section */}
+          {/* Image */}
           <div className="relative w-full">
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img
-                src={soup.image}
-                alt={soup.name}
+                src={food.image_url || food.image || 'https://via.placeholder.com/500'}
+                alt={food.name}
                 className="w-full h-auto max-h-[450px] sm:max-h-[500px] object-cover rounded-3xl transition-transform duration-700 hover:scale-105"
               />
             </div>
@@ -180,14 +237,16 @@ const DetailMenuSoup = () => {
 
             {/* Category Badge */}
             <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
-              <span className="text-orange-600 font-bold text-sm">Soup</span>
+              <span className="text-orange-600 font-bold text-sm">
+                {food.category?.name || food.category || 'Food'}
+              </span>
             </div>
           </div>
 
-          {/* 🍲 Info Section */}
+          {/* Info Section */}
           <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 md:p-10">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              {soup.name}
+              {food.name}
             </h1>
 
             <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -197,27 +256,20 @@ const DetailMenuSoup = () => {
                 ))}
               </div>
               <span className="text-gray-600 text-sm sm:text-base font-medium">
-                (4.9) • 156 Reviews
+                (4.9) • 127 Reviews
               </span>
             </div>
-            <FoodRecommendButton food={soup} />
+            <FoodRecommendButton food={food} />
 
             <p className="text-gray-700 text-base sm:text-lg leading-relaxed mb-8">
-              {soup.description ||
-                'Warm and comforting traditional Khmer soup made with fresh ingredients and authentic spices. Perfect for any meal!'}
+              {food.description}
             </p>
 
-            {/* 💰 Price */}
+            {/* Price */}
             <div className="mb-8">
               <div className="flex flex-wrap items-baseline gap-3">
                 <span className="text-4xl sm:text-5xl font-bold text-transparent bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text">
                   ${totalPrice}
-                </span>
-                <span className="text-gray-500 text-lg line-through">
-                  ${(soup.price * 1.5 * quantity).toFixed(2)}
-                </span>
-                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
-                  33% OFF
                 </span>
               </div>
             </div>
@@ -246,7 +298,7 @@ const DetailMenuSoup = () => {
                 <span className="text-gray-500 text-sm sm:text-base">
                   Available:{' '}
                   <span className="font-semibold text-green-600">
-                    {soup.qty || 10} items
+                    {food.qty || 10} items
                   </span>
                 </span>
               </div>
@@ -283,14 +335,6 @@ const DetailMenuSoup = () => {
                 <p className="text-sm font-semibold text-gray-700">Top Rated</p>
               </div>
             </div>
-
-            {/* Promo */}
-            <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-2xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">🍜 Warm & Comforting!</h3>
-              <p className="text-gray-700 text-sm sm:text-base">
-                Perfect soup for a cozy meal — served hot and fresh!
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -298,4 +342,4 @@ const DetailMenuSoup = () => {
   );
 };
 
-export default DetailMenuSoup;
+export default FoodDetail;

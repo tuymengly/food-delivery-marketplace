@@ -41,9 +41,8 @@ class ReviewController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $review = Review::create($request->validate([
+        $validated = $request->validate([
             'restaurant_id' => ['required', 'integer', 'exists:restaurants,id'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'order_id' => ['nullable', 'integer', 'exists:orders,id'],
             'food_id' => ['nullable', 'integer', 'exists:food,id'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
@@ -51,7 +50,11 @@ class ReviewController extends Controller
             'reply' => ['nullable', 'string'],
             'status' => ['sometimes', 'string', Rule::in(['published', 'flagged', 'hidden'])],
             'flag_reason' => ['nullable', 'string'],
-        ]));
+        ]);
+        $validated['user_id'] = $request->user()->id;
+        $validated['status'] = $validated['status'] ?? 'published';
+
+        $review = Review::create($validated);
 
         return response()->json([
             'success' => true,
@@ -145,9 +148,13 @@ class ReviewController extends Controller
 
     private function ensureRestaurantAccess(Request $request, Review $review): void
     {
-        if (!in_array(strtolower((string) $request->user()?->role), ['restaurant', 'restaurant admin'], true)) {
+        $role = strtolower((string) $request->user()?->role);
+
+        if (in_array($role, ['admin', 'super_admin', 'super admin'], true)) {
             return;
         }
+
+        abort_unless(in_array($role, ['restaurant', 'restaurant admin'], true), 403, 'Only restaurant owners and administrators can manage reviews.');
 
         $ownsReview = Restaurant::where('user_id', $request->user()->id)
             ->whereKey($review->restaurant_id)

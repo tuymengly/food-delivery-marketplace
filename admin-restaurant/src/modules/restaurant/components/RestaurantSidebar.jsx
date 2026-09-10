@@ -14,7 +14,7 @@ import {
   X
 } from 'lucide-react';
 
-import logoImg from '../../../assets/logo.png';
+import logoImg from '../../../assets/Logo Upgrade (No Background).png';
 import API from '../../../services/api';
 
 const resolveImageUrl = (image) => {
@@ -88,7 +88,7 @@ export default function RestaurantSidebar({ onClose }) {
   ];
 
   return (
-    <aside className="w-64 bg-[linear-gradient(180deg,#ff5a00_0%,#ff5a00_72%,#ff3045_100%)] text-white flex flex-col justify-between p-4 h-full overflow-y-auto">
+    <aside className="dashboard-sidebar w-64 text-white flex flex-col justify-between p-4 h-full overflow-y-auto">
       <div>
         <div className="relative mb-6 pt-2 pb-4 border-b border-white/10 text-center">
           <button 
@@ -101,11 +101,11 @@ export default function RestaurantSidebar({ onClose }) {
 
           {/* Logo Card & Text */}
           <div className="flex flex-col items-center justify-center space-y-2">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white/5 p-1 border border-white/10 shadow-lg">
+            <div className="w-20 h-20 overflow-hidden flex items-center justify-center">
               <img 
                 src={restaurantData.image} 
                 alt={restaurantData.name} 
-                className="w-full h-full object-cover rounded-xl"
+                className="w-full h-full object-contain"
               />
             </div>
             
@@ -130,9 +130,7 @@ export default function RestaurantSidebar({ onClose }) {
                 to={item.path}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center justify-between px-4 py-3 rounded-xl font-medium transition ${
-                    isActive ? 'bg-white/20 text-white shadow-md' : 'hover:bg-white/15 text-white/90 hover:text-white'
-                  }`
+                  `dashboard-nav-item flex items-center justify-between px-4 py-3 font-medium ${isActive ? 'bg-[#163A63] text-white' : ''}`
                 }
               >
                 <div className="flex items-center gap-3">
@@ -156,7 +154,7 @@ export default function RestaurantSidebar({ onClose }) {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-medium rounded-xl transition text-sm mb-3 shadow-sm"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-white text-[#0B1F3A] hover:bg-slate-100 font-medium rounded-md transition text-sm mb-3"
         >
           <ExternalLink size={16} /> View Store Online
         </a>

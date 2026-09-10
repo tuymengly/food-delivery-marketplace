@@ -26,3 +26,7 @@ export const replyToRestaurantReview = (reviewId, reply) => {
 export const deleteRestaurantReview = (reviewId) => {
   return API.delete(`/restaurant/reviews/${reviewId}`);
 };
+
+export const getNearbyRiders = (restaurantId) => {
+  return API.get(`/restaurants/${restaurantId}/nearby-riders`);
+};

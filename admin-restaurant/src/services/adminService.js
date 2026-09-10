@@ -94,3 +94,7 @@ export const getPaymentStats = () => {
 export const createPayout = (data) => {
   return API.post('/admin/payments/payout', data);
 };
+
+export const calculatePayout = (data) => {
+  return API.post('/admin/payments/calculate', data);
+};

@@ -12,6 +12,10 @@ use App\Models\Food;
 use App\Models\Address;
 use App\Models\Delivery;
 use App\Models\Rider;
+use App\Models\Voucher;
+use App\Services\OrderFinanceCalculator;
+use App\Services\RiderMatchingService;
+use App\Support\OrderStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,11 +34,19 @@ class OrderController extends Controller
 
         $user = $request->user() ?: auth('sanctum')->user();
 
-        if (in_array(strtolower((string) $user?->role), ['restaurant', 'restaurant admin'], true)) {
+        $role = strtolower((string) $user?->role);
+
+        if ($request->is('api/restaurant/orders') && !in_array($role, ['admin', 'super_admin', 'super admin', 'restaurant', 'restaurant admin'], true)) {
+            abort(403, 'Only restaurant owners and administrators can access restaurant orders.');
+        }
+
+        if (in_array($role, ['admin', 'super_admin', 'super admin'], true)) {
+            // Administrators may review all orders.
+        } elseif (in_array($role, ['restaurant', 'restaurant admin'], true)) {
             $ownedRestaurantIds = Restaurant::where('user_id', $user->id)->pluck('id');
             $query->whereIn('restaurant_id', $ownedRestaurantIds);
-        } elseif ($request->filled('restaurant_id')) {
-            $query->where('restaurant_id', $request->restaurant_id);
+        } else {
+            $query->where('user_id', $user->id);
         }
 
         $orders = $query->get()->map(function ($order) {
@@ -74,9 +86,14 @@ class OrderController extends Controller
             return $this->storeFromCart($request);
         }
 
+        abort_unless($request->user(), 401, 'Authentication is required to place an order.');
+
         $request->validate([
             'restaurant_id'    => 'required|integer',
             'user_id'          => 'nullable|integer',
+            'address_id'       => 'nullable|integer|exists:addresses,id',
+            'latitude'         => 'nullable|numeric',
+            'longitude'        => 'nullable|numeric',
             'customer_name'    => 'nullable|string|max:255',
             'customer_email'   => 'nullable|email|max:255',
             'customer_phone'   => 'nullable|string|max:50',
@@ -97,29 +114,7 @@ class OrderController extends Controller
         return DB::transaction(function () use ($request) {
             $user = null;
 
-            if ($request->filled('user_id')) {
-                $user = User::find($request->user_id);
-            }
-
-            if (!$user && $request->filled('customer_email')) {
-                $user = User::firstOrCreate(
-                    ['email' => $request->customer_email],
-                    [
-                        'name'     => $request->customer_name ?: 'Guest Customer',
-                        'password' => bcrypt('password'),
-                        'role'     => 'customer',
-                    ]
-                );
-            }
-
-            if (!$user) {
-                $user = User::create([
-                    'name'     => $request->customer_name ?: 'Guest Customer',
-                    'email'    => 'customer' . time() . rand(100, 999) . '@example.com',
-                    'password' => bcrypt('password'),
-                    'role'     => 'customer',
-                ]);
-            }
+            $user = $request->user();
 
             $user->update([
                 'name'     => $request->customer_name ?: $user->name,
@@ -129,6 +124,11 @@ class OrderController extends Controller
 
             $foodIds = collect($request->items)->pluck('food_id')->unique()->values();
             $foods = Food::whereIn('id', $foodIds)->get()->keyBy('id');
+            if ($foods->count() !== $foodIds->count() || $foods->contains(fn (Food $food): bool => $food->status !== null && strtolower((string) $food->status) !== 'available')) {
+                throw ValidationException::withMessages([
+                    'items' => ['One or more selected foods are unavailable.'],
+                ]);
+            }
             $restaurantIds = $foods->pluck('restaurant_id')->unique()->values();
 
             if ($restaurantIds->count() !== 1) {
@@ -145,19 +145,28 @@ class OrderController extends Controller
                 ]);
             }
 
-            $address = Address::create([
-                'user_id' => $user->id,
-                'label' => 'Order delivery',
-                'recipient_name' => $request->customer_name ?: $user->name,
-                'phone' => $request->customer_phone ?: ($user->phone ?: 'N/A'),
-                'address' => trim(($request->delivery_address ?? '') . ' ' . ($request->city ?? '')) ?: 'N/A',
-                'is_default' => false,
-            ]);
+            $address = $request->filled('address_id')
+                ? $user->addresses()->whereKey($request->address_id)->first()
+                : null;
+
+            if (!$address) {
+                $address = Address::create([
+                    'user_id' => $user->id,
+                    'label' => 'Order delivery',
+                    'recipient_name' => $request->customer_name ?: $user->name,
+                    'phone' => $request->customer_phone ?: ($user->phone ?: 'N/A'),
+                    'address' => trim(($request->delivery_address ?? '') . ' ' . ($request->city ?? '')) ?: 'N/A',
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'is_default' => false,
+                ]);
+            }
 
             $subtotal = collect($request->items)->sum(
-                fn (array $item): float => (float) $item['price'] * (int) $item['quantity']
+                fn (array $item): float => (float) $foods->get($item['food_id'])->price * (int) $item['quantity']
             );
-            $deliveryFee = max(0, (float) $request->total_price - $subtotal);
+            $deliveryFee = 1.50;
+            $total = $subtotal + $deliveryFee;
 
             $foodMap = [];
             foreach ($request->items as $item) {
@@ -174,6 +183,8 @@ class OrderController extends Controller
                 $foodMap[$item['food_id']] = $food->id;
             }
 
+            $breakdown = OrderFinanceCalculator::breakdown($subtotal, $deliveryFee, $total);
+
             // កំណត់ Status ឱ្យចេញជា Placed ពេលបញ្ជាទិញថ្មី (ត្រូវជាមួយ Tab ใน Frontend)
             $order = Order::create([
                 'restaurant_id' => $restaurant->id,
@@ -181,42 +192,68 @@ class OrderController extends Controller
                 'address_id'    => $address->id,
                 'subtotal'      => $subtotal,
                 'delivery_fee'  => $deliveryFee,
-                'total'         => $request->total_price,
-                'total_price'   => $request->total_price,
-                'status'        => ucfirst(strtolower($request->status ?? 'Placed')),
+                'total'         => $total,
+                'total_price'   => $total,
+                'status'        => OrderStatuses::PENDING,
+                ...$breakdown,
             ]);
 
             foreach ($request->items as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
                     'food_id'  => $foodMap[$item['food_id']],
-                    'food_name' => $item['name'] ?? 'Food Item',
+                    'food_name' => $foods->get($item['food_id'])->name,
                     'quantity' => $item['quantity'],
-                    'price'    => $item['price'],
-                    'subtotal' => (float) $item['price'] * (int) $item['quantity'],
+                    'price'    => $foods->get($item['food_id'])->price,
+                    'subtotal' => (float) $foods->get($item['food_id'])->price * (int) $item['quantity'],
                 ]);
             }
+
+            $delivery = Delivery::create([
+                'order_id' => $order->id,
+                'status' => 'pending',
+            ]);
+
+            app(RiderMatchingService::class)->assignBestRider($order, $delivery, $restaurant, $address);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully!',
-                'order'   => $order->load('items')
+                'order'   => $order->refresh()->load(['items', 'delivery.rider'])
             ], 201);
         });
     }
 
+    private const DELIVERY_FEE = 1.50;
+    private const SERVICE_FEE = 0.30;
+
     private function storeFromCart(Request $request)
     {
-        $request->validate([
-            'address_id' => ['required', 'integer', 'exists:addresses,id'],
+        $validated = $request->validate([
+            'address_id' => ['nullable', 'integer', 'exists:addresses,id'],
+            'order_type' => ['nullable', 'string', 'in:delivery,pickup'],
+            'payment_method' => ['nullable', 'string', 'in:cash,aba,khqr,card'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'voucher_code' => ['nullable', 'string', 'max:50'],
         ]);
 
         $user = $request->user();
-        $address = $user->addresses()->whereKey($request->address_id)->first();
-        if (!$address) {
-            throw ValidationException::withMessages([
-                'address_id' => ['The selected address is invalid.'],
-            ]);
+        $orderType = $validated['order_type'] ?? 'delivery';
+
+        $address = null;
+        if ($orderType === 'delivery') {
+            if (empty($validated['address_id'])) {
+                throw ValidationException::withMessages([
+                    'address_id' => ['A delivery address is required.'],
+                ]);
+            }
+
+            $address = $user->addresses()->whereKey($validated['address_id'])->first();
+            if (!$address) {
+                throw ValidationException::withMessages([
+                    'address_id' => ['The selected address is invalid.'],
+                ]);
+            }
         }
 
         $cart = $user->cart()->with('items.food')->first();
@@ -234,18 +271,50 @@ class OrderController extends Controller
         }
 
         $subtotal = (float) $cart->items->sum(fn ($item) => (float) $item->food->price * $item->quantity);
-        $deliveryFee = 1.50;
+        $deliveryFee = $orderType === 'pickup' ? 0.0 : self::DELIVERY_FEE;
+        $serviceFee = $orderType === 'pickup' ? 0.0 : self::SERVICE_FEE;
 
-        return DB::transaction(function () use ($cart, $user, $address, $restaurantIds, $subtotal, $deliveryFee) {
+        $voucher = null;
+        $discountAmount = 0.0;
+        if (!empty($validated['voucher_code'])) {
+            $voucher = Voucher::whereRaw('UPPER(code) = ?', [strtoupper($validated['voucher_code'])])->first();
+            $result = $voucher
+                ? $voucher->evaluate($subtotal)
+                : ['valid' => false, 'message' => 'This voucher code does not exist.'];
+
+            if (!$result['valid']) {
+                throw ValidationException::withMessages([
+                    'voucher_code' => [$result['message']],
+                ]);
+            }
+
+            $discountAmount = $result['discount'];
+        }
+
+        $total = max(0, $subtotal + $deliveryFee + $serviceFee - $discountAmount);
+        $breakdown = OrderFinanceCalculator::breakdown($subtotal, $deliveryFee, $total);
+
+        return DB::transaction(function () use (
+            $cart, $user, $address, $restaurantIds, $subtotal, $deliveryFee, $serviceFee,
+            $discountAmount, $total, $orderType, $validated, $voucher, $breakdown
+        ) {
             $order = Order::create([
                 'restaurant_id' => $restaurantIds->first(),
                 'user_id' => $user->id,
-                'address_id' => $address->id,
+                'address_id' => $address?->id,
                 'subtotal' => $subtotal,
                 'delivery_fee' => $deliveryFee,
-                'total' => $subtotal + $deliveryFee,
-                'total_price' => $subtotal + $deliveryFee,
-                'status' => 'pending',
+                'service_fee' => $serviceFee,
+                'discount_amount' => $discountAmount,
+                'total' => $total,
+                'total_price' => $total,
+                'status' => OrderStatuses::PENDING,
+                'order_type' => $orderType,
+                'payment_method' => $validated['payment_method'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'voucher_id' => $voucher?->id,
+                'voucher_code' => $voucher?->code,
+                ...$breakdown,
             ]);
 
             foreach ($cart->items as $cartItem) {
@@ -259,16 +328,27 @@ class OrderController extends Controller
                 ]);
             }
 
-            Delivery::create([
+            $delivery = Delivery::create([
                 'order_id' => $order->id,
                 'status' => 'pending',
             ]);
             $cart->items()->delete();
 
+            if ($voucher) {
+                $voucher->increment('times_used');
+            }
+
+            if ($orderType === 'delivery' && $address) {
+                $restaurant = Restaurant::find($restaurantIds->first());
+                if ($restaurant) {
+                    app(RiderMatchingService::class)->assignBestRider($order, $delivery, $restaurant, $address);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully.',
-                'data' => $order->load(['items', 'delivery', 'address']),
+                'data' => $order->refresh()->load(['items', 'delivery.rider', 'address', 'restaurant']),
             ], 201);
         });
     }
@@ -293,17 +373,28 @@ class OrderController extends Controller
     {
         abort_unless($order->user_id === $request->user()->id, 404);
 
-        if (in_array(strtolower((string) $order->status), ['delivered', 'completed', 'cancelled'], true)) {
+        if (!OrderStatuses::canTransition($order->status, OrderStatuses::CANCELLED)) {
             throw ValidationException::withMessages(['status' => ['This order cannot be cancelled.']]);
         }
 
-        $order->update(['status' => 'cancelled']);
+        $order->update(['status' => OrderStatuses::CANCELLED]);
 
         return response()->json(['success' => true, 'message' => 'Order cancelled successfully.', 'data' => $order->refresh()]);
     }
 
     public function assignRider(Request $request, Order $order)
     {
+        $user = $request->user();
+        $role = strtolower((string) $user?->role);
+        $isAdmin = in_array($role, ['admin', 'super_admin', 'super admin'], true);
+
+        if (!$isAdmin) {
+            $ownsOrderRestaurant = $order->restaurant_id
+                && Restaurant::where('user_id', $user->id)->whereKey($order->restaurant_id)->exists();
+
+            abort_unless($ownsOrderRestaurant, 403, 'You can only assign riders for your own restaurant orders.');
+        }
+
         $request->validate(['rider_id' => ['required', 'integer', 'exists:riders,id']]);
         $rider = Rider::findOrFail($request->rider_id);
 
@@ -345,7 +436,14 @@ class OrderController extends Controller
             ], 404);
         }
 
-        if (in_array(strtolower((string) $request->user()?->role), ['restaurant', 'restaurant admin'], true)) {
+        $role = strtolower((string) $request->user()?->role);
+        $isAdmin = in_array($role, ['admin', 'super_admin', 'super admin'], true);
+
+        if ($request->is('api/restaurant/orders/*') && !in_array($role, ['restaurant', 'restaurant admin', 'admin', 'super_admin', 'super admin'], true)) {
+            abort(403, 'Only restaurant owners and administrators can update restaurant orders.');
+        }
+
+        if (in_array($role, ['restaurant', 'restaurant admin'], true)) {
             $isOwned = Restaurant::where('user_id', $request->user()->id)
                 ->whereKey($order->restaurant_id)
                 ->exists();
@@ -353,7 +451,27 @@ class OrderController extends Controller
             abort_unless($isOwned, 403, 'You can only update orders for your own restaurant.');
         }
 
-        $order->status = strtolower($request->status);
+        $requestedStatus = OrderStatuses::normalize((string) $request->status);
+
+        if (!OrderStatuses::isValid($requestedStatus)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid order status.',
+                'errors' => ['status' => ['The selected status is invalid.']],
+            ], 422);
+        }
+
+        // Admins may override the normal sequence for support/dispute cases;
+        // restaurant owners must follow the forward-only workflow.
+        if (!$isAdmin && !OrderStatuses::canTransition($order->status, $requestedStatus)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cannot change order status from \"{$order->status}\" to \"{$requestedStatus}\".",
+                'errors' => ['status' => ['Invalid order status transition.']],
+            ], 422);
+        }
+
+        $order->status = $requestedStatus;
         $order->save();
 
         return response()->json([

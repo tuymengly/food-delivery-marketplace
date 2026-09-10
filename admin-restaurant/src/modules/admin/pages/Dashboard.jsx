@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { Check, X, Users, Store, ShoppingBag, DollarSign, AlertCircle, Star } from 'lucide-react';
+import { Check, X, Users, Store, ShoppingBag, DollarSign, AlertCircle, Star, Landmark } from 'lucide-react';
 import { getDashboardStats, approveRestaurant, rejectRestaurant } from "../../../services/adminService";
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -16,7 +16,7 @@ export default function Dashboard() {
       setErrorMessage('');
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      setErrorMessage('មិនអាចទាញយកទិន្នន័យ dashboard បានទេ');
+      setErrorMessage('Unable to retrieve dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -34,7 +34,7 @@ export default function Dashboard() {
       .catch((error) => {
         if (!isMounted) return;
         console.error('Error fetching dashboard stats:', error);
-        setErrorMessage('មិនអាចទាញយកទិន្នន័យ dashboard បានទេ');
+        setErrorMessage('Unable to retrieve dashboard data.');
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -51,7 +51,7 @@ export default function Dashboard() {
       loadDashboardData(); 
     } catch (error) {
       console.error('Error approving restaurant:', error);
-      alert('មានបញ្ហាក្នុងការទទួលស្គាល់ហាងនេះ');
+      alert('There was an error approving the restaurant.');
     }
   };
 
@@ -61,11 +61,11 @@ export default function Dashboard() {
       loadDashboardData();
     } catch (error) {
       console.error('Error rejecting restaurant:', error);
-      alert('មានបញ្ហាក្នុងការបដិសេធហាងនេះ');
+      alert('There was an error rejecting the restaurant.');
     }
   };
 
-  if (loading) return <div className="p-6 text-center text-slate-500">កំពុងទាញយកទិន្នន័យ...</div>;
+  if (loading) return <div className="dashboard-surface p-10 text-center text-slate-500">Loading platform data...</div>;
 
   return (
     <div className="space-y-6">
@@ -75,66 +75,76 @@ export default function Dashboard() {
       </div>
 
       {errorMessage && (
-        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {errorMessage}
+        <div className="flex items-center justify-between gap-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <span>{errorMessage}</span>
+          <button type="button" onClick={() => { setLoading(true); loadDashboardData(); }} className="font-semibold underline">Retry</button>
         </div>
       )}
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px border border-slate-300 bg-slate-300">
         {/* Total Users */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
           <div>
             <p className="text-xs sm:text-sm font-medium text-slate-500">Total Users</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900 my-1">{stats?.total_users || 0}</p>
           </div>
-          <div className="p-2.5 bg-blue-50 text-blue-500 rounded-xl shrink-0"><Users size={20} /></div>
+          <Users size={18} className="text-[#2563EB]" />
         </div>
 
         {/* Total Restaurants */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
           <div>
-            <p className="text-xs sm:text-sm font-medium text-slate-500">Restaurants</p>
+            <p className="text-xs sm:text-sm font-medium text-slate-500">Total Restaurants</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900 my-1">{stats?.total_restaurants || 0}</p>
             <p className="text-xs text-green-600 font-medium">↑ {stats?.pending_restaurants?.length || 0} pending</p>
           </div>
-          <div className="p-2.5 bg-purple-50 text-purple-500 rounded-xl shrink-0"><Store size={20} /></div>
+          <Store size={18} className="text-[#2563EB]" />
         </div>
 
         {/* Total Orders */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
           <div>
-            <p className="text-xs sm:text-sm font-medium text-slate-500">Total Orders</p>
+            <p className="text-xs sm:text-sm font-medium text-slate-500">Completed Orders</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900 my-1">{stats?.total_orders || 0}</p>
           </div>
-          <div className="p-2.5 bg-orange-50 text-orange-500 rounded-xl shrink-0"><ShoppingBag size={20} /></div>
+          <ShoppingBag size={18} className="text-[#2563EB]" />
         </div>
 
         {/* Revenue */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
           <div>
-            <p className="text-xs sm:text-sm font-medium text-slate-500">Revenue</p>
+            <p className="text-xs sm:text-sm font-medium text-slate-500">Gross Customer Payments</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900 my-1">${stats?.total_revenue || 0}</p>
           </div>
-          <div className="p-2.5 bg-red-50 text-red-500 rounded-xl shrink-0"><DollarSign size={20} /></div>
+          <DollarSign size={18} className="text-[#2563EB]" />
+        </div>
+
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
+          <div>
+            <p className="text-xs sm:text-sm font-medium text-slate-500">Platform Profit</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 my-1">${Number(stats?.platform_profit || 0).toLocaleString()}</p>
+            <p className="text-xs text-slate-500">Admin wallet basis</p>
+          </div>
+          <Landmark size={18} className="text-[#2563EB]" />
         </div>
 
         {/* Pending Reviews */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
           <div>
             <p className="text-xs sm:text-sm font-medium text-slate-500">Pending Reviews</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">{stats?.pending_reviews || 0}</p>
           </div>
-          <div className="p-2.5 bg-orange-50 text-orange-500 rounded-xl shrink-0"><AlertCircle size={20} /></div>
+          <AlertCircle size={18} className="text-[#2563EB]" />
         </div>
 
         {/* Avg Rating */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
+        <div className="bg-white p-4 sm:p-5 flex justify-between items-start">
           <div>
             <p className="text-xs sm:text-sm font-medium text-slate-500">Avg. Rating</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">{stats?.avg_rating || 0} ★</p>
           </div>
-          <div className="p-2.5 bg-amber-50 text-amber-500 rounded-xl shrink-0"><Star size={20} /></div>
+          <Star size={18} className="text-[#2563EB]" />
         </div>
       </div>
 
@@ -186,7 +196,7 @@ export default function Dashboard() {
                 );
               })
             ) : (
-              <p className="text-xs text-slate-400 text-center py-4">គ្មានហាងរង់ចាំការអនុម័តទេ</p>
+              <p className="text-xs text-slate-400 text-center py-4">No restaurants pending approval.</p>
             )}
           </div>
         </div>

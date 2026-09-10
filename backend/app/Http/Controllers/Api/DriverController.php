@@ -3,8 +3,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\Delivery;
+use App\Models\Rider;
+use App\Support\OrderStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 class DriverController extends Controller
 {
@@ -64,15 +68,32 @@ class DriverController extends Controller
 
         $temporaryPassword = Str::password(12);
 
-        $driver = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'phone'    => $validated['phone'] ?? null,
-            'vehicle'  => $validated['vehicle'],
-            'status'   => $validated['status'] ?? 'Online',
-            'role'     => 'rider',
-            'password' => Hash::make($temporaryPassword),
-        ]);
+        $driver = DB::transaction(function () use ($validated, $temporaryPassword): User {
+            $driver = User::create([
+                'name'     => $validated['name'],
+                'email'    => $validated['email'],
+                'phone'    => $validated['phone'] ?? null,
+                'vehicle'  => $validated['vehicle'],
+                'status'   => $validated['status'] ?? 'Online',
+                'role'     => 'rider',
+                'password' => Hash::make($temporaryPassword),
+            ]);
+
+            // Every rider needs a riders row to use the delivery APIs (see
+            // RiderProfileController/RiderDeliveryController, which key off
+            // $user->rider). Without this, a freshly admin-created rider
+            // would 500 the first time they open the driver dashboard.
+            Rider::create([
+                'user_id' => $driver->id,
+                'vehicle_type' => $this->mapVehicleType($validated['vehicle']),
+                'vehicle_number' => 'PENDING',
+                'phone' => $validated['phone'] ?? 'N/A',
+                'status' => 'active',
+                'is_available' => true,
+            ]);
+
+            return $driver;
+        });
 
         return response()->json([
             'success' => true,
@@ -82,6 +103,15 @@ class DriverController extends Controller
                 'temporary_password' => $temporaryPassword,
             ],
         ], 201);
+    }
+
+    private function mapVehicleType(string $vehicle): string
+    {
+        return match (strtolower($vehicle)) {
+            'car' => 'car',
+            'bike', 'bicycle' => 'bicycle',
+            default => 'motorcycle',
+        };
     }
 
     public function show($id)
@@ -157,7 +187,8 @@ class DriverController extends Controller
             return $response;
         }
 
-        $orders = Order::with(['user', 'restaurant', 'items.food'])->latest()->get();
+        $rider = $request->user()->rider;
+        $orders = Order::with(['user', 'restaurant', 'items.food', 'delivery'])->latest()->get();
 
         $availableStatuses = ['pending', 'new', 'preparing', 'ready'];
         $activeStatuses = ['accepted', 'picked_up', 'delivering', 'out_for_delivery'];
@@ -167,20 +198,24 @@ class DriverController extends Controller
         $startOfWeekInCurrentMonth = $startOfWeek->greaterThan($startOfMonth) ? $startOfWeek : $startOfMonth;
 
         $availableRequests = $orders
-            ->filter(fn ($order) => in_array(strtolower($order->status), $availableStatuses, true))
+            ->filter(fn ($order) => in_array(strtolower($order->status), $availableStatuses, true)
+                && (!$order->delivery || $order->delivery->status === 'pending'))
             ->map(fn ($order) => $this->formatOrderForDriver($order))
             ->values();
 
         $activeOrder = $orders
-            ->first(fn ($order) => in_array(strtolower($order->status), $activeStatuses, true));
+            ->first(fn ($order) => $order->delivery?->rider_id === $rider->id
+                && in_array(strtolower($order->status), $activeStatuses, true));
 
         $history = $orders
-            ->filter(fn ($order) => in_array(strtolower($order->status), $historyStatuses, true))
+            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id
+                && in_array(strtolower($order->status), $historyStatuses, true))
             ->map(fn ($order) => $this->formatOrderForDriver($order))
             ->values();
 
-        $completedToday = $orders->filter(function ($order) use ($historyStatuses) {
-            return in_array(strtolower($order->status), $historyStatuses, true)
+        $completedToday = $orders->filter(function ($order) use ($historyStatuses, $rider) {
+            return $order->delivery?->rider_id === $rider->id
+                && in_array(strtolower($order->status), $historyStatuses, true)
                 && $order->updated_at
                 && $order->updated_at->isToday();
         });
@@ -193,17 +228,19 @@ class DriverController extends Controller
                 'history' => $history,
                 'summary' => [
                     'today_deliveries' => $completedToday->count(),
-                    'today_earnings' => '$' . number_format($completedToday->sum('total_price'), 2),
+                    // Rider earnings are the rider's actual delivery-fee share
+                    // (order.rider_amount), never the full order total.
+                    'today_earnings' => '$' . number_format($completedToday->sum('rider_amount'), 2),
                     'week_earnings' => '$' . number_format(
                         $orders
-                            ->filter(fn ($order) => in_array(strtolower($order->status), $historyStatuses, true) && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfWeekInCurrentMonth))
-                            ->sum('total_price'),
+                            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id && in_array(strtolower($order->status), $historyStatuses, true) && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfWeekInCurrentMonth))
+                            ->sum('rider_amount'),
                         2
                     ),
                     'month_earnings' => '$' . number_format(
                         $orders
-                            ->filter(fn ($order) => in_array(strtolower($order->status), $historyStatuses, true) && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfMonth))
-                            ->sum('total_price'),
+                            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id && in_array(strtolower($order->status), $historyStatuses, true) && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfMonth))
+                            ->sum('rider_amount'),
                         2
                     ),
                 ],
@@ -222,11 +259,57 @@ class DriverController extends Controller
         ]);
 
         $cleanId = preg_replace('/[^0-9]/', '', $id);
-        $order = Order::with(['user', 'restaurant', 'items.food'])->findOrFail($cleanId);
+        $order = Order::with(['user', 'restaurant', 'items.food', 'delivery'])->findOrFail($cleanId);
+        $rider = $request->user()->rider;
+        $status = strtolower($validated['status']);
 
-        $order->update([
-            'status' => strtolower($validated['status']),
-        ]);
+        DB::transaction(function () use ($order, $rider, $status): void {
+            $delivery = $order->delivery;
+
+            if ($status === 'accepted') {
+                if ($delivery && $delivery->status !== 'pending') {
+                    abort(422, 'This delivery is no longer available.');
+                }
+                $delivery = $delivery ?: Delivery::create(['order_id' => $order->id, 'status' => 'pending']);
+                $delivery->update(['rider_id' => $rider->id, 'status' => 'assigned']);
+                $rider->update(['is_available' => false]);
+                // A rider can claim an order from the pool at any stage the
+                // restaurant already has it in (e.g. already 'ready'). Only
+                // advance order.status forward - never regress it back to
+                // 'accepted' if the restaurant has already progressed it.
+                if (OrderStatuses::isForwardOrSame($order->status, OrderStatuses::ACCEPTED)) {
+                    $order->update(['status' => OrderStatuses::ACCEPTED]);
+                }
+                return;
+            }
+
+            abort_unless($delivery && $delivery->rider_id === $rider->id, 403, 'You can only update your assigned delivery.');
+
+            $updates = ['status' => $status];
+            if ($status === 'picked_up') {
+                abort_unless($delivery->status === 'assigned', 422, 'Only assigned deliveries can be picked up.');
+                $updates['picked_up_at'] = now();
+                // The food has left the restaurant - the order is now out for
+                // delivery. (Previously this incorrectly set order.status back
+                // to 'preparing', a backward transition from 'ready'.)
+                if (OrderStatuses::isForwardOrSame($order->status, OrderStatuses::DELIVERING)) {
+                    $order->update(['status' => OrderStatuses::DELIVERING]);
+                }
+            } elseif ($status === 'delivering') {
+                abort_unless($delivery->status === 'picked_up', 422, 'Only picked up deliveries can be started.');
+                if (OrderStatuses::isForwardOrSame($order->status, OrderStatuses::DELIVERING)) {
+                    $order->update(['status' => OrderStatuses::DELIVERING]);
+                }
+            } elseif (in_array($status, ['completed', 'delivered'], true)) {
+                abort_unless($delivery->status === 'delivering', 422, 'Only delivering deliveries can be completed.');
+                $updates['status'] = 'delivered';
+                $updates['delivered_at'] = now();
+                $order->update(['status' => 'delivered']);
+                $rider->update(['is_available' => true]);
+            }
+
+            $delivery->update($updates);
+        });
 
         return response()->json([
             'success' => true,

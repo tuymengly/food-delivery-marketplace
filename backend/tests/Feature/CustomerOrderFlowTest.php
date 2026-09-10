@@ -154,7 +154,8 @@ class CustomerOrderFlowTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.subtotal', '9.00')
             ->assertJsonPath('data.delivery_fee', '1.50')
-            ->assertJsonPath('data.total', '10.50');
+            ->assertJsonPath('data.service_fee', '0.30')
+            ->assertJsonPath('data.total', '10.80');
     }
 
     public function test_order_stores_food_name_and_price(): void
@@ -208,6 +209,23 @@ class CustomerOrderFlowTest extends TestCase
 
         $this->getJson("/api/orders/{$order->id}")
             ->assertNotFound();
+    }
+
+    public function test_order_list_only_returns_the_authenticated_users_orders(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $userAddress = Address::create([...$this->addressData(), 'user_id' => $user->id]);
+        $otherAddress = Address::create([...$this->addressData(), 'user_id' => $otherUser->id]);
+        Order::create(['user_id' => $user->id, 'address_id' => $userAddress->id, 'subtotal' => 4.00, 'delivery_fee' => 1.00, 'status' => 'pending', 'total' => 5.00]);
+        Order::create(['user_id' => $otherUser->id, 'address_id' => $otherAddress->id, 'subtotal' => 6.00, 'delivery_fee' => 1.00, 'status' => 'pending', 'total' => 7.00]);
+
+        $this->getJson('/api/orders')
+            ->assertOk()
+            ->assertJsonCount(1, 'orders')
+            ->assertJsonPath('orders.0.customer', $user->name);
     }
 
     public function test_empty_cart_cannot_create_order(): void

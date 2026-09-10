@@ -62,11 +62,11 @@ const Register = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex items-center justify-center py-12 px-4">
+    <div className="w-full min-h-screen bg-[#F5F7FA] flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+          <div className="w-20 h-20 bg-[#0B1F3A] rounded-md flex items-center justify-center mx-auto mb-4 shadow-sm">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="40"
@@ -83,14 +83,14 @@ const Register = () => {
               <line x1="6" x2="18" y1="17" y2="17"></line>
             </svg>
           </div>
-          <h1 className="text-4xl font-extrabold text-transparent bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text mb-2">
+          <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">
             Create Account
           </h1>
           <p className="text-gray-600">Join Delish-Kh today</p>
         </div>
 
         {/* Register Form */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
+        <div className="bg-white rounded-md shadow-sm p-8 border border-[#D1D5DB]">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -108,7 +108,7 @@ const Register = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
+                  className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
                   placeholder="Your Name"
                   required
                 />
@@ -125,7 +125,7 @@ const Register = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
+                  className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
                   placeholder="your@email.com"
                   required
                 />
@@ -142,7 +142,7 @@ const Register = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
+                  className="app-input w-full pl-12 pr-12 py-3 outline-none transition-all text-sm"
                   placeholder="At least 8 characters"
                   required
                 />
@@ -166,7 +166,7 @@ const Register = () => {
                   name="password_confirmation"
                   value={formData.password_confirmation}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
+                  className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
                   placeholder="Confirm password"
                   required
                 />
@@ -177,7 +177,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-base shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 mt-2"
+              className="app-button-primary w-full py-3 font-bold text-base disabled:opacity-50 mt-2"
             >
               {loading ? 'Creating Account...' : 'Sign Up'}
             </button>

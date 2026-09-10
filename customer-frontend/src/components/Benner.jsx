@@ -11,10 +11,7 @@ const Benner = () => {
   const { t } = useTranslation();
   
   return (
-    <div className='w-full md:h-[550px] lg:h-[90vh] bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 px-6 md:8 lg:px-14 relative overflow-hidden'>
-      {/* Soft background accents */}
-      <div className="absolute top-20 right-10 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-20 left-10 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl"></div>
+    <div className='w-full md:h-[550px] lg:h-[90vh] bg-[#eef3f8] px-6 md:8 lg:px-14 relative overflow-hidden'>
       <div className='w-full flex flex-wrap h-full '>
         {/* detail */}
 <div className="w-full md:w-1/2 h-full flex items-center pt-10 md:pt-0 md:pe-10 lg:pe-30">
@@ -29,17 +26,16 @@ const Benner = () => {
     {/* buttons */}
     <div className="w-full flex gap-10 md:gap-7 lg:gap-10 pt-3">
       <button
-        className="px-5 lg:px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl shadow-orange-300/50 font-bold text-base md:text-xl rounded-full
-        hover:scale-105 hover:shadow-2xl hover:shadow-orange-400/50 transition-all duration-300 cursor-pointer
+        className="px-5 lg:px-8 py-3 bg-[#0B1F3A] text-white shadow-sm font-bold text-base md:text-xl rounded-md
+        hover:bg-[#163A63] transition-colors duration-200 cursor-pointer
         relative overflow-hidden group"
       >
         <span className="relative z-10">{t('home.orderNow')}</span>
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </button>
 
       <button
-        className="px-5 lg:px-8 py-3 bg-white/90 backdrop-blur-sm text-black shadow-xl shadow-orange-200/50 text-base md:text-xl rounded-full border-2 border-orange-400
-        hover:scale-105 hover:bg-orange-50 hover:border-orange-600 hover:shadow-2xl hover:shadow-orange-300/50 transition-all duration-300 cursor-pointer
+        className="px-5 lg:px-8 py-3 bg-white text-[#0B1F3A] shadow-sm text-base md:text-xl rounded-md border border-[#0B1F3A]
+        hover:bg-[#eef3f8] transition-colors duration-200 cursor-pointer
         font-semibold"
       >
         {t('home.viewMenu')}
@@ -49,8 +45,8 @@ const Benner = () => {
     {/* rating / delivery info */}
     <div className="grid grid-cols-3 mt-15 gap-6 pt-10 max-w-md mx-auto md:mx-0">
       {/* Rating */}
-      <div className="flex flex-col items-center md:items-start bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-        <div className="flex items-center space-x-1 text-orange-600 mb-2">
+      <div className="flex flex-col items-center md:items-start bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+        <div className="flex items-center space-x-1 text-[#2563EB] mb-2">
           <FaStar xmlns="http://www.w3.org/2000/svg" width="24" height="24"
             fill="none" stroke="currentColor" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round"
@@ -65,8 +61,8 @@ const Benner = () => {
       </div>
 
       {/* Minutes */}
-      <div className="flex flex-col items-center md:items-start bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-        <div className="flex items-center space-x-1 text-orange-600 mb-2">
+      <div className="flex flex-col items-center md:items-start bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+        <div className="flex items-center space-x-1 text-[#2563EB] mb-2">
           <BiTime xmlns="http://www.w3.org/2000/svg" width="24" height="24"
             fill="none" stroke="currentColor" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round"
@@ -80,8 +76,8 @@ const Benner = () => {
       </div>
 
       {/* Free Delivery */}
-      <div className="flex flex-col items-center md:items-start bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-        <div className="flex items-center space-x-1 text-orange-600 mb-2">
+      <div className="flex flex-col items-center md:items-start bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+        <div className="flex items-center space-x-1 text-[#2563EB] mb-2">
           <MdDeliveryDining xmlns="http://www.w3.org/2000/svg" width="24" height="24"
             fill="none" stroke="currentColor" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round"
@@ -104,14 +100,14 @@ const Benner = () => {
 <div className="relative w-full md:w-1/2 h-full pe-0 py-10">
   {/* main image */}
   <img
-    className="w-full h-full object-cover hover:scale-105 transition-all duration-700 ease-in-out rounded-3xl shadow-2xl border-4 border-white/50"
+    className="w-full h-full object-cover rounded-md shadow-md border border-white"
     src={Amok}
     alt="Benner_Food"
     style={{boxShadow: '0 25px 50px -12px rgba(251, 146, 60, 0.4)'}}
   />
 
   {/* top-left badge with glassmorphism */}
-  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl flex flex-col items-start border border-white/30 hover:scale-105 transition-transform duration-300">
+  <div className="absolute top-5 left-5 bg-[#0B1F3A]/90 text-white px-5 py-3 rounded-md shadow-md flex flex-col items-start border border-white/20">
     <div className="flex text-yellow-300 mb-1 drop-shadow-lg">
       <span className="text-lg"><i className="fa-solid fa-star"></i></span>
       <span className="text-lg"><i className="fa-solid fa-star"></i></span>
@@ -123,12 +119,12 @@ const Benner = () => {
   </div>
 
   {/* bottom-right badge with glassmorphism */}
-  <div className="absolute bottom-5 right-5 bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl flex items-center gap-3 px-5 py-4 border border-orange-200 hover:scale-105 transition-transform duration-300">
-    <div className="bg-gradient-to-br from-orange-400 to-red-500 p-3 rounded-full text-white text-2xl shadow-lg">
+  <div className="absolute bottom-5 right-5 bg-white shadow-md rounded-md flex items-center gap-3 px-5 py-4 border border-slate-200">
+    <div className="bg-[#163A63] p-3 rounded-md text-white text-2xl">
       <i className="fa-solid fa-user-tie"></i>
     </div>
     <div className="flex flex-col leading-tight">
-      <span className="font-bold text-2xl text-transparent bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text">2000+</span>
+      <span className="font-bold text-2xl text-[#0B1F3A]">2000+</span>
       <span className="text-sm text-gray-600 font-medium">{t('home.happyCustomers')}</span>
     </div>
   </div>

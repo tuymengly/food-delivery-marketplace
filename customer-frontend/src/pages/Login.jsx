@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { getRoleRedirect, loginUser, saveAuthSession } from '../api/app';
+import brandLogo from '../assets/icon/logo_no_bg.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -37,35 +38,21 @@ const Login = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex items-center justify-center py-12 px-4">
+    <div className="w-full min-h-screen bg-[#F5F7FA] flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white"
-            >
-              <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
-              <line x1="6" x2="18" y1="17" y2="17"></line>
-            </svg>
+          <div className="w-20 h-20  rounded-md flex items-center justify-center mx-auto mb-4 shadow-sm p-2">
+            <img src={brandLogo} alt="24-Hour Food logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-4xl font-extrabold text-transparent bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text mb-2">
+          <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">
             Welcome Back!
           </h1>
           <p className="text-gray-600">Sign in to continue to Delish-Kh</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
+        <div className="bg-white rounded-md shadow-sm p-8 border border-[#D1D5DB]">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -83,7 +70,7 @@ const Login = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                  className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all"
                   placeholder="your@email.com"
                   required
                 />
@@ -100,7 +87,7 @@ const Login = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                  className="app-input w-full pl-12 pr-12 py-3 outline-none transition-all"
                   placeholder="Enter your password"
                   required
                 />
@@ -118,7 +105,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50"
+              className="app-button-primary w-full py-3 font-bold text-lg disabled:opacity-50"
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </button>
@@ -128,7 +115,7 @@ const Login = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-orange-600 hover:text-orange-700 font-bold">
+              <Link to="/register" className="text-[#2563EB] hover:text-[#163A63] font-bold">
                 Sign Up
               </Link>
             </p>

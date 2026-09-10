@@ -83,9 +83,17 @@ class DeliverySystemTest extends TestCase
 
     public function test_authorized_user_can_assign_an_available_rider(): void
     {
-        $order = $this->createOrderWithPendingDelivery();
+        $owner = User::factory()->create(['role' => 'restaurant']);
+        $restaurant = Restaurant::create([
+            'user_id' => $owner->id,
+            'name' => 'Owner Restaurant',
+            'address' => 'One Street',
+            'phone' => '012345678',
+            'status' => 'active',
+        ]);
+        $order = $this->createOrderWithPendingDelivery($restaurant);
         $rider = $this->createRider();
-        Sanctum::actingAs(User::factory()->create(['role' => 'restaurant']));
+        Sanctum::actingAs($owner);
 
         $this->postJson("/api/orders/{$order->id}/assign-rider", [
             'rider_id' => $rider->id,
@@ -100,9 +108,17 @@ class DeliverySystemTest extends TestCase
 
     public function test_cannot_assign_an_unavailable_rider(): void
     {
-        $order = $this->createOrderWithPendingDelivery();
+        $owner = User::factory()->create(['role' => 'restaurant']);
+        $restaurant = Restaurant::create([
+            'user_id' => $owner->id,
+            'name' => 'Owner Restaurant',
+            'address' => 'One Street',
+            'phone' => '012345678',
+            'status' => 'active',
+        ]);
+        $order = $this->createOrderWithPendingDelivery($restaurant);
         $rider = $this->createRider(['is_available' => false]);
-        Sanctum::actingAs(User::factory()->create(['role' => 'restaurant']));
+        Sanctum::actingAs($owner);
 
         $this->postJson("/api/orders/{$order->id}/assign-rider", [
             'rider_id' => $rider->id,
@@ -110,6 +126,27 @@ class DeliverySystemTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonValidationErrors(['rider_id']);
+    }
+
+    public function test_restaurant_owner_cannot_assign_a_rider_to_another_restaurants_order(): void
+    {
+        $owner = User::factory()->create(['role' => 'restaurant']);
+        $otherOwner = User::factory()->create(['role' => 'restaurant']);
+        $otherRestaurant = Restaurant::create([
+            'user_id' => $otherOwner->id,
+            'name' => 'Other Restaurant',
+            'address' => 'Two Street',
+            'phone' => '012345679',
+            'status' => 'active',
+        ]);
+        $order = $this->createOrderWithPendingDelivery($otherRestaurant);
+        $rider = $this->createRider();
+        Sanctum::actingAs($owner);
+
+        $this->postJson("/api/orders/{$order->id}/assign-rider", [
+            'rider_id' => $rider->id,
+        ])
+            ->assertForbidden();
     }
 
     public function test_rider_can_see_their_assigned_deliveries(): void
@@ -267,12 +304,13 @@ class DeliverySystemTest extends TestCase
         return $delivery->refresh();
     }
 
-    private function createOrderWithPendingDelivery(): Order
+    private function createOrderWithPendingDelivery(?Restaurant $restaurant = null): Order
     {
         $user = User::factory()->create();
         $address = Address::create([...$this->addressData(), 'user_id' => $user->id]);
         $order = Order::create([
             'user_id' => $user->id,
+            'restaurant_id' => $restaurant?->id,
             'address_id' => $address->id,
             'status' => 'pending',
             'subtotal' => 9.00,

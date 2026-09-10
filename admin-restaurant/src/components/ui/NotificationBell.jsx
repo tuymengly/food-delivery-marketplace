@@ -49,10 +49,13 @@ export default function NotificationBell({ role = 'restaurant' }) {
     }
   };
 
+  // Keep notifications synchronized with the existing order endpoint.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadNotifications();
     const timer = window.setInterval(loadNotifications, 30000);
     return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.endpoint, role]);
 
   useEffect(() => {
@@ -70,26 +73,26 @@ export default function NotificationBell({ role = 'restaurant' }) {
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className={`relative rounded-xl p-2 transition ${isOpen ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50'}`}
+        className={`relative rounded-md p-2 transition ${isOpen ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-600 hover:bg-slate-50'}`}
         aria-label={`Open ${config.title}`}
         aria-expanded={isOpen}
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white ring-2 ring-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#2563EB] px-1 text-[9px] font-black text-white ring-2 ring-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 z-50 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
+        <div className="absolute right-0 top-12 z-50 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-slate-300 bg-white">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div>
               <p className="text-sm font-black text-slate-900">Notifications</p>
               <p className="mt-0.5 text-[11px] text-slate-400">Latest activity from your workspace</p>
             </div>
-            <button type="button" onClick={loadNotifications} className="rounded-lg p-2 text-slate-400 hover:bg-orange-50 hover:text-orange-600" aria-label="Refresh notifications">
+            <button type="button" onClick={loadNotifications} className="rounded-md p-2 text-slate-400 hover:bg-blue-50 hover:text-[#2563EB]" aria-label="Refresh notifications">
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
@@ -101,8 +104,8 @@ export default function NotificationBell({ role = 'restaurant' }) {
           ) : (
             <div className="max-h-80 divide-y divide-slate-50 overflow-y-auto">
               {notifications.map((item) => (
-                <button key={item.id} type="button" onClick={() => { setIsOpen(false); navigate(config.target); }} className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-orange-50/60">
-                  <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${['new', 'pending', 'accepted'].includes(item.status) ? 'bg-orange-500' : 'bg-slate-300'}`} />
+                <button key={item.id} type="button" onClick={() => { setIsOpen(false); navigate(config.target); }} className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
+                  <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${['new', 'pending', 'accepted'].includes(item.status) ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
                   <span className="min-w-0 flex-1"><span className="block truncate text-xs font-bold text-slate-800">{item.title}</span><span className="mt-1 block truncate text-[11px] text-slate-500">{item.detail}</span><span className="mt-1 block text-[10px] text-slate-400">{item.time}</span></span>
                   <ChevronRight size={15} className="mt-1 shrink-0 text-slate-300" />
                 </button>
@@ -110,7 +113,7 @@ export default function NotificationBell({ role = 'restaurant' }) {
             </div>
           )}
 
-          <button type="button" onClick={() => { setIsOpen(false); navigate(config.target); }} className="flex w-full items-center justify-center gap-1 border-t border-slate-100 px-4 py-3 text-xs font-bold text-orange-600 hover:bg-orange-50">View all activity <ChevronRight size={14} /></button>
+          <button type="button" onClick={() => { setIsOpen(false); navigate(config.target); }} className="flex w-full items-center justify-center gap-1 border-t border-slate-100 px-4 py-3 text-xs font-bold text-[#2563EB] hover:bg-slate-50">View all activity <ChevronRight size={14} /></button>
         </div>
       )}
     </div>

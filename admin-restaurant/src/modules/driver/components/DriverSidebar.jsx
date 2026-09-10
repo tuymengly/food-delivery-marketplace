@@ -1,5 +1,5 @@
 import { X, LogOut, HelpCircle } from "lucide-react";
-import logoImg from '../../../assets/logo.png';
+import logoImg from '../../../assets/Logo Upgrade (No Background).png';
 
 export default function Sidebar({
   isSidebarOpen,
@@ -18,7 +18,7 @@ export default function Sidebar({
       )}
       <aside
         className={`
-        fixed md:static top-0 left-0 h-full w-64 bg-[linear-gradient(180deg,#ff5a00_0%,#ff5a00_72%,#ff3045_100%)] text-white
+        fixed md:static top-0 left-0 h-full w-64 dashboard-sidebar text-white
         flex flex-col justify-between p-5 z-30 transition-transform duration-300 ease-in-out shrink-0 shadow-[10px_0_30px_rgba(239,68,68,0.12)]
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
       `}
@@ -35,11 +35,11 @@ export default function Sidebar({
 
             <div className="flex flex-col items-center justify-center space-y-2 pt-1">
               {/* កែប្រែត្រង់នេះ: ដាក់ rounded-full */}
-              <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white/15 p-1 border border-white/30 shadow-lg shadow-red-950/10">
+              <div className="w-20 h-20 overflow-hidden flex items-center justify-center">
                 <img
                   src={logoImg}
                   alt="Logo"
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-contain"
                 />
               </div>
 
@@ -66,9 +66,9 @@ export default function Sidebar({
                     setActiveTab(item.id);
                     setIsSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
+                  className={`dashboard-nav-item w-full flex items-center gap-3.5 px-4 py-3 text-sm font-semibold ${
                     isActive
-                      ? "bg-white text-[#ed4816] shadow-lg shadow-red-950/10"
+                      ? "bg-[#163A63] text-white"
                       : "text-white/90 hover:bg-white/15 hover:text-white"
                   }`}
                 >

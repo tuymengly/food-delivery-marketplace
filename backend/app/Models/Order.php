@@ -17,6 +17,17 @@ class Order extends Model
         'total',
         'total_price',
         'status',
+        'order_type',
+        'payment_method',
+        'notes',
+        'service_fee',
+        'discount_amount',
+        'voucher_code',
+        'voucher_id',
+        'restaurant_amount',
+        'rider_amount',
+        'platform_fee',
+        'platform_profit',
     ];
 
     protected function casts(): array
@@ -26,6 +37,12 @@ class Order extends Model
             'delivery_fee' => 'decimal:2',
             'total' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'service_fee' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'restaurant_amount' => 'decimal:2',
+            'rider_amount' => 'decimal:2',
+            'platform_fee' => 'decimal:2',
+            'platform_profit' => 'decimal:2',
         ];
     }
     public function user(): BelongsTo
@@ -50,5 +67,10 @@ class Order extends Model
     public function delivery(): HasOne
     {
         return $this->hasOne(Delivery::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 }

@@ -10,11 +10,21 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    // 1. Get All Users
-    public function index()
+    // 1. Get All Users (optionally filtered by role and/or a name/email search term)
+    public function index(Request $request)
     {
-        $users = User::latest()->get();
-        return response()->json($users, 200);
+        $query = User::latest();
+
+        if ($request->filled('role') && strtolower((string) $request->query('role')) !== 'all') {
+            $query->whereRaw('LOWER(role) = ?', [strtolower((string) $request->query('role'))]);
+        }
+
+        if ($request->filled('search')) {
+            $term = '%' . $request->query('search') . '%';
+            $query->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('email', 'like', $term));
+        }
+
+        return response()->json($query->get(), 200);
     }
 
     // 2. Create New User

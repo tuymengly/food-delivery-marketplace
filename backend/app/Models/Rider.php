@@ -30,12 +30,20 @@ class Rider extends Model
         'phone',
         'status',
         'is_available',
+        'current_latitude',
+        'current_longitude',
+        'location_updated_at',
+        'is_online',
     ];
 
     protected function casts(): array
     {
         return [
             'is_available' => 'boolean',
+            'is_online' => 'boolean',
+            'current_latitude' => 'decimal:7',
+            'current_longitude' => 'decimal:7',
+            'location_updated_at' => 'datetime',
         ];
     }
 

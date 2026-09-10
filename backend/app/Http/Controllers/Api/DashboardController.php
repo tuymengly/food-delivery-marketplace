@@ -22,6 +22,9 @@ class DashboardController extends Controller
         $totalOrders = Order::count();
 
         $totalRevenue = Order::whereIn('status', ['completed', 'Completed', 'delivered', 'Delivered'])->sum('total');
+        // Platform profit (what actually belongs to the admin wallet), kept
+        // distinct from total_revenue above which is gross customer sales.
+        $totalPlatformProfit = Order::whereIn('status', ['completed', 'Completed', 'delivered', 'Delivered'])->sum('platform_profit');
 
         $pendingRestaurants = Restaurant::where('status', 'pending')
             ->with('user:id,name,email')
@@ -85,6 +88,7 @@ class DashboardController extends Controller
                 'total_restaurants' => $totalRestaurants,
                 'total_orders' => $totalOrders,
                 'total_revenue' => (float) $totalRevenue,
+                'platform_profit' => (float) $totalPlatformProfit,
                 'pending_reviews' => $pendingReviews,
                 'avg_rating' => $avgRating,
                 'pending_restaurants' => $pendingRestaurants,
@@ -222,7 +226,7 @@ class DashboardController extends Controller
         if (!$restaurantId || !Restaurant::whereKey($restaurantId)->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'រកមិនឃើញទិន្នន័យហាងឡើយ!'
+                'message' => 'Not Found Rastaurant Data!'
             ], 404);
         }
 
@@ -244,8 +248,10 @@ class DashboardController extends Controller
         $previousTotalOrders = (clone $previousOrders)->count();
         $avgOrderValue = $totalOrders > 0 ? (float) $totalRevenue / $totalOrders : 0;
         $previousAvgOrderValue = $previousTotalOrders > 0 ? (float) $previousRevenue / $previousTotalOrders : 0;
-        $netEarnings = (float) $totalRevenue * 0.9;
-        $previousNetEarnings = (float) $previousRevenue * 0.9;
+        // The restaurant's actual earnings, not a flat 90% guess: their stored
+        // per-order share after the platform commission (see OrderFinanceCalculator).
+        $netEarnings = (float) (clone $periodOrders)->whereIn('status', $paidStatuses)->sum('restaurant_amount');
+        $previousNetEarnings = (float) (clone $previousOrders)->whereIn('status', $paidStatuses)->sum('restaurant_amount');
 
         $transactions = (clone $periodOrders)
             ->with('user:id,name')
@@ -290,12 +296,14 @@ class DashboardController extends Controller
 
     private function resolveRestaurantId(Request $request): ?int
     {
-        // Restaurant stats routes are public for legacy clients, so resolve bearer tokens explicitly.
         $user = $request->user() ?: auth('sanctum')->user();
+        $role = strtolower((string) $user?->role);
 
-        if (in_array(strtolower((string) $user?->role), ['restaurant', 'restaurant admin'], true)) {
+        if (in_array($role, ['restaurant', 'restaurant admin'], true)) {
             return Restaurant::where('user_id', $user->id)->value('id');
         }
+
+        abort_unless(in_array($role, ['admin', 'super_admin', 'super admin'], true), 403, 'Only restaurant owners and administrators can access restaurant analytics.');
 
         $restaurantId = $request->query('restaurant_id');
 

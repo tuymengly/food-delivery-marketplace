@@ -10,12 +10,73 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Services\CloudinaryImageService;
+use App\Services\RiderMatchingService;
 
 class RestaurantController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $restaurants = Restaurant::with('user:id,name,email,role')->latest()->get();
+        $query = Restaurant::query()
+            ->with('user:id,name,email,role')
+            ->withAvg(['reviews as rating' => fn ($review) => $review->where('status', 'published')], 'rating')
+            ->withCount(['reviews as reviews_count' => fn ($review) => $review->where('status', 'published')])
+            ->where('status', 'active');
+
+        $cuisines = collect(explode(',', (string) $request->query('cuisines', '')))
+            ->map(fn (string $cuisine) => trim($cuisine))
+            ->filter()
+            ->values();
+
+        if ($cuisines->isNotEmpty()) {
+            $cuisineOperator = DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($restaurantQuery) use ($cuisines, $cuisineOperator): void {
+                foreach ($cuisines as $cuisine) {
+                    $restaurantQuery->orWhere('cuisine', $cuisineOperator, '%' . $cuisine . '%');
+                }
+            });
+        }
+
+        if ($request->boolean('accepts_vouchers')) {
+            $query->where('accepts_vouchers', true);
+        }
+
+        $latitude = $request->query('latitude');
+        $longitude = $request->query('longitude');
+        $hasCoordinates = is_numeric($latitude) && is_numeric($longitude);
+
+        if ($hasCoordinates) {
+            $distanceExpression = '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))';
+            $query->select('restaurants.*')->selectRaw("{$distanceExpression} as distance_km", [$latitude, $longitude, $latitude]);
+        }
+
+        switch ($request->query('sort', 'relevance')) {
+            case 'fastest':
+                if (DB::getDriverName() === 'pgsql') {
+                    $query->orderByRaw("NULLIF(regexp_replace(avg_delivery_time, '[^0-9]', '', 'g'), '')::numeric ASC NULLS LAST");
+                } else {
+                    $query->orderBy('avg_delivery_time');
+                }
+                break;
+            case 'distance':
+                if ($hasCoordinates) {
+                    DB::getDriverName() === 'pgsql'
+                        ? $query->orderByRaw('distance_km ASC NULLS LAST')
+                        : $query->orderBy('distance_km');
+                } else {
+                    $query->latest();
+                }
+                break;
+            case 'rating':
+                DB::getDriverName() === 'pgsql'
+                    ? $query->orderByRaw('rating DESC NULLS LAST')->latest()
+                    : $query->orderByDesc('rating')->latest();
+                break;
+            default:
+                $query->latest();
+                break;
+        }
+
+        $restaurants = $query->get();
 
         return response()->json([
             'success' => true,
@@ -152,6 +213,8 @@ class RestaurantController extends Controller
             'description' => ['nullable', 'string'],
             'address' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
+            'cuisine' => ['nullable', 'string', 'max:500'],
+            'accepts_vouchers' => ['sometimes', 'boolean'],
             // កែសម្រួលឱ្យទទួលយកទាំង String ឬ File រូបភាព
             'image' => ['nullable', 'sometimes'], 
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending'])],
@@ -250,6 +313,35 @@ class RestaurantController extends Controller
             'success' => true,
             'message' => 'Profile updated successfully.',
             'data' => $restaurant->fresh()->load('user:id,name,email,role'),
+        ]);
+    }
+
+    // ទាញយកបញ្ជី Rider ដែលនៅជិត Restaurant នេះ (Online + Available)
+    public function nearbyRiders(Request $request, Restaurant $restaurant, RiderMatchingService $matcher): JsonResponse
+    {
+        $restaurant = $this->findUserRestaurant($request, $restaurant);
+
+        if ($restaurant->latitude === null || $restaurant->longitude === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This restaurant does not have coordinates set yet.',
+                'data' => [],
+            ]);
+        }
+
+        $riders = $matcher->nearestRiders((float) $restaurant->latitude, (float) $restaurant->longitude)
+            ->map(fn ($rider) => [
+                'id' => $rider->id,
+                'name' => $rider->user?->name,
+                'vehicle_type' => $rider->vehicle_type,
+                'vehicle_number' => $rider->vehicle_number,
+                'distance_km' => $rider->distance_km,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nearby riders retrieved successfully.',
+            'data' => $riders,
         ]);
     }
 

@@ -14,13 +14,13 @@ export default function ManageCategories() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
 
-  // ប្រើតែ name និង description ឱ្យត្រូវជាមួយ Laravel Model
+  
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
 
-  // ១. ទាញយក Categories ពី API
+ 
   const fetchCategoriesData = async () => {
     try {
       const response = await getCategories();
@@ -63,17 +63,17 @@ export default function ManageCategories() {
       alert('This category has food items. Move or delete the food items first.');
       return;
     }
-    if (window.confirm('តើអ្នកពិតជាចង់លុប Category នេះមែនទេ?')) {
+    if (window.confirm('Are you sure you want to delete this category?')) {
       try {
         await deleteCategory(id);
         fetchCategoriesData();
       } catch (error) {
-        alert(error.response?.data?.message || 'មានបញ្ហាក្នុងការលុប Category!');
+        alert(error.response?.data?.message || 'An error occurred while deleting the category!');
       }
     }
   };
 
-  // ៣. បន្ថែម ឬកែប្រែ Category តាម API
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -98,13 +98,13 @@ export default function ManageCategories() {
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error details:', error.response?.data);
-      const msg = error.response?.data?.message || 'មានបញ្ហាក្នុងការរក្សាទុក!';
-      alert(`បរាជ័យ: ${msg}`);
+      const msg = error.response?.data?.message || 'An error occurred while saving the category!';
+      alert(`Failed: ${msg}`);
     }
   };
 
   if (loading) {
-    return <div className="p-6 text-center text-slate-500 font-medium">កំពុងទាញយក Categories...</div>;
+    return <div className="p-6 text-center text-slate-500 font-medium">Loading Categories...</div>;
   }
 
   return (

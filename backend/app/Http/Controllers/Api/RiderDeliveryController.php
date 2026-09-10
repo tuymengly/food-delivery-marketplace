@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Models\Rider;
+use App\Support\OrderStatuses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +82,10 @@ class RiderDeliveryController extends Controller
             'status' => 'picked_up',
             'picked_up_at' => now(),
         ]);
-        $delivery->order()->update(['status' => 'preparing']);
+        $order = $delivery->order;
+        if (OrderStatuses::isForwardOrSame($order->status, OrderStatuses::DELIVERING)) {
+            $order->update(['status' => OrderStatuses::DELIVERING]);
+        }
 
         return response()->json([
             'success' => true,
@@ -143,7 +147,7 @@ class RiderDeliveryController extends Controller
 
     private function ensureRider(Request $request): ?JsonResponse
     {
-        if ($request->user()->role !== 'rider') {
+        if (strtolower((string) $request->user()->role) !== 'rider') {
             return response()->json([
                 'success' => false,
                 'message' => 'Only riders can access this endpoint.',

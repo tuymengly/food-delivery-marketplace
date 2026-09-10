@@ -8,7 +8,6 @@ import Register from './pages/Register';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import API from './services/api';
 
-// មុខងារជំនួយសម្រាប់ពិនិត្យ Role និងផ្ញើទៅកន្លែងត្រឹមត្រូវពេលចូល Root (/)
 const RootRedirect = () => {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
@@ -82,10 +81,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* ប្រើប្រាស់ RootRedirect ដើម្បីបែងចែកទិសដៅស្វ័យប្រវត្តិ */}
         <Route path="/" element={<RootRedirect />} />
       
-        {/* Nested Routes សម្រាប់បែងចែកតាម Panel នីមួយៗ */}
         <Route
           path="/admin/*"
           element={(
@@ -110,12 +107,7 @@ export default function App() {
             </ProtectedRoute>
           )}
         />
-        
-        {/* 
-          ចំណាំ៖ កុំដាក់ Catch-all (<Route path="*" ... />) ហוុយៗ ប្រសិនបើវាធ្វើឱ្យប៉ះពាល់ដល់ការ Refresh 
-          ទំព័ររង (Sub-routes) ដូចជា /restaurant/profile ។ 
-          បើចាំបាច់ត្រូវឱ្យ Vite config ត្រូវនឹង SPA Fallback (historyApiFallback) ផងដែរ។
-        */}
+      
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -118,9 +118,76 @@ class RiderProfileController extends Controller
         ]);
     }
 
+    public function updateLocation(Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRiderUser($request)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $profile = $request->user()->rider;
+
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rider profile not found.',
+                'errors' => [
+                    'profile' => ['Create a rider profile first.'],
+                ],
+            ], 404);
+        }
+
+        $profile->update([
+            'current_latitude' => $validated['latitude'],
+            'current_longitude' => $validated['longitude'],
+            'location_updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rider location updated successfully.',
+            'data' => $profile->refresh(),
+        ]);
+    }
+
+    public function updateOnlineStatus(Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRiderUser($request)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'is_online' => ['required', 'boolean'],
+        ]);
+
+        $profile = $request->user()->rider;
+
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rider profile not found.',
+                'errors' => [
+                    'profile' => ['Create a rider profile first.'],
+                ],
+            ], 404);
+        }
+
+        $profile->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rider online status updated successfully.',
+            'data' => $profile->refresh(),
+        ]);
+    }
+
     private function ensureRiderUser(Request $request): ?JsonResponse
     {
-        if ($request->user()->role === 'rider') {
+        if (strtolower((string) $request->user()->role) === 'rider') {
             return null;
         }
 

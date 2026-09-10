@@ -1,24 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  DollarSign, 
-  ShoppingBag, 
-  Clock, 
-  CheckCircle2, 
-  TrendingUp, 
-  Loader2, 
+import {
+  DollarSign,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
+  Loader2,
   RefreshCw,
-  AlertCircle 
+  AlertCircle,
+  Bike,
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
 } from 'recharts';
-import { getRestaurantDashboardStats } from '../../../services/restaurantService';
+import { getRestaurantDashboardStats, getNearbyRiders } from '../../../services/restaurantService';
+import API from '../../../services/api';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,8 @@ export default function Dashboard() {
   });
   const [revenueData, setRevenueData] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [nearbyRiders, setNearbyRiders] = useState([]);
+  const [nearbyRidersMessage, setNearbyRidersMessage] = useState(null);
 
   const applyDashboardData = (data) => {
     if (data.success) {
@@ -51,7 +55,7 @@ export default function Dashboard() {
       setRevenueData(data.revenueData || []);
       setRecentOrders(data.recentOrders || []);
     } else {
-      setError(data.message || 'មិនអាចទាញយកទិន្នន័យបានឡើយ!');
+      setError(data.message || 'Unable to load dashboard data.');
     }
   };
 
@@ -67,7 +71,7 @@ export default function Dashboard() {
       applyDashboardData(response.data);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError(err.response?.data?.message || 'មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ! សូមពិនិត្យមើល Backend');
+      setError(err.response?.data?.message || 'Unable to connect to the server. Please check the backend.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -86,6 +90,37 @@ export default function Dashboard() {
       clearInterval(interval);
     };
   }, [fetchDashboardData]);
+
+  // Riders currently online and near this restaurant. Refreshed on a
+  // slower interval than order polling since rider positions move less
+  // frequently than order status.
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchNearbyRiders = async () => {
+      try {
+        const profileResponse = await API.get('/restaurant/profile');
+        const restaurantId = profileResponse.data?.data?.id;
+        if (!restaurantId) return;
+
+        const response = await getNearbyRiders(restaurantId);
+        if (!isMounted) return;
+        setNearbyRiders(response.data?.data || []);
+        setNearbyRidersMessage(response.data?.success ? null : response.data?.message);
+      } catch {
+        if (!isMounted) return;
+        setNearbyRiders([]);
+      }
+    };
+
+    fetchNearbyRiders();
+    const interval = setInterval(fetchNearbyRiders, 30000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Helper សម្រាប់ Style នៃ Status Badge
   const getStatusBadgeClass = (status) => {
@@ -114,7 +149,7 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfbfa]">
         <Loader2 className="w-9 h-9 text-orange-600 animate-spin" />
-        <span className="mt-3 text-sm text-slate-600 font-medium">កំពុងទាញយកទិន្នន័យ Dashboard...</span>
+        <span className="mt-3 text-sm text-slate-600 font-medium">Loading dashboard data...</span>
       </div>
     );
   }
@@ -125,7 +160,7 @@ export default function Dashboard() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfbfa] p-4">
         <div className="bg-red-50 border border-red-200 p-6 rounded-2xl max-w-md w-full text-center space-y-3">
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <h3 className="text-base font-bold text-red-900">មានបញ្ហាក្នុងការភ្ជាប់</h3>
+          <h3 className="text-base font-bold text-red-900">Connection problem</h3>
           <p className="text-xs text-red-600 font-medium">{error}</p>
           <button 
             onClick={() => fetchDashboardData(true)}
@@ -232,6 +267,33 @@ export default function Dashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* Nearby Riders */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-4">Riders Near This Restaurant</h3>
+        {nearbyRidersMessage ? (
+          <p className="text-xs text-slate-400 font-medium">{nearbyRidersMessage}</p>
+        ) : nearbyRiders.length === 0 ? (
+          <p className="text-xs text-slate-400 font-medium">No riders online nearby right now.</p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {nearbyRiders.map((rider) => (
+              <div key={rider.id} className="py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                    <Bike size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">{rider.name || 'Rider'}</p>
+                    <p className="text-[11px] text-slate-400">{rider.vehicle_type} · {rider.vehicle_number}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-slate-700">{rider.distance_km} km</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Weekly Revenue Chart */}

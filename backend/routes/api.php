@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\RiderDeliveryController;
 use App\Http\Controllers\Api\RiderProfileController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,18 +28,16 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Public Dashboard Route (Restaurant Stats)
-Route::get('/restaurant/stats', [DashboardController::class, 'restaurantStats']);
-Route::get('/restaurant/sales', [DashboardController::class, 'restaurantSales']);
-
 // Protected Routes (Sanctum Auth)
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-    // Restaurant Profile & Settings Routes (បានកែសម្រួលដើម្បីទទួលយក GET, POST និង PUT)
+    // Restaurant Profile & Settings Routes
     Route::get('/restaurant/profile', [RestaurantController::class, 'profile']);
     Route::match(['post', 'put'], '/restaurant/profile', [RestaurantController::class, 'updateProfile']);
+    Route::get('/restaurant/stats', [DashboardController::class, 'restaurantStats']);
+    Route::get('/restaurant/sales', [DashboardController::class, 'restaurantSales']);
 
     // Protected marketplace write routes
     Route::post('/restaurants', [RestaurantController::class, 'store']);
@@ -47,6 +46,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::put('/restaurants/{restaurant}/status', [RestaurantController::class, 'updateStatus'])
         ->middleware('admin');
+
+    Route::get('/restaurants/{restaurant}/nearby-riders', [RestaurantController::class, 'nearbyRiders']);
 
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::match(['post', 'put'], '/categories/{category}', [CategoryController::class, 'update']);
@@ -75,11 +76,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
     Route::post('/orders/{order}/assign-rider', [OrderController::class, 'assignRider']);
+    Route::post('/vouchers/validate', [VoucherController::class, 'validateCode']);
 
     Route::get('/rider/profile', [RiderProfileController::class, 'show']);
     Route::post('/rider/profile', [RiderProfileController::class, 'store']);
     Route::put('/rider/profile', [RiderProfileController::class, 'update']);
     Route::put('/rider/availability', [RiderProfileController::class, 'availability']);
+    Route::put('/rider/location', [RiderProfileController::class, 'updateLocation']);
+    Route::put('/rider/online-status', [RiderProfileController::class, 'updateOnlineStatus']);
 
     Route::get('/rider/deliveries', [RiderDeliveryController::class, 'index']);
     Route::get('/rider/deliveries/{delivery}', [RiderDeliveryController::class, 'show']);
@@ -104,16 +108,20 @@ Route::get('/foods/{food}', [FoodController::class, 'show']);
 // --------------------------------------------------------------------------
 // Order Routes ( Restaurant Panel & Postman API )
 // --------------------------------------------------------------------------
-Route::get('/restaurant/orders', [OrderController::class, 'index']);
-Route::post('/restaurant/orders', [OrderController::class, 'store']);
-Route::patch('/restaurant/orders/{id}/status', [OrderController::class, 'updateStatus']);
-Route::put('/restaurant/orders/{id}/status', [OrderController::class, 'updateStatus']);
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/restaurant/orders', [OrderController::class, 'index']);
+    Route::post('/restaurant/orders', [OrderController::class, 'store']);
+    Route::patch('/restaurant/orders/{id}/status', [OrderController::class, 'updateStatus']);
+    Route::put('/restaurant/orders/{id}/status', [OrderController::class, 'updateStatus']);
+});
 
 // Restaurant Reviews
-Route::get('/restaurant/reviews', [ReviewController::class, 'index']);
-Route::post('/restaurant/reviews', [ReviewController::class, 'store']);
-Route::post('/restaurant/reviews/{review}/reply', [ReviewController::class, 'reply']);
-Route::delete('/restaurant/reviews/{review}', [ReviewController::class, 'destroy']);
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/restaurant/reviews', [ReviewController::class, 'index']);
+    Route::post('/restaurant/reviews', [ReviewController::class, 'store']);
+    Route::post('/restaurant/reviews/{review}/reply', [ReviewController::class, 'reply']);
+    Route::delete('/restaurant/reviews/{review}', [ReviewController::class, 'destroy']);
+});
 
 // Admin Routes ( Super Admin Panel )
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
@@ -144,6 +152,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/admin/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/admin/payments', [PaymentController::class, 'getStatsAndTransactions']);
     Route::post('/admin/payments/payout', [PaymentController::class, 'processPayout']);
+    Route::post('/admin/payments/calculate', [PaymentController::class, 'calculatePayout']);
 });
 
 // Driver Dashboard Routes (self-service; requires an approved rider/driver account)

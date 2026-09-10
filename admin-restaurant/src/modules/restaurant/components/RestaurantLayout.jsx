@@ -48,7 +48,6 @@ export default function RestaurantLayout() {
     fetchRestaurantProfile();
   }, []);
 
-  // មុខងារ Logout ចេញពីប្រព័ន្ធ Restaurant (លុបតែ Key របស់ខ្លួនឯង មិនប្រើ localStorage.clear() ទាំងអស់ទេ)
   const handleLogout = () => {
     API.post('/logout').catch((error) => {
       console.warn('Logout request failed; clearing local session anyway.', error);
@@ -70,7 +69,7 @@ export default function RestaurantLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative">
+    <div className="dashboard-shell flex min-h-screen relative">
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
@@ -104,13 +103,13 @@ export default function RestaurantLayout() {
             {/* Search Input */}
             <div className="relative w-full">
               <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
+                <input
                 type="text"
                 placeholder="Search food, orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 focus:bg-white text-xs sm:text-sm text-slate-800 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 transition-all"
+                className="dashboard-input w-full pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-800 focus:outline-none transition-all focus:border-[#2563EB]"
               />
             </div>
           </div>
@@ -120,7 +119,7 @@ export default function RestaurantLayout() {
             
             {/* Live Order Counter Badge */}
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold">
-              <UtensilsCrossed size={16} className="animate-pulse" />
+              <UtensilsCrossed size={16} className="text-[#2563EB]" />
               <span>Live Orders</span>
             </div>
 
@@ -133,7 +132,7 @@ export default function RestaurantLayout() {
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 className="flex items-center gap-2.5 cursor-pointer pl-2 sm:pl-4 border-l border-slate-200 py-1 px-2 rounded-xl hover:bg-slate-50 transition select-none"
               >
-                <div className="w-9 h-9 bg-orange-500 text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                <div className="w-9 h-9 bg-[#163A63] text-white rounded-md flex items-center justify-center font-bold text-sm shrink-0">
                   {user?.name ? user.name.charAt(0).toUpperCase() : '🍔'}
                 </div>
                 <div className="hidden sm:flex flex-col">

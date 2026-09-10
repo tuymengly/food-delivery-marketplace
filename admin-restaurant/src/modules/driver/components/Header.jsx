@@ -75,7 +75,7 @@ export default function Header({
             value={searchTerm}
             onChange={(e) => setSearchTerm && setSearchTerm(e.target.value)}
             placeholder="Search orders, deliveries..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50/60 border border-slate-200/80 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+            className="dashboard-input w-full pl-10 pr-4 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none transition-all"
           />
         </div>
       </div>
@@ -91,11 +91,11 @@ export default function Header({
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
             className="flex items-center gap-3 cursor-pointer group py-1 px-2 rounded-xl hover:bg-slate-50 transition select-none"
           >
-            <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-sm">
+            <div className="w-9 h-9 rounded-md bg-[#163A63] text-white font-bold flex items-center justify-center text-sm">
               {userData?.name ? userData.name.charAt(0).toUpperCase() : 'D'}
             </div>
             <div className="hidden sm:block text-left leading-tight">
-              <h4 className="text-xs font-bold text-slate-900 group-hover:text-orange-600 transition">
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#2563EB] transition">
                 {userData?.name || 'Driver Name'}
               </h4>
               <span className="text-[10px] text-slate-400 font-medium capitalize">

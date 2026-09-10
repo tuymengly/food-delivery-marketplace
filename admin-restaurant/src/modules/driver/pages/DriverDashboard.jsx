@@ -11,7 +11,13 @@ import {
   Utensils,
   Wallet,
 } from 'lucide-react';
-import { getDriverOrders, updateDriverOrderStatus } from '../../../services/driverService';
+import {
+  getDriverOrders,
+  updateDriverOrderStatus,
+  getRiderProfile,
+  updateRiderLocation,
+  updateRiderOnlineStatus,
+} from '../../../services/driverService';
 import Sidebar from '../components/DriverSidebar';
 import Header from '../components/Header';
 
@@ -37,7 +43,8 @@ const readCurrentUser = () => {
 };
 
 export default function DriverDashboard() {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
+  const [locationError, setLocationError] = useState(null);
   const [activeTab, setActiveTab] = useState('requests');
   const [activeOrder, setActiveOrder] = useState(null);
   const [availableRequests, setAvailableRequests] = useState([]);
@@ -71,7 +78,7 @@ export default function DriverDashboard() {
       const response = await getDriverOrders();
       applyDashboardData(response.data?.data || {});
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'ពុំអាចទាញទិន្នន័យ driver បានទេ');
+      setError(err.response?.data?.message || err.message || 'Unable to load driver data.');
     } finally {
       setLoading(false);
     }
@@ -87,17 +94,70 @@ export default function DriverDashboard() {
       })
       .catch((err) => {
         if (!isMounted) return;
-        setError(err.response?.data?.message || err.message || 'ពុំអាចទាញទិន្នន័យ driver បានទេ');
+        setError(err.response?.data?.message || err.message || 'Unable to load driver data.');
       })
       .finally(() => {
         if (!isMounted) return;
         setLoading(false);
       });
 
+    getRiderProfile()
+      .then((response) => {
+        if (!isMounted) return;
+        setIsOnline(Boolean(response.data?.data?.is_online));
+      })
+      .catch(() => {
+        // Rider profile may not exist yet - leave the toggle at its default.
+      });
+
     return () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOnline || !navigator.geolocation) return undefined;
+
+    const pushLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          updateRiderLocation(coords.latitude, coords.longitude).catch(() => {
+            // A single failed ping isn't worth interrupting the driver - the
+            // next interval tick will retry.
+          });
+        },
+        (err) => {
+          setLocationError(
+            err.code === err.PERMISSION_DENIED
+              ? 'Location access is disabled. Enable it to receive nearby delivery requests.'
+              : 'Unable to detect your location.'
+          );
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    };
+
+    pushLocation();
+    const intervalId = setInterval(pushLocation, 20000);
+
+    return () => clearInterval(intervalId);
+  }, [isOnline]);
+
+  const toggleOnline = async () => {
+    const nextValue = !isOnline;
+
+    if (nextValue && !navigator.geolocation) {
+      setLocationError('Location is not available in this browser.');
+    }
+
+    try {
+      await updateRiderOnlineStatus(nextValue);
+      setIsOnline(nextValue);
+      if (!nextValue) setLocationError(null);
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message || 'Unable to update online status.'}`);
+    }
+  };
 
   const filteredRequests = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -127,7 +187,7 @@ export default function DriverDashboard() {
         alert('ការដឹកជញ្ជូនត្រូវបានបញ្ចប់ដោយជោគជ័យ!');
       }
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message || 'ពុំអាច update delivery status បានទេ'}`);
+      alert(`Error: ${err.response?.data?.message || err.message || 'Unable to update delivery status.'}`);
     } finally {
       setUpdatingId(null);
     }
@@ -176,7 +236,7 @@ export default function DriverDashboard() {
                   {isOnline ? 'AVAILABLE' : 'OFFLINE'}
                 </span>
                 <button
-                  onClick={() => setIsOnline((value) => !value)}
+                  onClick={toggleOnline}
                   className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-colors ${
                     isOnline ? 'bg-emerald-500 justify-end' : 'bg-slate-300 justify-start'
                   }`}
@@ -187,6 +247,13 @@ export default function DriverDashboard() {
               </div>
             </div>
           </div>
+
+          {locationError && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">
+              <span className="flex items-center gap-2"><AlertCircle size={15} /> {locationError}</span>
+              <button onClick={() => setLocationError(null)} className="text-amber-500 hover:text-amber-700">Dismiss</button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
             {[

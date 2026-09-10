@@ -103,8 +103,8 @@ const Favorites = () => {
             <p className="text-gray-600 mb-8 text-center max-w-md">
               Start adding your favorite dishes by clicking the heart icon on any menu item!
             </p>
-            <Link 
-              to="/MenuFood" 
+            <Link
+              to="/menu"
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
             >
               Browse Menu

@@ -13,13 +13,25 @@ class Restaurant extends Model
         'cuisine',
         'description',
         'address',
+        'latitude',
+        'longitude',
         'phone',
         'delivery_fee',
         'min_order',
         'avg_delivery_time',
         'image',
         'status',
+        'accepts_vouchers',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'accepts_vouchers' => 'boolean',
+        ];
+    }
 
     public function user(): BelongsTo
     {

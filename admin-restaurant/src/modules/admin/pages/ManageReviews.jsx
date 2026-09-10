@@ -115,7 +115,7 @@ export default function ManageReviews() {
       fetchReviewsData();
     } catch (error) {
       console.error('Error updating review status:', error);
-      alert('បរាជ័យក្នុងការប្តូរ Status!');
+      alert('Failed to update review status.');
     }
   };
 
@@ -130,7 +130,7 @@ export default function ManageReviews() {
       fetchReviewsData();
     } catch (error) {
       console.error('Error sending reply:', error);
-      alert('បរាជ័យក្នុងការផ្ញើ Reply!');
+      alert('Failed to send reply.');
     }
   };
 
@@ -143,7 +143,7 @@ export default function ManageReviews() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយក Reviews...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">Loading reviews...</div>;
   }
 
   return (

@@ -118,7 +118,7 @@ const OrderHistory = () => {
               You haven't placed any orders yet. Start ordering delicious Khmer dishes!
             </p>
             <button
-              onClick={() => navigate('/MenuFood')}
+              onClick={() => navigate('/menu')}
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
             >
               Browse Menu

@@ -39,8 +39,7 @@ const SearchResults = () => {
       const type = category.includes('dessert') ? 'dessert' :
         category.includes('snack') ? 'snack' :
         category.includes('soup') ? 'soup' : 'food';
-      const page = type === 'dessert' ? 'MenuDessert' : type === 'snack' ? 'MenuSnack' : type === 'soup' ? 'MenuSoup' : 'MenuFood';
-      return { ...item, type, detailLink: `/${page}/${item.id}` };
+      return { ...item, type, detailLink: `/food/${item.id}` };
     });
 
     const filtered = allItems.filter((item) => {

@@ -48,7 +48,7 @@ export const fetchCart = async () => {
     restaurant_id: item.food?.restaurant_id || item.food?.restaurant?.id,
     quantity: item.quantity,
     type: 'food',
-    detailLink: `/MenuFood/${item.food_id || item.food?.id}`,
+    detailLink: `/food/${item.food_id || item.food?.id}`,
   }));
 };
 

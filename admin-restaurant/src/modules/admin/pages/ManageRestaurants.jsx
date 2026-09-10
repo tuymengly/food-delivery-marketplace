@@ -46,7 +46,7 @@ export default function ManageRestaurants() {
       fetchRestaurantsData(); 
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('បរាជ័យក្នុងការប្តូរ Status!');
+      alert('Failed to update restaurant status.');
     }
   };
 
@@ -102,7 +102,7 @@ export default function ManageRestaurants() {
       console.error('Restaurant save error:', error.response?.data || error);
       const validationErrors = error.response?.data?.errors || {};
       const details = Object.values(validationErrors).flat().join(' ');
-      setFormError(details || error.response?.data?.message || 'បរាជ័យក្នុងការរក្សាទុក Restaurant!');
+      setFormError(details || error.response?.data?.message || 'Failed to save restaurant.');
     } finally {
       setSaving(false);
     }
@@ -116,7 +116,7 @@ export default function ManageRestaurants() {
       setRestaurants((current) => current.filter((item) => item.id !== restaurant.id));
     } catch (error) {
       console.error('Restaurant delete error:', error.response?.data || error);
-      alert(error.response?.data?.message || 'បរាជ័យក្នុងការលុប Restaurant!');
+      alert(error.response?.data?.message || 'Failed to delete restaurant.');
     }
   };
 
@@ -137,7 +137,7 @@ export default function ManageRestaurants() {
   const pendingCount = restaurants.filter((r) => r.status?.toLowerCase() === 'pending').length;
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 font-medium">កំពុងទាញយក Restaurants...</div>;
+    return <div className="p-8 text-center text-slate-500 font-medium">Loading restaurants...</div>;
   }
 
   return (

@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaCheckCircle, FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave, FaHome, FaList, FaTruck } from 'react-icons/fa';
+import { FaCheckCircle, FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave, FaMobileAlt, FaQrcode, FaHome, FaList, FaTruck } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
+
+const PAYMENT_METHOD_LABELS = {
+  cash: { label: 'Cash on Delivery', description: 'Pay when you receive your order', icon: FaMoneyBillWave, color: 'text-green-600' },
+  aba: { label: 'ABA Pay', description: 'Payment completed', icon: FaMobileAlt, color: 'text-blue-600' },
+  khqr: { label: 'KHQR', description: 'Payment completed', icon: FaQrcode, color: 'text-blue-600' },
+  card: { label: 'Credit/Debit Card', description: 'Payment completed', icon: FaCreditCard, color: 'text-blue-600' },
+};
 
 const readStoredJson = (key, fallback) => {
   try {
@@ -220,23 +227,19 @@ const OrderSuccess = () => {
 
           <div className="bg-gradient-to-r from-green-50 to-white p-6 rounded-xl border-2 border-green-200">
             <div className="flex items-center gap-4">
-              {customerInfo.paymentMethod === 'cash' ? (
-                <>
-                  <FaMoneyBillWave className="text-4xl text-green-600" />
-                  <div>
-                    <p className="text-xl font-bold text-gray-900">Cash on Delivery</p>
-                    <p className="text-sm text-gray-600">Pay when you receive your order</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <FaCreditCard className="text-4xl text-blue-600" />
-                  <div>
-                    <p className="text-xl font-bold text-gray-900">Credit/Debit Card</p>
-                    <p className="text-sm text-gray-600">Payment completed</p>
-                  </div>
-                </>
-              )}
+              {(() => {
+                const method = PAYMENT_METHOD_LABELS[customerInfo.paymentMethod] || PAYMENT_METHOD_LABELS.card;
+                const Icon = method.icon;
+                return (
+                  <>
+                    <Icon className={`text-4xl ${method.color}`} />
+                    <div>
+                      <p className="text-xl font-bold text-gray-900">{method.label}</p>
+                      <p className="text-sm text-gray-600">{method.description}</p>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -269,7 +272,7 @@ const OrderSuccess = () => {
           </button>
 
           <button
-            onClick={() => navigate('/MenuFood')}
+            onClick={() => navigate('/menu')}
             className="bg-white hover:bg-orange-50 text-orange-600 border-2 border-orange-600 py-4 px-3 rounded-xl font-bold text-base shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center"
           >
             Order More Food
