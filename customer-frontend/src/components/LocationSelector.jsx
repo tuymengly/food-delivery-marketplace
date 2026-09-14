@@ -107,7 +107,7 @@ const LocationSelector = () => {
   return (
     <div className="relative min-w-0" ref={containerRef}>
       <button type="button" onClick={() => setOpen((value) => !value)} className="flex items-center gap-2 min-w-0 group">
-        <FaMapMarkerAlt className="text-[#2563EB] text-lg flex-none" />
+        <FaMapMarkerAlt className="text-[#01194f] text-lg flex-none" />
         <div className="text-left leading-tight min-w-0">
           <p className="hidden lg:block text-[11px] text-gray-500 font-medium">Deliver to</p>
           <div className="flex items-center gap-1 min-w-0"><p className="text-sm font-semibold text-gray-800 truncate max-w-[110px] sm:max-w-[160px] lg:max-w-[200px]">{selectedLocation?.address || 'Use my current location'}</p><FaChevronDown className={`text-[10px] text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} /></div>

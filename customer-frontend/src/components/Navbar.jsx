@@ -3,11 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { menu } from "../data";
 import { IoSearch, IoCloseSharp } from "react-icons/io5";
-import {
-  FaRegHeart,
-  FaRegUser,
-  FaBars,
-} from "react-icons/fa";
+import { MdOutlineFavoriteBorder } from "react-icons/md";
+import { FaBars } from "react-icons/fa";
 import { HiOutlineShoppingCart } from "react-icons/hi";
 import LanguageSwitcher from "./LanguageSwitcher";
 import LocationSelector from "./LocationSelector";
@@ -103,6 +100,10 @@ const Navbar = () => {
     };
   }, []);
 
+  // Change "avatar" to whatever field your backend actually returns
+  // (e.g. currentUser.profileImage, currentUser.photoUrl, etc.)
+  const avatarUrl = currentUser?.avatar || currentUser?.profileImage || currentUser?.photoUrl || "";
+
   return (
     <div className="w-full shadow-sm sticky top-0 z-50 bg-white border-b border-slate-200">
       {/* TOP ROW */}
@@ -110,9 +111,16 @@ const Navbar = () => {
         <div className="w-full h-full flex items-center justify-between gap-3">
           {/* LEFT: LOGO + DELIVERY ADDRESS */}
           <div className="flex items-center gap-4 flex-1 lg:flex-none min-w-0">
-            <Link to="/" className="flex items-center space-x-2 group flex-none">
+            <Link
+              to="/"
+              className="flex items-center space-x-2 group flex-none"
+            >
               <div className="w-20 h-20 rounded-md flex items-center justify-center overflow-hidden">
-                <img src={brandLogo} alt="24-hour food logo" className="w-full h-full object-contain " />
+                <img
+                  src={brandLogo}
+                  alt="24-hour food logo"
+                  className="w-full h-full object-contain "
+                />
               </div>
               <span className="hidden sm:inline text-2xl font-bold text-[#0B1F3A]">
                 24-Hour Food
@@ -167,11 +175,11 @@ const Navbar = () => {
               to="/favorites"
               className="relative group cursor-pointer lg:flex hidden"
             >
-              <FaRegHeart
+              <MdOutlineFavoriteBorder
                 className={`text-2xl group-hover:scale-110 transition-all duration-300 ${
                   location.pathname === "/favorites"
-                    ? "text-red-500 scale-110"
-                    : "text-gray-700 hover:text-red-500"
+                    ? "text-black-500 scale-110"
+                    : "text-gray-700 hover:text-black-500"
                 }`}
               />
               {favoritesCount > 0 && (
@@ -193,14 +201,14 @@ const Navbar = () => {
               <HiOutlineShoppingCart
                 className={`text-2xl lg:text-2xl group-hover:scale-110 transition-all duration-300 ${
                   location.pathname === "/cart"
-                    ? "text-orange-600 scale-110"
-                    : "text-gray-700 hover:text-orange-600"
+                    ? "text-black-600 scale-110"
+                    : "text-gray-700 hover:text-black-600"
                 }`}
               />
               {cartCount > 0 && (
                 <div
-                  className="w-5 h-5 bg-gradient-to-r
-                    from-orange-500
+                  className="w-3 h-3 bg-gradient-to-r
+                    from-red-500
                     to-red-500 flex items-center
                     absolute -top-2 -right-2 text-xs
                     font-bold justify-center text-white
@@ -215,12 +223,7 @@ const Navbar = () => {
               <LanguageSwitcher />
             </div>
 
-            <Link
-              to="/contact"
-              className="hidden lg:block text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
-            >
-              {t("nav.help")}
-            </Link>
+
 
             <FaBars
               onClick={() => setOpenSidebar(!openSidebar)}
@@ -230,19 +233,54 @@ const Navbar = () => {
             {currentUser ? (
               <div className="relative group lg:flex hidden">
                 <div className="flex items-center gap-2 cursor-pointer">
-                  <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">
-                      {currentUser.name.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-orange-500 to-red-500">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={currentUser.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span className="text-white font-bold text-sm">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl py-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="font-semibold text-gray-900 text-sm">
-                      {currentUser.name}
-                    </p>
-                    <p className="text-xs text-gray-500">{currentUser.email}</p>
+                  <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 shrink-0">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={currentUser.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <span className="text-white font-bold text-sm">
+                          {currentUser.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm truncate">
+                        {currentUser.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
+                    </div>
                   </div>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm"
+                  >
+                    Profile
+                  </Link>
                   <Link
                     to="/favorites"
                     className="block px-4 py-2 text-gray-700 hover:bg-orange-50
@@ -280,7 +318,7 @@ const Navbar = () => {
                         window.dispatchEvent(new Event("authChanged"));
                         window.dispatchEvent(new Event("cartUpdated"));
                         window.dispatchEvent(new Event("favoritesUpdated"));
-                        navigate("/home");
+                        navigate("/");
                       }
                     }}
                     className="w-full text-left px-4 py-2 text-red-600
@@ -293,13 +331,17 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="lg:flex hidden items-center gap-2 px-4 py-2
-                 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600
-                 hover:to-red-600 text-white rounded-full font-semibold text-sm
-                 shadow-md hover:shadow-lg transition-all duration-300"
+                aria-label="User Login Button"
+                className="group relative hidden h-[35px] w-[90px] items-center justify-center rounded-[15px] bg-[linear-gradient(to_bottom_right,#2e8eff_0%,rgba(46,142,255,0)_30%)] bg-[rgb(2,17,34)] transition duration-300 ease-in-out hover:bg-blue hover:shadow-[0_0_10px_rgba(46,142,255,0.5)] focus:outline-none focus:ring-2 focus:ring-blue-900 lg:flex"
               >
-                <FaRegUser />
-                {t("nav.login")}
+                <span className="flex h-[35px] w-[110px] items-center justify-center gap-[8px] rounded-[15px] bg-[#1a1a1a] text-white">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[20px] w-[20px] fill-white">
+                    <g data-name="Layer 2" id="Layer_2">
+                      <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z" />
+                    </g>
+                  </svg>
+                  <span className="font-semibold">Log In</span>
+                </span>
               </Link>
             )}
           </div>
@@ -313,19 +355,19 @@ const Navbar = () => {
       >
         <Link
           to="/menu"
-          className={`text-sm font-semibold transition-colors ${isActive('/menu') ? 'text-[#0B1F3A]' : 'text-slate-600 hover:text-[#2563EB]'}`}
+          className={`text-sm font-semibold transition-colors ${isActive("/menu") ? "text-[#0B1F3A]" : "text-slate-600 hover:text-[#2563EB]"}`}
         >
           Delivery
         </Link>
         <Link
           to="/pickup"
-          className={`text-sm font-semibold transition-colors ${isActive('/pickup') ? 'text-[#0B1F3A]' : 'text-slate-600 hover:text-[#2563EB]'}`}
+          className={`text-sm font-semibold transition-colors ${isActive("/pickup") ? "text-[#0B1F3A]" : "text-slate-600 hover:text-[#2563EB]"}`}
         >
           Pick-up
         </Link>
         <Link
           to="/restaurants"
-          className={`text-sm font-semibold transition-colors ${isActive('/restaurants') ? 'text-[#0B1F3A]' : 'text-slate-600 hover:text-[#2563EB]'}`}
+          className={`text-sm font-semibold transition-colors ${isActive("/restaurants") ? "text-[#0B1F3A]" : "text-slate-600 hover:text-[#2563EB]"}`}
         >
           Restaurants
         </Link>
@@ -347,7 +389,11 @@ const Navbar = () => {
         <div className="w-full h-[88px] px-5 flex items-center justify-between border-b border-white/20">
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-20 h-20 rounded-md flex items-center justify-center overflow-hidden">
-              <img src={brandLogo} alt="BiteRush logo" className="w-full h-full object-contain" />
+              <img
+                src={brandLogo}
+                alt="BiteRush logo"
+                className="w-full h-full object-contain"
+              />
             </div>
           </Link>
           <IoCloseSharp
@@ -363,18 +409,36 @@ const Navbar = () => {
         </div>
 
         <ul className="mt-3 px-3">
-          <li className={`rounded-lg px-3 py-3.5 transition-colors ${isActive('/menu') ? "bg-white/20" : "hover:bg-white/15"}`}>
-            <Link to="/menu" className="flex text-base font-semibold text-white" onClick={() => setOpenSidebar(false)}>
+          <li
+            className={`rounded-lg px-3 py-3.5 transition-colors ${isActive("/menu") ? "bg-white/20" : "hover:bg-white/15"}`}
+          >
+            <Link
+              to="/menu"
+              className="flex text-base font-semibold text-white"
+              onClick={() => setOpenSidebar(false)}
+            >
               Delivery
             </Link>
           </li>
-          <li className={`rounded-lg px-3 py-3.5 transition-colors ${isActive('/pickup') ? "bg-white/20" : "hover:bg-white/15"}`}>
-            <Link to="/pickup" className="flex text-base font-semibold text-white" onClick={() => setOpenSidebar(false)}>
+          <li
+            className={`rounded-lg px-3 py-3.5 transition-colors ${isActive("/pickup") ? "bg-white/20" : "hover:bg-white/15"}`}
+          >
+            <Link
+              to="/pickup"
+              className="flex text-base font-semibold text-white"
+              onClick={() => setOpenSidebar(false)}
+            >
               Pick-up
             </Link>
           </li>
-          <li className={`rounded-lg px-3 py-3.5 transition-colors ${isActive('/restaurants') ? "bg-white/20" : "hover:bg-white/15"}`}>
-            <Link to="/restaurants" className="flex text-base font-semibold text-white" onClick={() => setOpenSidebar(false)}>
+          <li
+            className={`rounded-lg px-3 py-3.5 transition-colors ${isActive("/restaurants") ? "bg-white/20" : "hover:bg-white/15"}`}
+          >
+            <Link
+              to="/restaurants"
+              className="flex text-base font-semibold text-white"
+              onClick={() => setOpenSidebar(false)}
+            >
               Restaurants
             </Link>
           </li>

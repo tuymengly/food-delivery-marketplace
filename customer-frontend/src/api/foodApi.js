@@ -8,6 +8,7 @@ export const normalizeFood = (food) => ({
   price: Number(food?.price || 0),
   image: food?.image_url || food?.image || 'https://via.placeholder.com/500',
   category: food?.category?.name || food?.category || 'Food',
+  restaurantId: food?.restaurant_id || food?.restaurant?.id || null,
   restaurantName: food?.restaurant?.name || food?.restaurant_name || food?.restaurantName || 'Restaurant',
   description: food?.description || 'Delicious Khmer food',
   qty: food?.qty || 10,

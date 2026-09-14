@@ -141,23 +141,23 @@ export default function ManageRestaurants() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#fffaf8] min-h-screen space-y-6 text-slate-800">
+    <div className="p-4 sm:p-6 md:p-8 min-h-screen space-y-6 text-slate-800">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#0B1F3B] tracking-tight">
             Restaurant Management
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             {restaurants.length} total restaurants •{' '}
-            <span className="text-orange-600 font-medium">{pendingCount} pending approval</span>
+            <span className="text-[#0B1F3B] font-medium">{pendingCount} pending approval</span>
           </p>
         </div>
 
         <button 
           onClick={handleOpenAdd}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition w-full sm:w-auto cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-black-600 hover:bg-black-700 text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition w-full sm:w-auto cursor-pointer"
         >
           <Plus size={16} /> Add Restaurant
         </button>
@@ -208,7 +208,7 @@ export default function ManageRestaurants() {
                   <tr key={item.id} className="hover:bg-orange-50/10 transition">
                     <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 bg-orange-100 text-orange-600">
+                        <div className="w-9 h-9 rounded-sm flex items-center justify-center font-bold text-xs shrink-0 bg-blue-500 text-black-600">
                           {item.name?.charAt(0)}
                         </div>
                         <span className="font-semibold text-slate-900">{item.name}</span>

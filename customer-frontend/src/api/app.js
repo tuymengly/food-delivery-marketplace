@@ -45,6 +45,60 @@ export const registerUser = (userData) =>
     body: JSON.stringify(userData),
   });
 
+export const verifyOtp = (payload) =>
+  apiRequest('/auth/otp/verify', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const resendOtp = (payload) =>
+  apiRequest('/auth/otp/resend', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const forgotPassword = (email) =>
+  apiRequest('/auth/password/forgot', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+
+export const resetPassword = (payload) =>
+  apiRequest('/auth/password/reset', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+const OTP_CHALLENGE_STORAGE_KEY = 'pendingOtpChallenge';
+
+export const saveOtpChallenge = (response) => {
+  const challenge = response?.data || response;
+
+  if (!challenge?.challenge_token || !challenge?.purpose) {
+    throw new Error('The server did not return a valid OTP challenge.');
+  }
+
+  sessionStorage.setItem(OTP_CHALLENGE_STORAGE_KEY, JSON.stringify(challenge));
+  return challenge;
+};
+
+export const getStoredOtpChallenge = () => {
+  const serializedChallenge = sessionStorage.getItem(OTP_CHALLENGE_STORAGE_KEY);
+
+  if (!serializedChallenge) return null;
+
+  try {
+    return JSON.parse(serializedChallenge);
+  } catch {
+    sessionStorage.removeItem(OTP_CHALLENGE_STORAGE_KEY);
+    return null;
+  }
+};
+
+export const clearOtpChallenge = () => {
+  sessionStorage.removeItem(OTP_CHALLENGE_STORAGE_KEY);
+};
+
 export const logoutUser = () => apiRequest('/logout', { method: 'POST' });
 
 export const saveAuthSession = (response) => {
@@ -84,7 +138,7 @@ export const getRoleRedirect = (role, token) => {
   const normalizedRole = String(role || '').toLowerCase().trim();
   const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
 
-  if (normalizedRole === 'admin') {
+  if (['admin', 'super_admin', 'super admin'].includes(normalizedRole)) {
     return `${ADMIN_APP_URL}/admin/dashboard${tokenParam}`;
   }
   if (normalizedRole === 'restaurant' || normalizedRole === 'restaurant_owner') {
@@ -93,7 +147,12 @@ export const getRoleRedirect = (role, token) => {
   if (normalizedRole === 'rider' || normalizedRole === 'driver') {
     return `${ADMIN_APP_URL}/driver/dashboard${tokenParam}`;
   }
-  return '/home';
+
+  if (normalizedRole === 'user' || normalizedRole === 'customer') {
+    return '/';
+  }
+
+  return '/';
 };
 
 // Lets a user land here after logging in on the admin-restaurant app (e.g. a
@@ -124,6 +183,16 @@ export const bootstrapSessionFromUrlToken = async () => {
   }
 
   return true;
+};
+
+// "Continue with Google" - a plain browser redirect (not a fetch call), so
+// this just builds the URL; GoogleAuthController on the backend does the
+// rest and hands the browser back here via the ?token= handoff above.
+const GOOGLE_ROLES = ['customer', 'restaurant'];
+
+export const getGoogleAuthUrl = (role = 'customer') => {
+  const safeRole = GOOGLE_ROLES.includes(role) ? role : 'customer';
+  return `${API_BASE_URL}/auth/google/redirect?role=${safeRole}`;
 };
 
 export const createOrder = (payload) =>

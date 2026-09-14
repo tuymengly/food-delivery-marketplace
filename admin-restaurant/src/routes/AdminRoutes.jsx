@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import AdminLayout from '../modules/admin/components/AdminLayout';
@@ -13,6 +12,7 @@ import ManageDrivers from '../modules/admin/pages/ManageDrivers';
 import ManagePayments from '../modules/admin/pages/ManagePayments';
 import ManageReviews from '../modules/admin/pages/ManageReviews';
 import HelpCenter from '../modules/admin/pages/Helpcenter';
+import Profile from '../modules/admin/pages/Profile';
 
 export default function AdminRoutes() {
   return (
@@ -30,6 +30,7 @@ export default function AdminRoutes() {
         <Route path="reviews" element={<ManageReviews />} />
         <Route path="help-center" element={<HelpCenter />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
     </Routes>
   );

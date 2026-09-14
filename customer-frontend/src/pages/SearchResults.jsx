@@ -64,7 +64,7 @@ const SearchResults = () => {
     <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white pt-24 pb-16 px-6 md:px-14">
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
-        <Link to="/home" className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold mb-8 group">
+        <Link to="/" className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold mb-8 group">
           <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-300" />
           Back to Home
         </Link>

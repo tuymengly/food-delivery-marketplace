@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\OtpCooldownException;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -41,6 +42,16 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => 'Unauthenticated.',
                 ], 401);
+            }
+        });
+
+        $exceptions->render(function (OtpCooldownException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many OTP requests. Please try again later.',
+                    'retry_after' => $e->retryAfterSeconds,
+                ], 429);
             }
         });
     })->create();

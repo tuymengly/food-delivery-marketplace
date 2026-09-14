@@ -19,7 +19,7 @@ const Reservation = () => {
         data-aos="zoom-in"
       >
         <h1 
-          className="text-4xl font-bold text-center text-orange-600 mb-6"
+          className="text-4xl font-bold text-center text-black-600 mb-6"
           data-aos="fade-down"
         >
           {t('reservation.title')}
@@ -72,7 +72,7 @@ const Reservation = () => {
 
           <button
             data-aos="zoom-in"
-            className="md:col-span-2 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-semibold transition-transform duration-300 hover:scale-[1.03]"
+            className="md:col-span-2 bg-black-600 hover:bg-black-700 text-white py-3 rounded-lg font-semibold transition-transform duration-300 hover:scale-[1.03]"
           >
             {t('reservation.reserveNow')}
           </button>

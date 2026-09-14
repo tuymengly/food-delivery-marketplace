@@ -58,7 +58,7 @@ export default function RestaurantLayout() {
       localStorage.removeItem('restaurant');
       localStorage.removeItem('restaurant_id');
       localStorage.removeItem('user');
-      navigate('/login', { replace: true });
+      window.location.assign(`${import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174'}/login`);
     });
   };
 
@@ -82,7 +82,7 @@ export default function RestaurantLayout() {
       <div className={`fixed lg:sticky top-0 z-50 h-screen transition-transform duration-300 ease-in-out ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
-        <RestaurantSidebar onClose={() => setIsSidebarOpen(false)} />
+        <RestaurantSidebar onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
       </div>
 
       {/* Main Content Area */}

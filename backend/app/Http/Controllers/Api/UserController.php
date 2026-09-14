@@ -44,7 +44,7 @@ class UserController extends Controller
         ]);
 
         $validated['password'] = Hash::make($request->password ?? '12345678');
-        $validated['role']     = $request->role ?? 'Customer';
+        $validated['role']     = $request->role ?? 'customer';
         $validated['status']   = $request->status ?? 'Active';
 
         $user = User::create($validated);
@@ -90,7 +90,6 @@ class UserController extends Controller
             'message' => 'User deleted successfully'
         ], 200);
     }
-    // 5. Get Admin Profile (សម្រាប់ Super Admin កំពុង Login)
     public function getProfile(Request $request)
     {
         return response()->json([
@@ -107,6 +106,8 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'  => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'phone' => 'nullable|string|max:50',
+            'profile_image' => 'nullable|url|max:2048',
         ]);
 
         $user->update($validated);

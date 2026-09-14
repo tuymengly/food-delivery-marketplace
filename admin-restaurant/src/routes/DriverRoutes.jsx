@@ -5,6 +5,7 @@ export default function DriverRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<DriverDashboard />} />
+      <Route path="profile" element={<DriverDashboard />} />
       <Route path="DriverDashboard" element={<Navigate to="../dashboard" replace />} />
       <Route path="*" element={<Navigate to="../dashboard" replace />} />
     </Routes>

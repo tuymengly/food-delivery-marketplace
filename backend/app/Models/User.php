@@ -24,11 +24,14 @@ class User extends Authenticatable
     protected $fillable = [
     'name',
     'email',
+    'email_verified_at',
+    'google_id',
     'password',
     'role',
     'status',
     'location',
-    'phone',   
+    'phone',
+    'profile_image',
     'vehicle',
 ];
     /**
@@ -82,5 +85,10 @@ class User extends Authenticatable
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function otpCodes(): HasMany
+    {
+        return $this->hasMany(OtpCode::class);
     }
 }

@@ -151,7 +151,7 @@ export default function Dashboard() {
       {/* Chart & Pending Approvals */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="lg:col-span-2 bg-white p-4 sm:p-6 border border-slate-100 shadow-sm">
           <h3 className="font-bold text-slate-800 text-base sm:text-lg mb-4 sm:mb-6">Revenue & Orders</h3>
           <div className="h-64 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -166,7 +166,7 @@ export default function Dashboard() {
         </div>
 
         {/* Pending Approvals */}
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="bg-white p-4 sm:p-6 border border-slate-100 shadow-sm">
           <h3 className="font-bold text-slate-800 text-base sm:text-lg mb-4">Pending Approvals</h3>
           <div className="space-y-3">
             {stats?.pending_restaurants?.length > 0 ? (

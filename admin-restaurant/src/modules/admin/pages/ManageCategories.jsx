@@ -112,31 +112,31 @@ export default function ManageCategories() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Category Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#0B1F3B]">Category Management</h2>
           <p className="text-xs sm:text-sm text-slate-500">{categories.length} categories</p>
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 sm:px-5 py-2.5 rounded-2xl font-semibold text-sm transition shadow-sm cursor-pointer w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 bg-[#0B1F3B] hover:bg-[#132C52] text-white px-4 sm:px-5 py-2.5 font-semibold text-sm transition cursor-pointer w-full sm:w-auto"
         >
-          <Plus size={18} />
+          <Plus size={17} />
           Add Category
         </button>
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {categories.map((category) => (
           <div
             key={category.id}
-            className="group relative bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition"
+            className="group relative bg-white p-4 sm:p-5 border border-[#D6DBE3] flex items-center justify-between hover:border-[#0B1F3B] transition"
           >
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
-                {category.image ? <img src={category.image} alt="" className="w-full h-full object-cover" /> : <Folder size={22} />}
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0B1F3B] text-white flex items-center justify-center shrink-0 overflow-hidden">
+                {category.image ? <img src={category.image} alt="" className="w-full h-full object-cover" /> : <Folder size={20} />}
               </div>
               <div className="truncate">
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">
+                <h3 className="font-semibold text-[#1A2233] text-sm sm:text-base leading-tight truncate">
                   {category.name}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5 sm:mt-1 truncate">
@@ -146,20 +146,20 @@ export default function ManageCategories() {
             </div>
 
             {/* Action Buttons */}
-            <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 flex flex-row md:flex-col gap-1.5 sm:gap-2 text-stone-400 shrink-0 ml-2">
+            <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 flex flex-row md:flex-col gap-1 text-slate-400 shrink-0 ml-2">
               <button
                 onClick={(e) => handleOpenEditModal(category, e)}
-                className="p-1.5 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition cursor-pointer"
+                className="p-1.5 hover:text-[#0B1F3B] hover:bg-[#EEF2F8] transition cursor-pointer"
                 aria-label="Edit category"
               >
-                <Edit2 size={16} />
+                <Edit2 size={15} />
               </button>
               <button
                 onClick={(e) => handleDelete(category.id, e)}
-                className="p-1.5 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                className="p-1.5 hover:text-[#A6321E] hover:bg-[#FBEEEC] transition cursor-pointer"
                 aria-label="Delete category"
               >
-                <Trash2 size={16} />
+                <Trash2 size={15} />
               </button>
             </div>
           </div>
@@ -168,20 +168,21 @@ export default function ManageCategories() {
 
       {/* Modal Section */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer"
-            >
-              <X size={20} />
-            </button>
+        <div className="fixed inset-0 bg-[#0B1F3B]/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto border border-[#D6DBE3]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D6DBE3] bg-[#0B1F3B]">
+              <h3 className="text-base sm:text-lg font-bold text-white">
+                {editingCategory ? 'Edit Category' : 'Add New Category'}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-white/70 hover:text-white transition cursor-pointer"
+              >
+                <X size={19} />
+              </button>
+            </div>
 
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-4 pr-6">
-              {editingCategory ? 'Edit Category' : 'Add New Category'}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Category Name
@@ -191,18 +192,18 @@ export default function ManageCategories() {
                   placeholder="e.g. Fast Food, Drinks..."
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-600"
+                  className="w-full px-4 py-2.5 border border-[#D6DBE3] text-sm focus:outline-none focus:border-[#0B1F3B]"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Category Image</label>
-                <label className="flex items-center gap-3 w-full px-4 py-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-orange-600 transition">
+                <label className="flex items-center gap-3 w-full px-4 py-3 bg-[#FAFBFC] border border-dashed border-[#D6DBE3] cursor-pointer hover:border-[#0B1F3B] transition">
                   {imagePreview ? (
-                    <img src={imagePreview} alt="Category preview" className="w-14 h-14 rounded-lg object-cover" />
+                    <img src={imagePreview} alt="Category preview" className="w-14 h-14 object-cover border border-[#D6DBE3]" />
                   ) : (
-                    <ImagePlus size={22} className="text-orange-600" />
+                    <ImagePlus size={20} className="text-[#0B1F3B]" />
                   )}
                   <span className="text-xs text-slate-500">
                     {image ? image.name : 'Choose an image (JPG, PNG, WEBP)'}
@@ -230,7 +231,7 @@ export default function ManageCategories() {
                   placeholder="Optional description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-600 h-24 resize-none"
+                  className="w-full px-4 py-2.5 border border-[#D6DBE3] text-sm focus:outline-none focus:border-[#0B1F3B] h-24 resize-none"
                 />
               </div>
 
@@ -238,13 +239,13 @@ export default function ManageCategories() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl transition cursor-pointer"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-sm rounded-xl transition cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#0B1F3B] hover:bg-[#132C52] text-white font-semibold text-sm transition cursor-pointer"
                 >
                   {editingCategory ? 'Save Changes' : 'Add Category'}
                 </button>

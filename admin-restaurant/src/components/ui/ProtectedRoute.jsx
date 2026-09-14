@@ -1,5 +1,7 @@
 import { Navigate } from 'react-router-dom';
 
+const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174';
+
 const normalizeRole = (role) => String(role || '').toLowerCase().trim();
 
 const roleHome = (role) => {
@@ -8,7 +10,7 @@ const roleHome = (role) => {
   if (role === 'admin' || role === 'super_admin' || role === 'super admin') {
     return '/admin/dashboard';
   }
-  return '/login';
+  return '/';
 };
 
 export default function ProtectedRoute({ allowedRoles, children }) {
@@ -16,14 +18,16 @@ export default function ProtectedRoute({ allowedRoles, children }) {
   const savedUser = localStorage.getItem('user');
 
   if (!token || !savedUser) {
-    return <Navigate to="/login" replace />;
+    window.location.assign(`${CUSTOMER_APP_URL}/login`);
+    return null;
   }
 
   let user;
   try {
     user = JSON.parse(savedUser);
   } catch {
-    return <Navigate to="/login" replace />;
+    window.location.assign(`${CUSTOMER_APP_URL}/login`);
+    return null;
   }
 
   const role = normalizeRole(user?.role);

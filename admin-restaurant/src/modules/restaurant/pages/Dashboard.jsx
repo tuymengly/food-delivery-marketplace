@@ -336,7 +336,7 @@ export default function Dashboard() {
         <div className="block sm:hidden divide-y divide-slate-100">
           {recentOrders.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400 font-medium">
-              មិនទាន់មានការកម្ម៉ង់នៅឡើយទេ
+              No orders yet
             </div>
           ) : (
             recentOrders.map((order, idx) => (
@@ -378,7 +378,7 @@ export default function Dashboard() {
               {recentOrders.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="py-8 text-center text-slate-400">
-                    មិនទាន់មានការកម្ម៉ង់នៅឡើយទេ
+                    No orders yet
                   </td>
                 </tr>
               ) : (

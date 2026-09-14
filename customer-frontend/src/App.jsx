@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import 'aos/dist/aos.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
 import FoodDetail from './pages/FoodDetail';
 import Favorites from './pages/Favorites';
 import Cart from './pages/Cart';
@@ -21,6 +20,11 @@ import Contact from './pages/Contact';
 import Pickup from './pages/Pickup';
 import Shops from './pages/Shops';
 import Restaurants from './pages/Restaurants';
+import RestaurantDetail from './pages/RestaurantDetail';
+import Profile from './pages/Profile';
+import VerifyOtp from './pages/VerifyOtp';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import { bootstrapSessionFromUrlToken } from './api/app';
 
 // import { Contact } from 'lucide-react';
@@ -49,9 +53,9 @@ const App = () => {
     <Router>
       <Navbar />
       <Routes>
-        {/* Home page */}
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
+        {/* Menu page is the default/first page customers see */}
+        <Route path="/" element={<AllMenu />} />
+        <Route path="/home" element={<Navigate to="/" replace />} />
 
         {/* Food detail page (single page for every category - see FoodDetail.jsx) */}
         <Route path='/food/:id' element={<FoodDetail/>}/>
@@ -72,6 +76,7 @@ const App = () => {
 
         {/* Order History page */}
         <Route path='/order-history' element={<OrderHistory/>}/>
+        <Route path='/profile' element={<Profile/>}/>
 
         {/* All Menu page */}
         <Route path='/menu' element={<AllMenu/>}/>
@@ -80,6 +85,7 @@ const App = () => {
         <Route path='/pickup' element={<Pickup/>}/>
         <Route path='/shops' element={<Shops/>}/>
         <Route path='/restaurants' element={<Restaurants/>}/>
+        <Route path='/restaurants/:id' element={<RestaurantDetail/>}/>
 
         {/* About page */}
         <Route path='/about' element={<About/>}/>
@@ -87,6 +93,9 @@ const App = () => {
         {/* Auth pages */}
         <Route path='/login' element={<Login/>}/>
         <Route path='/register' element={<Register/>}/>
+        <Route path='/verify-otp' element={<VerifyOtp/>}/>
+        <Route path='/forgot-password' element={<ForgotPassword/>}/>
+        <Route path='/reset-password' element={<ResetPassword/>}/>
 
         {/* Search page */}
         <Route path='/search' element={<SearchResults/>}/>

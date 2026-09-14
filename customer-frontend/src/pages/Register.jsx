@@ -1,7 +1,23 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone } from 'react-icons/fa';
-import { getRoleRedirect, registerUser, saveAuthSession } from '../api/app';
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaStore } from 'react-icons/fa';
+import { registerUser, saveOtpChallenge } from '../api/app';
+import GoogleButton from '../components/GoogleButton';
+import brandLogo from '../assets/icon/logo_no_bg.png';
+
+const GOOGLE_ERROR_MESSAGES = {
+  auth_failed: 'Google sign-in was cancelled or failed. Please try again.',
+  no_email: 'Your Google account has no email address we can use to sign in.',
+  not_configured: 'Google sign-in is not set up on this server yet. Please use email sign-up, or contact the site admin.',
+  oauth_exchange_failed: 'Google rejected the sign-in request (a server configuration issue). Please use email sign-up, or contact the site admin.',
+  account_error: 'Google sign-in worked, but we could not finish creating your account. Please try again or contact support.',
+  role_not_supported: 'This account cannot sign up with Google. Please use your email and password to log in.',
+};
+
+const readGoogleErrorFromUrl = () => {
+  const googleError = new URLSearchParams(window.location.search).get('google_error');
+  return googleError ? (GOOGLE_ERROR_MESSAGES[googleError] || 'Google sign-in failed. Please try again.') : '';
+};
 
 const Register = () => {
   const navigate = useNavigate();
@@ -11,10 +27,22 @@ const Register = () => {
     email: '',
     password: '',
     password_confirmation: '',
-    role: 'customer' // តម្លៃលំនាំដើមសម្រាប់ customer
+    role: 'customer', // តម្លៃលំនាំដើមសម្រាប់ customer
+    restaurant_name: '',
+    restaurant_address: '',
+    restaurant_phone: '',
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(readGoogleErrorFromUrl);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('google_error')) {
+      params.delete('google_error');
+      const query = params.toString();
+      window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -42,13 +70,14 @@ const Register = () => {
         password: formData.password,
         password_confirmation: formData.password_confirmation,
         role: formData.role,
+        ...(formData.role === 'restaurant' && {
+          restaurant_name: formData.restaurant_name,
+          restaurant_address: formData.restaurant_address,
+          restaurant_phone: formData.restaurant_phone,
+        }),
       });
-      const { user, token } = saveAuthSession(response);
-      window.dispatchEvent(new Event('authChanged'));
-      const redirect = getRoleRedirect(user?.role, token);
-      redirect.startsWith('http')
-        ? window.location.assign(redirect)
-        : navigate(redirect);
+      const challenge = saveOtpChallenge(response);
+      navigate('/verify-otp', { state: { challenge } });
     } catch (requestError) {
       const validationErrors = requestError.response?.data?.errors;
       setError(
@@ -65,28 +94,16 @@ const Register = () => {
     <div className="w-full min-h-screen bg-[#F5F7FA] flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-[#0B1F3A] rounded-md flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white"
-            >
-              <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
-              <line x1="6" x2="18" y1="17" y2="17"></line>
-            </svg>
+        <div className="text-center mb-6">
+          <div className="w-50 h-35  rounded-md flex items-center justify-center mx-auto  ">
+            <img src={brandLogo} alt="24-Hour Food logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">
-            Create Account
+          <h1 className="text-xl font-bold text-[#0B1F3A] mb-2">
+            Welcome!
           </h1>
-          <p className="text-gray-600">Join Delish-Kh today</p>
+          <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">
+            Create an Account
+          </h1>
         </div>
 
         {/* Register Form */}
@@ -97,6 +114,35 @@ const Register = () => {
                 {error}
               </div>
             )}
+
+            {/* Account type */}
+            <div>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">Account Type</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, role: 'customer' })}
+                  className={`flex items-center justify-center gap-2 rounded-md border py-2.5 text-sm font-semibold transition ${
+                    formData.role === 'customer'
+                      ? 'border-[#0B1F3A] bg-[#0B1F3A] text-white'
+                      : 'border-[#D1D5DB] bg-white text-gray-600 hover:border-[#0B1F3A]'
+                  }`}
+                >
+                  <FaUser /> Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, role: 'restaurant' })}
+                  className={`flex items-center justify-center gap-2 rounded-md border py-2.5 text-sm font-semibold transition ${
+                    formData.role === 'restaurant'
+                      ? 'border-[#0B1F3A] bg-[#0B1F3A] text-white'
+                      : 'border-[#D1D5DB] bg-white text-gray-600 hover:border-[#0B1F3A]'
+                  }`}
+                >
+                  <FaStore /> Restaurant Owner
+                </button>
+              </div>
+            </div>
 
             {/* Name */}
             <div>
@@ -131,6 +177,51 @@ const Register = () => {
                 />
               </div>
             </div>
+
+            {/* Restaurant details (restaurant owner only) */}
+            {formData.role === 'restaurant' && (
+              <>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1 text-sm">Restaurant Name</label>
+                  <div className="relative">
+                    <FaStore className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      name="restaurant_name"
+                      value={formData.restaurant_name}
+                      onChange={handleChange}
+                      className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
+                      placeholder="Your Restaurant Name"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1 text-sm">Restaurant Address</label>
+                  <input
+                    type="text"
+                    name="restaurant_address"
+                    value={formData.restaurant_address}
+                    onChange={handleChange}
+                    className="app-input w-full px-4 py-3 outline-none transition-all text-sm"
+                    placeholder="Street, City"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1 text-sm">Restaurant Phone</label>
+                  <input
+                    type="text"
+                    name="restaurant_phone"
+                    value={formData.restaurant_phone}
+                    onChange={handleChange}
+                    className="app-input w-full px-4 py-3 outline-none transition-all text-sm"
+                    placeholder="012 345 678"
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             {/* Password */}
             <div>
@@ -183,33 +274,30 @@ const Register = () => {
             </button>
           </form>
 
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">or</span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
+
+          <GoogleButton role={formData.role} />
+
           {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
               Already have an account?{' '}
-              <Link to="/login" className="text-orange-600 hover:text-orange-700 font-bold">
-                Sign In
+              <Link to="/login" className="text-black hover:text-[#163A63] font-bold">
+                Sign Up
               </Link>
             </p>
           </div>
 
-          {/* Partner Signup Link */}
-          <div className="mt-3 text-center">
-            <p className="text-gray-500 text-xs">
-              Want to list your restaurant?{' '}
-              <a
-                href={`${import.meta.env.VITE_ADMIN_APP_URL || 'http://localhost:5173'}/register`}
-                className="text-orange-600 hover:text-orange-700 font-bold"
-              >
-                Register your restaurant
-              </a>
-            </p>
-          </div>
         </div>
 
         {/* Back to Home */}
         <div className="text-center mt-6">
-          <Link to="/home" className="text-gray-600 hover:text-gray-900 font-semibold text-sm">
+          <Link to="/" className="text-gray-600 hover:text-gray-900 font-semibold text-sm">
             ← Back to Home
           </Link>
         </div>

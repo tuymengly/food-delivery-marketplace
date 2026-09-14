@@ -3,17 +3,18 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AdminRoutes from './routes/AdminRoutes';
 import RestaurantRoutes from './routes/RestaurantRoutes';
 import DriverRoutes from './routes/DriverRoutes';
-import Login from './pages/Login';
-import Register from './pages/Register';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import API from './services/api';
+
+const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174';
 
 const RootRedirect = () => {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
 
   if (!token || !userStr) {
-    return <Navigate to="/login" replace />;
+    window.location.assign(`${CUSTOMER_APP_URL}/login`);
+    return null;
   }
 
   try {
@@ -31,7 +32,8 @@ const RootRedirect = () => {
     console.error('Error parsing user from localStorage', e);
   }
 
-  return <Navigate to="/login" replace />;
+  window.location.assign(`${CUSTOMER_APP_URL}/login`);
+  return null;
 };
 
 // Picks up a session handed off from another portal (e.g. customer-frontend)
@@ -78,9 +80,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
         <Route path="/" element={<RootRedirect />} />
       
         <Route

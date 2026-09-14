@@ -29,8 +29,8 @@ export default function Header({
     const fetchDriverProfile = async () => {
       try {
         setLoading(true);
-        const response = await API.get('/driver/profile'); 
-        const userProfile = response.data?.data || response.data;
+        const response = await API.get('/user');
+        const userProfile = response.data?.data?.user || response.data?.data || response.data;
         if (userProfile) {
           setUserData(userProfile);
           localStorage.setItem('user', JSON.stringify(userProfile));
@@ -54,7 +54,7 @@ export default function Header({
     localStorage.removeItem('token');
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
-    navigate('/login');
+    window.location.assign(`${import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174'}/login`);
   };
 
   return (

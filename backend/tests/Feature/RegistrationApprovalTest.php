@@ -92,8 +92,13 @@ class RegistrationApprovalTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.user.role', 'restaurant')
-            ->assertJsonPath('data.user.status', 'Active');
+            ->assertJsonPath('data.otp_required', true)
+            ->assertJsonPath('data.purpose', 'registration')
+            ->assertJsonStructure([
+                'data' => ['challenge_token', 'masked_email', 'expires_in', 'resend_available_in'],
+            ])
+            ->assertJsonMissingPath('data.user')
+            ->assertJsonMissingPath('data.token');
 
         $this->assertDatabaseHas('restaurants', [
             'name' => 'Tasty Bites',

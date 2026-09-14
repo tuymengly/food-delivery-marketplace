@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\FoodRecommendationController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RestaurantController;
@@ -25,13 +26,32 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public Auth Routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+// Neither of these completes authentication by itself anymore - both return
+// an OTP challenge that must be finished via /auth/otp/verify before a
+// Sanctum token is issued (see AuthController).
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/auth/password/forgot', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/auth/password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
+
+// OTP challenge completion, shared by register/login/Google sign-in - see
+// OtpService and OtpCode::PURPOSES.
+Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:20,1');
+Route::post('/auth/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:10,1');
+
+// Google OAuth ("Continue with Google") - browser-redirect flow, not JSON.
+// Only ever creates/links 'customer' or 'restaurant' accounts; see
+// GoogleAuthController for the role whitelist enforced server-side. Like
+// register/login above, this hands back an OTP challenge, not a token.
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->middleware('throttle:20,1');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:20,1');
 
 // Protected Routes (Sanctum Auth)
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/profile', [AuthController::class, 'updateUserProfile']);
+    Route::put('/change-password', [AuthController::class, 'changePassword']);
 
     // Restaurant Profile & Settings Routes
     Route::get('/restaurant/profile', [RestaurantController::class, 'profile']);

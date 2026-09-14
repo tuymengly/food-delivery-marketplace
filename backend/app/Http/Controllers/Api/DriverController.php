@@ -30,6 +30,10 @@ class DriverController extends Controller
             'items'       => $itemsFormatted ?: 'No items',
             'time'        => $order->created_at ? $order->created_at->diffForHumans() : 'Just now',
             'status'      => ucfirst($order->status),
+            // orders.status collapses picked_up/delivering into one value
+            // (see OrderStatuses aliases), so the driver UI needs the
+            // delivery's own finer-grained status to drive its 3-step flow.
+            'delivery_status' => $order->delivery->status ?? null,
         ];
     }
 

@@ -20,7 +20,7 @@
 		margin: 0;
 		background: var(--canvas);
 		color: var(--ink);
-		font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+		font-family: Inter, "Segoe UI", sans-serif;
 		-webkit-font-smoothing: antialiased;
 	}
 
@@ -44,6 +44,10 @@
 	.dashboard-content {
 		min-height: 100vh;
 		background: var(--canvas);
+	}
+
+	.admin-content {
+		font-size: 14px;
 	}
 
 	.dashboard-nav-item {
@@ -108,60 +112,57 @@
 		background-color: #f8fafc;
 	}
 
-	.dashboard-content .rounded-2xl {
-		border-radius: 6px;
-	}
-
 	/* Admin operations UI: flat, compact, and consistent across legacy pages. */
-	.dashboard-content [class*="rounded-3xl"],
-	.dashboard-content [class*="rounded-2xl"],
-	.dashboard-content [class*="rounded-xl"] {
+	.admin-content [class*="rounded-3xl"],
+	.admin-content [class*="rounded-2xl"],
+	.admin-content [class*="rounded-xl"] {
 		border-radius: 6px;
 	}
 
-	.dashboard-content [class*="shadow-"],
-	.dashboard-content [class*="shadow["] {
+	.admin-content [class*="shadow-"],
+	.admin-content [class*="shadow["] {
 		box-shadow: none;
 	}
 
-	.dashboard-content button {
+	.admin-content button {
 		border-radius: 5px;
 		box-shadow: none;
 	}
 
-	.dashboard-content button[class*="rounded-full"] {
-		border-radius: 9999px;
+	.admin-content button[class*="rounded-full"] {
+		border-radius: 5px;
 	}
 
-	.dashboard-content input:not([type="checkbox"]):not([type="radio"]),
-	.dashboard-content select,
-	.dashboard-content textarea {
+	.admin-content input:not([type="checkbox"]):not([type="radio"]),
+	.admin-content select,
+	.admin-content textarea {
 		border-radius: 4px;
 		box-shadow: none;
 	}
 
-	.dashboard-content input:focus,
-	.dashboard-content select:focus,
-	.dashboard-content textarea:focus {
+	.admin-content input:focus,
+	.admin-content select:focus,
+	.admin-content textarea:focus {
 		border-color: var(--brand-accent);
 		outline: 2px solid rgb(37 99 235 / 14%);
 		outline-offset: 0;
 	}
 
-	.dashboard-content .bg-white[class*="border"] {
+	.admin-content .bg-white[class*="border"] {
 		border-color: var(--line);
 	}
 
-	.dashboard-content table {
+	.admin-content table {
 		border-collapse: collapse;
+		background: var(--surface);
 	}
 
-	.dashboard-content table thead tr {
+	.admin-content table thead tr {
 		background: #f8fafc;
 		border-bottom: 1px solid var(--line);
 	}
 
-	.dashboard-content table th {
+	.admin-content table th {
 		color: #64748b;
 		font-size: 0.6875rem;
 		font-weight: 700;
@@ -169,44 +170,93 @@
 		text-transform: uppercase;
 	}
 
-	.dashboard-content table tbody tr {
+	.admin-content table tbody tr {
 		border-bottom: 1px solid #e5e7eb;
 	}
 
-	.dashboard-content table tbody tr:hover {
+	.admin-content table tbody tr:hover {
 		background: #f8fafc;
 	}
 
-	.dashboard-content .hover\:shadow-md:hover,
-	.dashboard-content .hover\:shadow-lg:hover,
-	.dashboard-content .hover\:shadow-xl:hover,
-	.dashboard-content .hover\:shadow-2xl:hover {
+	.admin-content .hover\:shadow-md:hover,
+	.admin-content .hover\:shadow-lg:hover,
+	.admin-content .hover\:shadow-xl:hover,
+	.admin-content .hover\:shadow-2xl:hover {
 		box-shadow: none;
 	}
 
-	.dashboard-content .hover\:-translate-y-0\.5:hover,
-	.dashboard-content .hover\:-translate-y-1:hover,
-	.dashboard-content .hover\:-translate-y-3:hover {
+	.admin-content .hover\:-translate-y-0\.5:hover,
+	.admin-content .hover\:-translate-y-1:hover,
+	.admin-content .hover\:-translate-y-3:hover {
 		transform: none;
 	}
 
-	.dashboard-content .backdrop-blur-sm,
-	.dashboard-content .backdrop-blur-md,
-	.dashboard-content .backdrop-blur-lg {
+	.admin-content .backdrop-blur-sm,
+	.admin-content .backdrop-blur-md,
+	.admin-content .backdrop-blur-lg,
+	.admin-content .backdrop-blur-xs {
 		backdrop-filter: none;
 	}
 
-	.dashboard-content .bg-purple-50,
-	.dashboard-content .text-purple-500,
-	.dashboard-content .bg-indigo-50,
-	.dashboard-content .text-indigo-400,
-	.dashboard-content .bg-sky-50,
-	.dashboard-content .text-sky-400 {
+	.admin-content .bg-purple-50,
+	.admin-content .text-purple-500,
+	.admin-content .bg-indigo-50,
+	.admin-content .text-indigo-400,
+	.admin-content .bg-sky-50,
+	.admin-content .text-sky-400 {
 		background-color: #eff6ff;
 		color: var(--brand-accent);
 	}
 
-	.dashboard-content .rounded-full:not(input):not(button) {
+	.admin-content .rounded-full:not(input):not(button) {
 		border-radius: 4px;
+	}
+
+	.admin-content .bg-\[\#fffaf8\],
+	.admin-content .bg-\[\#fcfbfa\] {
+		background: var(--canvas);
+	}
+
+	.admin-content .bg-orange-600,
+	.admin-content .hover\:bg-orange-700:hover {
+		background-color: var(--brand-navy);
+	}
+
+	.admin-content .text-orange-600,
+	.admin-content .hover\:text-orange-700:hover {
+		color: var(--brand-accent);
+	}
+
+	.admin-content .bg-orange-500,
+	.admin-content .hover\:bg-orange-600:hover {
+		background-color: var(--brand-blue);
+	}
+
+	.admin-content .border-orange-100,
+	.admin-content .border-orange-200 {
+		border-color: var(--line);
+	}
+
+	.admin-content .bg-orange-50,
+	.admin-content .bg-orange-50\/60,
+	.admin-content .bg-orange-100,
+	.admin-content .bg-orange-100\/80 {
+		background-color: #eff6ff;
+	}
+
+	.admin-content .text-orange-700,
+	.admin-content .text-orange-800 {
+		color: var(--brand-blue);
+	}
+
+	.admin-content .bg-white.rounded-2xl,
+	.admin-content .bg-white.rounded-xl {
+		border-color: var(--line);
+	}
+
+	.admin-content [class*="bg-gradient"],
+	.admin-content [class*="from-orange"],
+	.admin-content [class*="to-orange"] {
+		background-image: none;
 	}
 }

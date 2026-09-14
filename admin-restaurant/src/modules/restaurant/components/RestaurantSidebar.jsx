@@ -23,7 +23,7 @@ const resolveImageUrl = (image) => {
   return `http://127.0.0.1:8000/storage/${image}`;
 };
 
-export default function RestaurantSidebar({ onClose }) {
+export default function RestaurantSidebar({ onClose, onLogout }) {
   const [restaurantData, setRestaurantData] = useState({
     name: '24 HOUR FOOD',
     image: logoImg,
@@ -171,8 +171,8 @@ export default function RestaurantSidebar({ onClose }) {
           <HelpCircle size={18} /> Help Center
         </NavLink>
 
-        <button 
-          onClick={onClose}
+        <button
+          onClick={onLogout}
            className="flex items-center gap-3 px-4 py-2.5 text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition w-full text-left text-sm"
         >
           <LogOut size={18} /> Logout Store
