@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { FaArrowLeft, FaMapMarkerAlt } from "react-icons/fa";
 import { fetchRestaurant } from "../api/restaurantApi";
 import { normalizeFood } from "../api/foodApi";
 
 const RestaurantDetail = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Arriving from the Pick-up tab means the customer wants to collect
+    // this order in person, so remember that so Cart can default its
+    // "Order type" toggle to Pick-up instead of always starting on Delivery.
+    if (searchParams.get("type") === "pickup") {
+      localStorage.setItem("preferredOrderType", "pickup");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let isMounted = true;

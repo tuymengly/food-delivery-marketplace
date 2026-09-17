@@ -203,4 +203,16 @@ export const createOrder = (payload) =>
 
 export const getOrders = () => apiRequest('/orders');
 
+// PayWay payments - the backend is the only thing that ever confirms payment.
+export const createPayWayPayment = (orderId, paymentMethod = 'khqr') =>
+  apiRequest('/payments/payway', {
+    method: 'POST',
+    body: JSON.stringify({ order_id: orderId, payment_method: paymentMethod }),
+  });
+
+export const createKhqrPayment = (orderId) =>
+  createPayWayPayment(orderId, 'khqr');
+
+export const getPaymentStatus = (paymentId) => apiRequest(`/payments/${paymentId}`);
+
 export default apiRequest;

@@ -125,7 +125,7 @@ export default function ManageFoods() {
   });
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 bg-[#F4F5F7] min-h-screen space-y-6 text-[#1A2233]">
+    <div className="p-4 sm:p-6 md:p-8 bg-[#F4F5F7] min-h-screen space-y-6 text-blu">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-[#D6DBE3]">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-[#0B1F3B] tracking-tight">Menu / Foods</h2>

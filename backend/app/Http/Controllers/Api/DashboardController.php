@@ -105,7 +105,7 @@ class DashboardController extends Controller
         if (!$restaurantId || !Restaurant::whereKey($restaurantId)->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'រកមិនឃើញទិន្នន័យហាងឡើយ!'
+                'message' => 'Not found!'
             ], 404);
         }
 

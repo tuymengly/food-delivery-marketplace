@@ -87,28 +87,36 @@ export default function Header({
 
         {/* Profile Dropdown Container */}
         <div className="relative">
-          <div 
-            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="flex items-center gap-3 cursor-pointer group py-1 px-2 rounded-xl hover:bg-slate-50 transition select-none"
-          >
-            <div className="w-9 h-9 rounded-md bg-[#163A63] text-white font-bold flex items-center justify-center text-sm">
-              {userData?.name ? userData.name.charAt(0).toUpperCase() : 'D'}
-            </div>
-            <div className="hidden sm:block text-left leading-tight">
-              <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#2563EB] transition">
-                {userData?.name || 'Driver Name'}
-              </h4>
-              <span className="text-[10px] text-slate-400 font-medium capitalize">
-                {userData?.role || 'Driver'}
-              </span>
-            </div>
-            <ChevronDown size={14} className={`text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
-          </div>
+         <div 
+  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+  className="flex items-center gap-3 cursor-pointer group py-1 px-2 rounded-xl hover:bg-slate-50 transition select-none"
+>
+  {userData?.profile_image ? (
+    <img
+      src={userData.profile_image}
+      alt={userData?.name || 'Driver profile'}
+      className="w-9 h-9 rounded-md object-cover shrink-0"
+    />
+  ) : (
+    <div className="w-9 h-9 rounded-md bg-[#163A63] text-white font-bold flex items-center justify-center text-sm shrink-0">
+      {userData?.name ? userData.name.charAt(0).toUpperCase() : 'D'}
+    </div>
+  )}
+  <div className="hidden sm:block text-left leading-tight">
+    <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#2563EB] transition">
+      {userData?.name || 'Driver Name'}
+    </h4>
+    <span className="text-[10px] text-slate-400 font-medium capitalize">
+      {userData?.role || 'Driver'}
+    </span>
+  </div>
+  <ChevronDown size={14} className={`text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+</div>
 
           {/* Profile Dropdown Menu */}
           {isProfileDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-2 z-50">
-              <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-black-100  shadow-lg py-2 z-50">
+              <div className="px-4 py-2 border-b border-black-100 sm:hidden">
                 <p className="font-bold text-slate-800 text-xs">{userData?.name || 'Driver Name'}</p>
                 <p className="text-[10px] text-slate-400 capitalize">{userData?.role || 'Driver'}</p>
               </div>
@@ -120,7 +128,7 @@ export default function Header({
               </button>
               <button 
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition text-left"
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-red-500 hover:bg-red-50 transition text-left"
               >
                 <LogOut size={16} /> Logout
               </button>

@@ -1,5 +1,5 @@
 import { X, LogOut, HelpCircle } from "lucide-react";
-import logoImg from '../../../assets/Logo Upgrade (No Background).png';
+import logoImg from '../../../assets/logo_no_bg.png';
 
 export default function Sidebar({
   isSidebarOpen,
@@ -34,12 +34,12 @@ export default function Sidebar({
             </button>
 
             <div className="flex flex-col items-center justify-center space-y-2 pt-1">
-              {/* កែប្រែត្រង់នេះ: ដាក់ rounded-full */}
+             
               <div className="w-20 h-20 overflow-hidden flex items-center justify-center">
                 <img
                   src={logoImg}
                   alt="Logo"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain bg-stone-300 rounded-2xl"
                 />
               </div>
 

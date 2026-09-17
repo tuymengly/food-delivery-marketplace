@@ -46,6 +46,23 @@ export const updateRestaurantStatus = async (id, status) => {
   return await API.put(`/restaurants/${id}/status`, { status: normalizeRestaurantStatus(status) });
 };
 
+// Restaurant Applications (registration review) APIs
+export const getRestaurantApplications = async (status = 'all') => {
+  return await API.get('/admin/restaurants', { params: { status } });
+};
+
+export const getRestaurantApplication = async (id) => {
+  return await API.get(`/admin/restaurants/${id}`);
+};
+
+export const approveRestaurantApplication = async (id) => {
+  return await API.put(`/admin/restaurants/${id}/approve`);
+};
+
+export const rejectRestaurantApplication = async (id, rejectionReason) => {
+  return await API.put(`/admin/restaurants/${id}/reject`, { rejection_reason: rejectionReason });
+};
+
 export const getReviews = async () => {
   return await API.get('/admin/reviews');
 };

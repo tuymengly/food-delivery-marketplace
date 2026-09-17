@@ -9,7 +9,7 @@ import { MdDeliveryDining } from 'react-icons/md';
 import { clearCart as clearApiCart, fetchCart, removeCartItem, toggleFoodRecommendation, updateCartItem } from '../api/foodApi';
 import { fetchRestaurant } from '../api/restaurantApi';
 import { validateVoucher } from '../api/voucherApi';
-import { createOrder, getStoredUser } from '../api/app';
+import { createOrder, createPayWayPayment, getStoredUser } from '../api/app';
 import { getStoredLocation } from '../utils/location';
 import Toast from '../components/Toast';
 import AddressPickerModal from '../components/AddressPickerModal';
@@ -19,9 +19,8 @@ const SERVICE_FEE = 0.3;
 
 const PAYMENT_METHODS = [
   { id: 'cash', label: 'Cash', description: 'Pay when your order arrives', icon: FaMoneyBillWave },
-  { id: 'aba', label: 'ABA Pay', description: 'Pay via ABA mobile app', icon: FaMobileAlt },
-  { id: 'khqr', label: 'KHQR', description: 'Scan to pay with any bank app', icon: FaQrcode },
-  { id: 'card', label: 'Credit / Debit Card', description: 'Secure online payment', icon: FaCreditCard },
+  { id: 'khqr', label: 'ABA KHQR', description: 'Scan to pay with ABA or any KHQR bank app', icon: FaQrcode },
+  { id: 'card', label: 'Credit / Debit Card', description: 'Pay securely with ABA PayWay checkout', icon: FaCreditCard },
 ];
 
 const readStoredJson = (key, fallback) => {
@@ -44,7 +43,13 @@ const Cart = () => {
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
 
-  const [orderType, setOrderType] = useState('delivery');
+  const [orderType, setOrderType] = useState(
+    () => localStorage.getItem('preferredOrderType') || 'delivery',
+  );
+
+  useEffect(() => {
+    localStorage.removeItem('preferredOrderType');
+  }, []);
   const [selectedLocation, setSelectedLocation] = useState(getStoredLocation);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [restaurantDetail, setRestaurantDetail] = useState(null);
@@ -60,6 +65,15 @@ const Cart = () => {
   const [submitError, setSubmitError] = useState('');
 
   const showToast = (message, type = 'error') => setToast({ message, type });
+
+  const describeApiError = (error, fallback) => {
+    const errors = error.response?.data?.errors;
+    if (errors && typeof errors === 'object') {
+      const detail = Object.values(errors).flat().join(' ');
+      if (detail) return detail;
+    }
+    return error.response?.data?.message || error.message || fallback;
+  };
 
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('user');
@@ -264,8 +278,13 @@ const Cart = () => {
       const apiResponse = await createOrder(payload);
       savedOrder = apiResponse.data;
     } catch (error) {
-      setSubmitError(error.response?.data?.message || error.message || 'Unable to place your order.');
+      setSubmitError(describeApiError(error, 'Unable to place your order.'));
       setIsSubmitting(false);
+      if (error.response?.data?.errors?.address_id) {
+        localStorage.removeItem('deliveryLocation');
+        setSelectedLocation(null);
+        setAddressModalOpen(true);
+      }
       return;
     }
 
@@ -275,6 +294,10 @@ const Cart = () => {
       remoteId: savedOrder?.id,
       date: new Date().toISOString(),
       items: cartItems,
+      orderType,
+      pickupLocation: orderType === 'pickup'
+        ? { name: restaurantDetail?.name || cartItems[0]?.restaurantName, address: restaurantDetail?.address }
+        : null,
       customerInfo: {
         fullName: user.name || '',
         phone: user.phone || '',
@@ -296,6 +319,20 @@ const Cart = () => {
     localStorage.setItem('lastOrderId', String(order.id));
     localStorage.removeItem('cart');
     window.dispatchEvent(new Event('cartUpdated'));
+
+    if (['khqr', 'card'].includes(paymentMethod) && savedOrder?.id) {
+      try {
+        const paymentResponse = await createPayWayPayment(savedOrder.id, paymentMethod);
+        const payment = paymentResponse.data;
+        setIsSubmitting(false);
+        navigate(`/payment/payway/${payment.id}`, { state: { payment, order } });
+        return;
+      } catch (error) {
+        setSubmitError(describeApiError(error, 'Unable to start ABA PayWay payment. Please try another method.'));
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     setIsSubmitting(false);
     navigate('/order-success', { state: { order } });
@@ -478,14 +515,14 @@ const Cart = () => {
           {/* Right: order type, address, voucher, payment, summary, checkout */}
           <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24 lg:self-start">
             {/* Order type */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <div className="bg-white cursor-pointer rounded-2xl shadow-sm border border-slate-100 p-5">
               <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>Order type</h3>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {['delivery', 'pickup'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setOrderType(type)}
-                    className="py-2.5 rounded-lg text-sm font-semibold border transition capitalize"
+                    className="py-2.5 cursor-pointer rounded-lg text-sm font-semibold border transition capitalize"
                     style={orderType === type
                       ? { background: 'var(--brand-navy)', color: 'white', borderColor: 'var(--brand-navy)' }
                       : { color: 'var(--muted)', borderColor: 'var(--line)' }}
@@ -567,7 +604,7 @@ const Cart = () => {
                   <button onClick={() => { setVoucherOpen(false); setVoucherError(''); }} className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Cancel</button>
                 </div>
               ) : (
-                <button onClick={() => setVoucherOpen(true)} className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--brand-accent)' }}>
+                <button onClick={() => setVoucherOpen(true)} className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--brand-accent)' }}>
                   <FaTicketAlt /> Add voucher
                 </button>
               )}

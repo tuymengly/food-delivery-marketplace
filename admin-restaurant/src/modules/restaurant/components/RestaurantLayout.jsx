@@ -74,7 +74,7 @@ export default function RestaurantLayout() {
       {isSidebarOpen && (
         <div 
           onClick={() => setIsSidebarOpen(false)} 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-[#0B1F3B]/60 z-40 lg:hidden backdrop-blur-[2px] transition-opacity"
         />
       )}
 
@@ -88,13 +88,13 @@ export default function RestaurantLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="flex items-center justify-between gap-2 px-4 lg:px-8 py-3 bg-white border-b border-slate-100 sticky top-0 z-30">
+        <header className="flex items-center justify-between gap-2 px-4 lg:px-8 py-3 bg-white border-b border-[#D6DBE3] sticky top-0 z-30">
           
           {/* Mobile Menu Button & Search Bar */}
           <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-md">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl shrink-0 transition"
+              className="lg:hidden p-2 text-slate-600 hover:bg-[#EEF2F8] shrink-0 transition"
               aria-label="Toggle Menu"
             >
               {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
@@ -102,14 +102,14 @@ export default function RestaurantLayout() {
 
             {/* Search Input */}
             <div className="relative w-full">
-              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                 type="text"
                 placeholder="Search food, orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="dashboard-input w-full pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-800 focus:outline-none transition-all focus:border-[#2563EB]"
+                className="dashboard-input w-full pl-9 pr-4 py-2 border border-[#D6DBE3] text-xs sm:text-sm text-[#1A2233] focus:outline-none transition-all focus:border-[#0B1F3B]"
               />
             </div>
           </div>
@@ -118,8 +118,8 @@ export default function RestaurantLayout() {
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             
             {/* Live Order Counter Badge */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold">
-              <UtensilsCrossed size={16} className="text-[#2563EB]" />
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#FBEEEC] border border-[#F0D5CF] text-[#A6321E] text-xs font-bold">
+              <UtensilsCrossed size={16} className="text-[#A6321E]" />
               <span>Live Orders</span>
             </div>
 
@@ -130,13 +130,13 @@ export default function RestaurantLayout() {
             <div className="relative">
               <div 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2.5 cursor-pointer pl-2 sm:pl-4 border-l border-slate-200 py-1 px-2 rounded-xl hover:bg-slate-50 transition select-none"
+                className="flex items-center gap-2.5 cursor-pointer pl-2 sm:pl-4 border-l border-[#D6DBE3] py-1 px-2 hover:bg-[#EEF2F8] transition select-none"
               >
-                <div className="w-9 h-9 bg-[#163A63] text-white rounded-md flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-9 h-9 bg-[#0B1F3B] text-white flex items-center justify-center font-bold text-sm shrink-0">
                   {user?.name ? user.name.charAt(0).toUpperCase() : '🍔'}
                 </div>
                 <div className="hidden sm:flex flex-col">
-                  <span className="font-bold text-slate-800 text-xs leading-tight">{user?.name}</span>
+                  <span className="font-semibold text-[#1A2233] text-xs leading-tight">{user?.name}</span>
                   <span className="text-[10px] text-emerald-600 font-semibold capitalize">{user?.role}</span>
                 </div>
                 <ChevronDown size={16} className={`text-slate-400 hidden sm:inline transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
@@ -144,22 +144,22 @@ export default function RestaurantLayout() {
 
               {/* Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-2 z-50">
-                  <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
-                    <p className="font-bold text-slate-800 text-xs">{user?.name}</p>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-[#D6DBE3] shadow-lg py-1 z-50">
+                  <div className="px-4 py-2 border-b border-[#D6DBE3] sm:hidden">
+                    <p className="font-semibold text-[#1A2233] text-xs">{user?.name}</p>
                     <p className="text-[10px] text-emerald-600 capitalize">{user?.role}</p>
                   </div>
                   <button 
                     onClick={() => { setIsProfileDropdownOpen(false); navigate('/restaurant/profile'); }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[#1A2233] hover:bg-[#EEF2F8] transition cursor-pointer"
                   >
-                    <UserIcon size={16} /> Restaurant Profile
+                    <UserIcon size={15} /> Restaurant Profile
                   </button>
                   <button 
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[#A6321E] hover:bg-[#FBEEEC] transition cursor-pointer"
                   >
-                    <LogOut size={16} /> Logout
+                    <LogOut size={15} /> Logout
                   </button>
                 </div>
               )}
@@ -171,7 +171,7 @@ export default function RestaurantLayout() {
         {/* Dynamic Page Content */}
         <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-x-hidden">
           {restaurantStatus && restaurantStatus !== 'active' && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            <div className="mb-4 flex items-center gap-2 border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
               <span>
                 {restaurantStatus === 'pending'
                   ? 'Your restaurant application is pending admin approval. You can preview your dashboard, but menu, category, and order management stay locked until an admin approves it.'

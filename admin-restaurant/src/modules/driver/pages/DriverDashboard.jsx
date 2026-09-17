@@ -69,6 +69,7 @@ export default function DriverDashboard() {
   }));
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFile, setProfileFile] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
 
   const navItems = [
     { id: "requests", label: "Delivery Requests", icon: Package },
@@ -144,6 +145,20 @@ export default function DriverDashboard() {
     if (location.pathname.endsWith("/profile")) setActiveTab("profile");
   }, [location.pathname]);
 
+  // Revoke the object URL when it's replaced or the component unmounts,
+  // so we don't leak memory across repeated photo picks.
+  useEffect(() => {
+    return () => {
+      if (profileImagePreview) URL.revokeObjectURL(profileImagePreview);
+    };
+  }, [profileImagePreview]);
+
+  const handleProfilePhotoChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setProfileFile(file);
+    setProfileImagePreview(file ? URL.createObjectURL(file) : "");
+  };
+
   const saveProfile = async (event) => {
     event.preventDefault();
     setSavingProfile(true);
@@ -163,6 +178,7 @@ export default function DriverDashboard() {
       };
       setProfile(updated);
       setProfileFile(null);
+      setProfileImagePreview("");
       localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
       window.dispatchEvent(
         new CustomEvent("driver-profile-updated", { detail: updated }),
@@ -247,7 +263,7 @@ export default function DriverDashboard() {
       await loadDriverDashboard();
 
       if (status === "completed") {
-        alert("ការដឹកជញ្ជូនត្រូវបានបញ្ចប់ដោយជោគជ័យ!");
+        alert("Delivery completed successfully.");
       }
     } catch (err) {
       alert(
@@ -261,7 +277,7 @@ export default function DriverDashboard() {
   const activeStatus = String(activeOrder?.delivery_status || "").toLowerCase();
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] text-slate-800 font-sans overflow-hidden relative">
+    <div className="flex h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden relative">
       <Sidebar
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
@@ -270,7 +286,7 @@ export default function DriverDashboard() {
         navItems={navItems}
       />
 
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full bg-[#f8fafc]">
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full bg-slate-100">
         <Header
           setIsSidebarOpen={setIsSidebarOpen}
           searchTerm={searchTerm}
@@ -279,119 +295,113 @@ export default function DriverDashboard() {
         />
 
         <main className="p-4 sm:p-8 space-y-6 w-full max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-slate-300 pb-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
-                Driver workspace
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                Driver Workspace
               </p>
-              <h2 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 uppercase">
                 {activeTab === "requests"
-                  ? "Ready for your next delivery?"
-                  : `${activeTab} overview`}
+                  ? "Pending Dispatch"
+                  : `${activeTab} Overview`}
               </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Stay on top of deliveries and keep customers moving.
-              </p>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={loadDriverDashboard}
                 disabled={loading}
-                className="h-10 px-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 shadow-sm hover:border-orange-200 hover:text-orange-600 disabled:opacity-60"
+                className="h-10 px-5 flex items-center gap-2 rounded-none border border-slate-300 bg-white text-[11px] font-bold uppercase tracking-wider text-slate-700 shadow-sm hover:bg-slate-50 hover:text-blue-900 transition-colors disabled:opacity-60"
               >
                 <RefreshCw
-                  size={15}
+                  size={14}
                   className={loading ? "animate-spin" : ""}
                 />
                 Refresh
               </button>
 
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2">
+              <div className="flex items-center gap-3 rounded-none border border-slate-300 bg-white px-4 py-2 shadow-sm">
                 <span
-                  className={`text-[11px] font-bold tracking-wider ${isOnline ? "text-emerald-600" : "text-slate-400"}`}
+                  className={`text-[11px] font-bold tracking-widest uppercase ${isOnline ? "text-emerald-700" : "text-slate-500"}`}
                 >
-                  {isOnline ? "AVAILABLE" : "OFFLINE"}
+                  {isOnline ? "Available" : "Offline"}
                 </span>
                 <button
                   onClick={toggleOnline}
-                  className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-colors ${
+                  className={`w-12 h-6 flex items-center rounded-none p-0.5 border border-slate-300 transition-colors ${
                     isOnline
-                      ? "bg-emerald-500 justify-end"
-                      : "bg-slate-300 justify-start"
+                      ? "bg-emerald-500 justify-end border-emerald-600"
+                      : "bg-slate-200 justify-start"
                   }`}
                   aria-label="Toggle driver availability"
                 >
-                  <span className="w-5 h-5 bg-white rounded-full shadow-md" />
+                  <span className="w-5 h-5 bg-white rounded-none shadow-sm border border-slate-300" />
                 </button>
               </div>
             </div>
           </div>
 
+          {/* Location Error */}
           {locationError && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">
+            <div className="flex items-center justify-between gap-3 rounded-none border border-rose-300 bg-rose-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-rose-800 shadow-sm">
               <span className="flex items-center gap-2">
-                <AlertCircle size={15} /> {locationError}
+                <AlertCircle size={16} /> {locationError}
               </span>
               <button
                 onClick={() => setLocationError(null)}
-                className="text-amber-500 hover:text-amber-700"
+                className="text-rose-600 hover:text-rose-900 underline"
               >
                 Dismiss
               </button>
             </div>
           )}
 
+          {/* Metric Cards */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
             {[
               {
-                label: "Today deliveries",
+                label: "Today Deliveries",
                 value: summary.today_deliveries,
                 icon: Package,
-                tone: "orange",
+                tone: "bg-slate-50 text-slate-700 border-slate-200",
               },
               {
-                label: "Today's earnings",
+                label: "Today's Earnings",
                 value: summary.today_earnings,
                 icon: Wallet,
-                tone: "emerald",
+                tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
               },
               {
-                label: "This week",
+                label: "This Week",
                 value: summary.week_earnings,
                 icon: Navigation,
-                tone: "blue",
+                tone: "bg-blue-50 text-blue-700 border-blue-200",
               },
               {
-                label: "This month",
+                label: "This Month",
                 value: summary.month_earnings,
                 icon: CheckCircle,
-                tone: "rose",
+                tone: "bg-slate-800 text-white border-slate-900",
               },
             ].map((stat) => {
               const StatIcon = stat.icon;
-              const tone = {
-                orange: "bg-orange-50 text-orange-600",
-                emerald: "bg-emerald-50 text-emerald-600",
-                blue: "bg-blue-50 text-blue-600",
-                rose: "bg-rose-50 text-rose-600",
-              }[stat.tone];
               return (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 shadow-sm"
+                  className="rounded-none border border-slate-300 bg-white p-5 shadow-sm"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                       {stat.label}
                     </p>
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-none border ${stat.tone}`}
                     >
-                      <StatIcon size={17} />
+                      <StatIcon size={14} />
                     </span>
                   </div>
-                  <p className="mt-4 text-xl sm:text-2xl font-black text-slate-900">
+                  <p className="mt-3 text-xl sm:text-2xl font-bold text-slate-900">
                     {stat.value}
                   </p>
                 </div>
@@ -399,49 +409,56 @@ export default function DriverDashboard() {
             })}
           </div>
 
+          {/* Main Content Area */}
           {loading ? (
-            <div className="bg-white p-10 rounded-2xl border border-slate-100 text-center text-slate-500 font-medium shadow-sm flex items-center justify-center gap-2">
-              <Loader2 size={20} className="animate-spin text-orange-600" />
-              Loading driver data...
+            <div className="bg-white p-12 rounded-none border border-slate-300 text-center text-xs font-bold uppercase tracking-widest text-slate-500 shadow-sm flex items-center justify-center gap-3">
+              <Loader2 size={18} className="animate-spin text-blue-900" />
+              Loading Driver Data...
             </div>
           ) : error ? (
-            <div className="bg-rose-50 p-8 rounded-2xl border border-rose-100 text-center text-rose-700 font-medium shadow-sm">
-              <AlertCircle size={28} className="mx-auto mb-2" />
+            <div className="bg-white p-10 rounded-none border border-rose-300 text-center text-xs font-bold uppercase tracking-widest text-rose-800 shadow-sm">
+              <AlertCircle size={24} className="mx-auto mb-3 text-rose-700" />
               {error}
             </div>
           ) : (
             <>
+              {/* Active Order Banner */}
               {activeOrder && (
-                <div className="bg-white rounded-3xl border border-orange-200 shadow-[0_12px_35px_rgba(234,88,12,0.10)] p-5 sm:p-6 space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                    <span className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold flex items-center gap-1.5">
-                      <Package size={14} /> Active Delivery - {activeOrder.id}
-                    </span>
+                <div className="bg-white rounded-none border-2 border-blue-900 shadow-sm p-6 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1.5 bg-blue-900 text-white rounded-none text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                        <Package size={12} /> Active Dispatch
+                      </span>
+                      <span className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                        ID: {activeOrder.id}
+                      </span>
+                    </div>
                     <span className="text-xl font-bold text-slate-900">
                       {activeOrder.price}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-br from-slate-50 to-orange-50/40 p-4 rounded-2xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 p-5 rounded-none">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
                         Pickup Location
                       </p>
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-800">
+                      <h4 className="text-sm font-bold text-slate-900 uppercase">
                         {activeOrder.restaurant}
                       </h4>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs font-medium text-slate-600 mt-1">
                         {activeOrder.pickup}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
                         Drop-off Customer
                       </p>
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-800">
-                        {activeOrder.customer} ({activeOrder.phone})
+                      <h4 className="text-sm font-bold text-slate-900 uppercase">
+                        {activeOrder.customer} <span className="text-xs text-slate-500">({activeOrder.phone})</span>
                       </h4>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs font-medium text-slate-600 mt-1">
                         {activeOrder.dropoff}
                       </p>
                     </div>
@@ -454,9 +471,9 @@ export default function DriverDashboard() {
                           updateOrderStatus(activeOrder, "picked_up")
                         }
                         disabled={updatingId === activeOrder.real_id}
-                        className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                        className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 border border-amber-600 text-white font-bold rounded-none text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                       >
-                        <Utensils size={16} /> Step 1: Pickup Food
+                        <Utensils size={14} /> Step 1: Confirm Pickup
                       </button>
                     )}
                     {activeStatus === "picked_up" && (
@@ -465,9 +482,9 @@ export default function DriverDashboard() {
                           updateOrderStatus(activeOrder, "delivering")
                         }
                         disabled={updatingId === activeOrder.real_id}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                        className="w-full py-3.5 bg-blue-700 hover:bg-blue-800 border border-blue-900 text-white font-bold rounded-none text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                       >
-                        <Navigation size={16} /> Step 2: Start Delivery
+                        <Navigation size={14} /> Step 2: Start Delivery Route
                       </button>
                     )}
                     {activeStatus === "delivering" && (
@@ -476,70 +493,67 @@ export default function DriverDashboard() {
                           updateOrderStatus(activeOrder, "completed")
                         }
                         disabled={updatingId === activeOrder.real_id}
-                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                        className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 border border-emerald-900 text-white font-bold rounded-none text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                       >
-                        <CheckCircle size={16} /> Step 3: Complete Delivery
+                        <CheckCircle size={14} /> Step 3: Complete Delivery
                       </button>
                     )}
                   </div>
                 </div>
               )}
 
+              {/* Requests Tab */}
               {activeTab === "requests" && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-4">
-                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                      Available Delivery Requests
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-300 pb-3">
+                      Available Dispatch Requests
                     </h3>
 
                     {!isOnline ? (
-                      <div className="bg-white p-8 rounded-2xl border border-slate-100 text-center text-slate-400 font-medium shadow-sm">
-                        Please change the Driver Status to{" "}
-                        <span className="text-emerald-600 font-bold">
-                          AVAILABLE
-                        </span>{" "}
-                        to receive orders.
+                      <div className="bg-white p-12 rounded-none border border-slate-300 text-center text-xs font-bold uppercase tracking-widest text-slate-500 shadow-sm">
+                        Set status to <span className="text-emerald-700">AVAILABLE</span> to receive orders.
                       </div>
                     ) : filteredRequests.length === 0 ? (
-                      <div className="bg-white p-8 rounded-2xl border border-slate-100 text-center text-slate-400 font-medium shadow-sm">
-                        No delivery requests from API right now.
+                      <div className="bg-white p-12 rounded-none border border-slate-300 text-center text-xs font-bold uppercase tracking-widest text-slate-500 shadow-sm">
+                        No delivery requests at this time.
                       </div>
                     ) : (
                       filteredRequests.map((request) => (
                         <div
                           key={request.real_id}
-                          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4 hover:shadow-md transition"
+                          className="bg-white rounded-none border border-slate-300 shadow-sm p-6 space-y-5 hover:border-blue-900 transition-colors"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-[11px] font-bold">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-none text-[10px] font-bold uppercase tracking-widest">
                               {request.status}
                             </span>
-                            <span className="text-xl font-bold text-slate-900">
+                            <span className="text-lg font-bold text-slate-900">
                               {request.price}
                             </span>
                           </div>
 
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div className="space-y-3 relative pl-6 border-l-2 border-dashed border-slate-200 ml-2">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                            <div className="space-y-4 relative pl-5 border-l-2 border-slate-300 ml-1">
                               <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                  PICKUP
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                  Pickup
                                 </p>
-                                <h4 className="text-xs font-bold text-slate-800">
+                                <h4 className="text-sm font-bold text-slate-900 uppercase">
                                   {request.restaurant}
                                 </h4>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs font-medium text-slate-600 mt-0.5">
                                   {request.pickup}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                  DROP-OFF
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                  Drop-off
                                 </p>
-                                <h4 className="text-xs font-bold text-slate-800">
+                                <h4 className="text-sm font-bold text-slate-900 uppercase">
                                   {request.dropoff}
                                 </h4>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs font-medium text-slate-600 mt-0.5">
                                   {request.customer} ({request.phone})
                                 </p>
                               </div>
@@ -553,16 +567,16 @@ export default function DriverDashboard() {
                                 activeOrder !== null ||
                                 updatingId === request.real_id
                               }
-                              className={`w-full sm:w-auto px-6 py-2.5 text-white font-bold rounded-xl text-xs transition shadow-sm ${
+                              className={`w-full sm:w-auto px-8 py-3 font-bold rounded-none text-[11px] uppercase tracking-wider transition-colors shadow-sm border ${
                                 activeOrder !== null ||
                                 updatingId === request.real_id
-                                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                  : "bg-orange-600 hover:bg-[#c2410c]"
+                                  ? "bg-slate-100 text-slate-400 border-slate-300 cursor-not-allowed"
+                                  : "bg-blue-900 hover:bg-blue-950 text-white border-blue-950"
                               }`}
                             >
                               {updatingId === request.real_id
                                 ? "Updating..."
-                                : "Accept"}
+                                : "Accept Request"}
                             </button>
                           </div>
                         </div>
@@ -570,48 +584,50 @@ export default function DriverDashboard() {
                     )}
                   </div>
 
+                  {/* Sidebar stats for requests tab */}
                   <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-                      <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
-                        <Wallet size={16} className="text-orange-600" />
-                        <span>Today's Earnings</span>
+                    <div className="bg-white p-6 rounded-none border border-slate-300 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-widest border-b border-slate-100 pb-3">
+                        <Wallet size={14} className="text-slate-400" />
+                        <span>Today's Performance</span>
                       </div>
-                      <h2 className="text-3xl font-black text-slate-900">
+                      <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
                         {summary.today_earnings}
                       </h2>
-                      <p className="text-xs text-slate-400">
-                        {summary.today_deliveries} deliveries completed today
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        {summary.today_deliveries} Deliveries Completed
                       </p>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* History Tab */}
               {activeTab === "history" && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                    Delivery History
+                <div className="bg-white p-8 rounded-none border border-slate-300 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-200 pb-3">
+                    Delivery Log
                   </h3>
                   {recentHistory.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-slate-400">
-                      No completed deliveries yet.
+                    <div className="py-12 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
+                      No completed deliveries found.
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100">
+                    <div className="flex flex-col">
                       {recentHistory.map((item) => (
                         <div
                           key={item.real_id}
-                          className="py-3.5 flex items-center justify-between gap-4"
+                          className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 last:border-0"
                         >
                           <div>
-                            <h4 className="text-xs font-bold text-slate-800">
-                              {item.id}
+                            <h4 className="text-sm font-bold text-slate-900 uppercase">
+                              ID: {item.id}
                             </h4>
-                            <p className="text-[10px] text-slate-400">
-                              {item.restaurant} - {item.time}
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                              {item.restaurant} • {item.time}
                             </p>
                           </div>
-                          <span className="text-xs font-bold text-emerald-600">
+                          <span className="text-sm font-bold text-emerald-700">
                             {item.price}
                           </span>
                         </div>
@@ -621,25 +637,26 @@ export default function DriverDashboard() {
                 </div>
               )}
 
+              {/* Earnings Tab */}
               {activeTab === "earnings" && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                    Earnings Summary
+                <div className="bg-white p-8 rounded-none border border-slate-300 shadow-sm space-y-6">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-200 pb-3">
+                    Earnings Statement
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-5 bg-orange-50/50 border border-orange-100 rounded-xl">
-                      <p className="text-xs text-slate-500 font-bold">
-                        This Week
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-none">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">
+                        Week to Date
                       </p>
-                      <h4 className="text-2xl font-black text-orange-600">
+                      <h4 className="text-3xl font-bold text-slate-900 tracking-tight">
                         {summary.week_earnings}
                       </h4>
                     </div>
-                    <div className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-xl">
-                      <p className="text-xs text-slate-500 font-bold">
-                        This Month
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-none">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">
+                        Month to Date
                       </p>
-                      <h4 className="text-2xl font-black text-emerald-600">
+                      <h4 className="text-3xl font-bold text-slate-900 tracking-tight">
                         {summary.month_earnings}
                       </h4>
                     </div>
@@ -647,77 +664,98 @@ export default function DriverDashboard() {
                 </div>
               )}
 
+              {/* Profile Tab */}
               {activeTab === "profile" && (
                 <form
                   onSubmit={saveProfile}
-                  className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4"
+                  className="bg-white p-8 rounded-none border border-slate-300 shadow-sm space-y-6 max-w-2xl"
                 >
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                    Driver Profile Details
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-200 pb-3">
+                    Driver Identity
                   </h3>
-                  <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
-                    {profile.profile_image ? (
-                      <img
-                        src={profile.profile_image}
-                        alt="Driver profile"
-                        className="w-16 h-16 rounded-md object-cover border border-slate-300"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-md bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xl border border-orange-500">
-                        {(profile.name || "Driver").charAt(0)}
-                      </div>
-                    )}
+
+                  <div className="flex items-center gap-5 border-b border-slate-100 pb-6">
+                    <div className="relative w-20 h-20 shrink-0 group">
+                      {profileImagePreview || profile.profile_image ? (
+                        <img
+                          src={profileImagePreview || profile.profile_image}
+                          alt="Driver profile"
+                          className="w-full h-full object-cover border border-slate-300 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-blue-900 text-white flex items-center justify-center font-bold text-2xl border border-blue-950 shadow-sm uppercase">
+                          {(profile.name || "D").charAt(0)}
+                        </div>
+                      )}
+                      <label
+                        htmlFor="driver-profile-photo"
+                        className="absolute inset-0 flex items-center justify-center bg-black/55 text-white text-[9px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                        Change
+                      </label>
+                    </div>
                     <div>
                       <input
                         id="driver-profile-photo"
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        onChange={(event) =>
-                          setProfileFile(event.target.files?.[0] || null)
-                        }
+                        onChange={handleProfilePhotoChange}
                         className="sr-only"
                       />
                       <label
                         htmlFor="driver-profile-photo"
-                        className="inline-block cursor-pointer border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                        className="inline-block cursor-pointer border border-slate-300 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-700 transition-colors"
                       >
-                        Change photo
+                        Change Photo
                       </label>
-                      <p className="text-xs text-slate-500">Role: Driver</p>
-                      <span className="text-[10px] bg-emerald-50 text-emerald-600 font-bold px-2.5 py-0.5 rounded-md mt-1 inline-block border border-emerald-100">
-                        Connected to live orders API
+                      {profileFile && (
+                        <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mt-1.5">
+                          {profileFile.name} — pending save
+                        </p>
+                      )}
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Role: Delivery Driver</p>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-1 uppercase tracking-widest mt-1.5 inline-block border border-emerald-200">
+                        System Connected
                       </span>
                     </div>
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Full name
+
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        Legal Name
+                      </label>
                       <input
                         required
                         value={profile.name}
                         onChange={(event) =>
                           setProfile({ ...profile, name: event.target.value })
                         }
-                        className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm font-normal"
+                        className="w-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium focus:border-blue-900 focus:outline-none transition-colors rounded-none shadow-sm"
                       />
-                    </label>
-                    <label className="text-xs font-semibold text-slate-600">
-                      Phone number
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        Contact Number
+                      </label>
                       <input
                         value={profile.phone}
                         onChange={(event) =>
                           setProfile({ ...profile, phone: event.target.value })
                         }
-                        className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm font-normal"
+                        className="w-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium focus:border-blue-900 focus:outline-none transition-colors rounded-none shadow-sm"
                       />
-                    </label>
+                    </div>
                   </div>
-                  <button
-                    disabled={savingProfile}
-                    className="bg-[#0B1F3A] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
-                  >
-                    {savingProfile ? "Saving..." : "Save changes"}
-                  </button>
+
+                  <div className="pt-2">
+                    <button
+                      disabled={savingProfile}
+                      className="bg-blue-900 hover:bg-blue-950 px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-white disabled:opacity-50 border border-blue-950 rounded-none shadow-sm transition-colors"
+                    >
+                      {savingProfile ? "Processing..." : "Update Identity"}
+                    </button>
+                  </div>
                 </form>
               )}
             </>

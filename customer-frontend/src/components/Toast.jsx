@@ -3,13 +3,13 @@ import { FaCheckCircle, FaExclamationCircle, FaTimes } from 'react-icons/fa';
 
 const VARIANTS = {
   success: {
-    border: 'border-green-200',
-    iconBg: 'bg-gradient-to-r from-green-500 to-emerald-500',
+    border: 'border-emerald-200',
+    iconBg: 'bg-emerald-600',
     Icon: FaCheckCircle,
   },
   error: {
-    border: 'border-red-200',
-    iconBg: 'bg-gradient-to-r from-red-500 to-rose-500',
+    border: 'border-[#A6321E]/30',
+    iconBg: 'bg-[#A6321E]',
     Icon: FaExclamationCircle,
   },
 };
@@ -40,16 +40,16 @@ const Toast = ({ message, onClose, duration = 3000, type = 'success' }) => {
           }
         }
       `}</style>
-      <div className={`bg-white rounded-xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px] border ${variant.border}`}>
-        <div className={`w-10 h-10 ${variant.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
+      <div className={`bg-white shadow-2xl p-4 flex items-center gap-3 min-w-[300px] border ${variant.border}`}>
+        <div className={`w-10 h-10 ${variant.iconBg} flex items-center justify-center flex-shrink-0`}>
           <Icon className="text-white text-xl" />
         </div>
         <div className="flex-1">
-          <p className="text-gray-900 font-semibold text-sm">{message}</p>
+          <p className="text-[#1A2233] font-semibold text-sm">{message}</p>
         </div>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          className="text-slate-400 hover:text-[#1A2233] transition-colors duration-200 cursor-pointer"
         >
           <FaTimes />
         </button>

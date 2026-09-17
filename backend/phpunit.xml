@@ -3,6 +3,7 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         cacheResult="false"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -27,10 +28,24 @@
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <env name="LOG_CHANNEL" value="null"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Dummy, non-real Bakong config so KHQR generation works offline
+             in tests; verification calls are faked with Http::fake(), never
+             sent to the real Bakong API. -->
+        <env name="BAKONG_API_URL" value="https://api-bakong.test"/>
+        <env name="BAKONG_TOKEN" value="test-token-not-real"/>
+        <env name="BAKONG_ACCOUNT_ID" value="merchant_test@devb"/>
+        <env name="BAKONG_MERCHANT_NAME" value="Test Merchant"/>
+        <env name="BAKONG_MERCHANT_CITY" value="Phnom Penh"/>
+        <env name="PAYWAY_ENV" value="sandbox"/>
+        <env name="PAYWAY_MERCHANT_ID" value="payway-test-merchant"/>
+        <env name="PAYWAY_API_KEY" value="payway-test-key"/>
+        <env name="PAYWAY_RSA_PRIVATE_KEY" value="payway-test-private-key"/>
+        <env name="PAYWAY_CURRENCY" value="USD"/>
     </php>
 </phpunit>

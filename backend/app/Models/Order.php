@@ -19,6 +19,7 @@ class Order extends Model
         'status',
         'order_type',
         'payment_method',
+        'payment_status',
         'notes',
         'service_fee',
         'discount_amount',
@@ -72,5 +73,10 @@ class Order extends Model
     public function voucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }

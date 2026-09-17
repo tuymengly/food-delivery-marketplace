@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaShoppingCart, FaTrash } from 'react-icons/fa';
+import { BsSearchHeartFill } from "react-icons/bs";
 import Toast from '../components/Toast';
 
 const Favorites = () => {
@@ -84,28 +85,28 @@ const Favorites = () => {
 
   if (favorites.length === 0) {
     return (
-      <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white pt-24 pb-16 px-6 md:px-14">
+      <div className="w-full min-h-screen bg-slate-100 pt-24 pb-16 px-6 md:px-14 font-sans rounded-none">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-gradient-to-r from-orange-600 via-red-500 to-orange-600 bg-clip-text mb-4">
+          <div className="text-center mb-12 border-b border-slate-300 pb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-2">
               My Favorites
             </h1>
-            <p className="text-gray-600 text-lg">Your favorite Khmer dishes</p>
+            <p className="text-slate-500 text-sm uppercase tracking-widest font-bold">Your Saved Dishes</p>
           </div>
 
           {/* Empty State */}
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-32 h-32 bg-orange-100 rounded-full flex items-center justify-center mb-6">
-              <FaHeart className="text-6xl text-orange-300" />
+          <div className="flex flex-col items-center justify-center py-16 bg-white border border-slate-300 rounded-none shadow-sm">
+            <div className="w-24 h-24 bg-none border border-none flex items-center justify-center mb-6 rounded-none">
+              <BsSearchHeartFill className="text-5xl text-slate-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">No Favorites Yet</h2>
-            <p className="text-gray-600 mb-8 text-center max-w-md">
+            <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide mb-2">No Favorites Yet</h2>
+            <p className="text-slate-500 mb-8 text-center max-w-md text-sm font-medium">
               Start adding your favorite dishes by clicking the heart icon on any menu item!
             </p>
             <Link
               to="/menu"
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              className="px-8 py-3 bg-blue-900 hover:bg-blue-950 text-white rounded-none font-bold uppercase tracking-wider transition-colors border border-blue-950 shadow-sm inline-block"
             >
               Browse Menu
             </Link>
@@ -123,81 +124,87 @@ const Favorites = () => {
           onClose={() => setShowToast(false)} 
         />
       )}
-    <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white pt-24 pb-16 px-6 md:px-14">
+    <div className="w-full min-h-screen bg-slate-100 pt-24 pb-16 px-6 md:px-14 font-sans rounded-none">
       <div className="max-w-7xl mx-auto">
+        
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-300 pb-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-gradient-to-r from-orange-600 via-red-500 to-orange-600 bg-clip-text mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-2">
               My Favorites
             </h1>
-            <p className="text-gray-600 text-lg">
-              You have {favorites.length} favorite {favorites.length === 1 ? 'item' : 'items'}
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+              You have {favorites.length} saved {favorites.length === 1 ? 'item' : 'items'}
             </p>
           </div>
           <button
             onClick={clearAllFavorites}
-            className="mt-4 md:mt-0 px-6 py-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+            className="mt-4 md:mt-0 px-6 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer rounded-none"
           >
-            <FaTrash />
+            <FaTrash size={12} />
             Clear All
           </button>
         </div>
 
         {/* Favorites Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {favorites.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 ease-in-out group hover:-translate-y-3 border border-gray-100"
+              className="bg-white overflow-hidden border border-slate-300 hover:border-blue-900 transition-colors group flex flex-col rounded-none shadow-sm"
             >
-              {/* Image */}
-              <div className="relative w-full h-[250px] p-4 bg-gradient-to-br from-orange-400 via-red-400 to-orange-500 overflow-hidden">
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-all duration-500"></div>
+              {/* Image Container */}
+              <div className="relative w-full h-[220px] bg-slate-100 border-b border-slate-200 overflow-hidden rounded-none">
                 <img
                   src={item.image}
-                  className="w-full h-full object-cover rounded-xl shadow-xl group-hover:scale-110 transition-transform duration-700"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   alt={item.name}
                 />
+                
                 {/* Remove Button */}
                 <button
                   onClick={() => removeFromFavorites(item.id)}
-                  className="absolute top-6 right-6 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300"
+                  className="absolute top-4 right-4 w-9 h-9 bg-white border border-slate-300 flex items-center justify-center hover:bg-rose-50 transition-colors rounded-none shadow-sm"
+                  title="Remove from favorites"
                 >
-                  <FaHeart className="text-lg text-red-500" />
+                  <FaHeart className="text-sm text-rose-700" />
                 </button>
+                
                 {/* Price Badge */}
-                <div className="absolute top-6 left-6 bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 rounded-full shadow-lg font-bold text-lg">
+                <div className="absolute top-4 left-4 bg-blue-900 border border-blue-950 text-white px-3 py-1.5 font-bold text-sm uppercase tracking-wide rounded-none shadow-sm">
                   ${item.price}
                 </div>
               </div>
 
               {/* Details */}
-              <div className="w-full p-5 bg-white flex flex-col justify-between">
+              <div className="w-full p-5 bg-white flex flex-col flex-grow justify-between rounded-none">
                 <div>
-                  <h1 className="text-gray-900 text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors duration-300">
+                  <h1 className="text-slate-900 text-sm font-bold uppercase tracking-wide mb-1 group-hover:text-blue-900 transition-colors line-clamp-1">
                     {item.name}
                   </h1>
-                  <p className="text-gray-500 text-sm mb-1">{item.category}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{item.category}</p>
+                  
                   {item.qty && (
-                    <p className="text-green-600 text-sm font-semibold">
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 inline-block uppercase tracking-widest rounded-none mb-2">
                       {item.qty} available
-                    </p>
+                    </span>
                   )}
                 </div>
                 
-                <div className="flex gap-2 mt-4">
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
                   <Link
                     to={item.detailLink}
-                    className="flex-1 text-center px-4 py-2.5 rounded-xl text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 hover:scale-105 transition-all duration-300 font-semibold text-sm"
+                    className="flex-1 text-center px-4 py-2.5 text-white bg-blue-900 hover:bg-blue-950 border border-blue-950 transition-colors font-bold text-[11px] uppercase tracking-wider rounded-none flex items-center justify-center"
                   >
                     View Details
                   </Link>
                   <button 
                     onClick={() => addToCart(item)}
-                    className="px-4 py-2.5 bg-orange-100 hover:bg-orange-200 text-orange-600 rounded-xl font-semibold shadow-md hover:scale-105 transition-all duration-300"
+                    className="px-4 py-2.5 bg-slate-50 hover:bg-slate-200 border border-slate-300 text-blue-900 transition-colors cursor-pointer flex items-center justify-center rounded-none"
+                    title="Add to Cart"
                   >
-                    <FaShoppingCart />
+                    <FaShoppingCart size={14} />
                   </button>
                 </div>
               </div>

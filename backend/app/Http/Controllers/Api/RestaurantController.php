@@ -147,6 +147,86 @@ class RestaurantController extends Controller
         ]);
     }
 
+    /**
+     * Admin-only: list restaurant applications across every status, for the
+     * "Restaurant Applications" review screen. Unlike index(), this is not
+     * filtered to active restaurants and exposes submitted documents.
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $query = Restaurant::query()
+            ->with('user:id,name,email,role')
+            ->latest();
+
+        $status = $request->query('status');
+        if ($status && strtolower($status) !== 'all') {
+            $query->where('status', strtolower($status));
+        }
+
+        $restaurants = $query->get()->each->makeVisible('documents');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Restaurant applications retrieved successfully.',
+            'data' => $restaurants,
+        ]);
+    }
+
+    /**
+     * Admin-only: full application detail for the review screen, including
+     * submitted documents which stay hidden on the public show() endpoint.
+     */
+    public function adminShow(Restaurant $restaurant): JsonResponse
+    {
+        $restaurant->load('user:id,name,email,role')->makeVisible('documents');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Restaurant application retrieved successfully.',
+            'data' => $restaurant,
+        ]);
+    }
+
+    /**
+     * Admin-only: approve a pending restaurant application. Approved
+     * restaurants become active and visible to customers.
+     */
+    public function approve(Restaurant $restaurant): JsonResponse
+    {
+        $restaurant->update([
+            'status' => 'active',
+            'rejection_reason' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Restaurant application approved successfully.',
+            'data' => $restaurant->load('user:id,name,email,role'),
+        ]);
+    }
+
+    /**
+     * Admin-only: reject a pending restaurant application. A reason is
+     * required so the owner can see why they were rejected.
+     */
+    public function reject(Request $request, Restaurant $restaurant): JsonResponse
+    {
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $restaurant->update([
+            'status' => 'rejected',
+            'rejection_reason' => $validated['rejection_reason'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Restaurant application rejected.',
+            'data' => $restaurant->load('user:id,name,email,role'),
+        ]);
+    }
+
     public function update(Request $request, Restaurant $restaurant, CloudinaryImageService $imageService): JsonResponse
     {
         $restaurant = $this->findUserRestaurant($request, $restaurant);
@@ -176,11 +256,14 @@ class RestaurantController extends Controller
     public function updateStatus(Request $request, Restaurant $restaurant): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['active', 'inactive', 'pending'])],
+            'status' => ['required', 'string', Rule::in(['active', 'inactive', 'pending', 'rejected'])],
+            'rejection_reason' => ['required_if:status,rejected', 'nullable', 'string', 'max:2000'],
         ]);
 
+        $status = strtolower($validated['status']);
         $restaurant->update([
-            'status' => strtolower($validated['status']),
+            'status' => $status,
+            'rejection_reason' => $status === 'rejected' ? $validated['rejection_reason'] : null,
         ]);
 
         return response()->json([
@@ -216,8 +299,28 @@ class RestaurantController extends Controller
             'cuisine' => ['nullable', 'string', 'max:500'],
             'accepts_vouchers' => ['sometimes', 'boolean'],
             // កែសម្រួលឱ្យទទួលយកទាំង String ឬ File រូបភាព
-            'image' => ['nullable', 'sometimes'], 
-            'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending'])],
+            'image' => ['nullable', 'sometimes'],
+            'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending', 'rejected'])],
+            ...$this->applicationDetailRules(),
+        ];
+    }
+
+    /**
+     * Validation rules shared by owner-submitted "restaurant application"
+     * details reviewed by admins: opening hours, photo gallery, and
+     * supporting documents (business license, ID, etc.).
+     *
+     * @return array<string, mixed>
+     */
+    private function applicationDetailRules(): array
+    {
+        return [
+            'opening_hours' => ['nullable', 'array'],
+            'photos' => ['nullable', 'array', 'max:10'],
+            'photos.*' => ['string', 'max:2048'],
+            'documents' => ['nullable', 'array', 'max:10'],
+            'documents.*.name' => ['nullable', 'string', 'max:255'],
+            'documents.*.url' => ['required', 'string', 'max:2048'],
         ];
     }
 
@@ -255,7 +358,7 @@ class RestaurantController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Restaurant profile retrieved successfully.',
-            'data' => $restaurant->load('user:id,name,email,role'),
+            'data' => $restaurant->load('user:id,name,email,role')->makeVisible('documents'),
         ]);
     }
 
@@ -287,6 +390,7 @@ class RestaurantController extends Controller
                 'email',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
+            ...$this->applicationDetailRules(),
         ]);
         $this->validateUploadedImage($request, 'cover_image');
 
@@ -312,7 +416,7 @@ class RestaurantController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully.',
-            'data' => $restaurant->fresh()->load('user:id,name,email,role'),
+            'data' => $restaurant->fresh()->load('user:id,name,email,role')->makeVisible('documents'),
         ]);
     }
 

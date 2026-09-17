@@ -9,7 +9,6 @@ const getFoodStatus = (food) => {
   if (food.status) {
     return food.status.toLowerCase();
   }
-
   return food.available === false ? 'unavailable' : 'available';
 };
 
@@ -213,18 +212,18 @@ export default function ManageFoods() {
   });
 
   return (
-    <div className="p-4 sm:p-6 bg-[#fcfbfa] min-h-screen space-y-4 sm:space-y-6 text-slate-800">
+    <div className="p-4 sm:p-8 bg-slate-100 min-h-screen space-y-6 text-slate-800 font-sans rounded-none">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-300 pb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Menu & Foods</h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5 sm:mt-1">{filteredFoods.length} items in your menu</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Menu Management</h1>
+          <p className="text-xs text-slate-500 font-medium mt-1">{filteredFoods.length} items total in catalog</p>
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition shadow-sm w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white text-xs font-semibold tracking-wide transition-colors uppercase w-full sm:w-auto rounded-none border border-blue-950"
         >
-          <Plus size={16} /> Add Food
+          <Plus size={16} /> Add New Food
         </button>
       </div>
 
@@ -234,16 +233,16 @@ export default function ManageFoods() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search food items..."
+            placeholder="Search items by name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 transition"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:border-blue-900 text-slate-900 placeholder:text-slate-400 rounded-none"
           />
         </div>
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full sm:w-44 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-orange-500 cursor-pointer"
+          className="w-full sm:w-48 px-3 py-2.5 bg-white border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-900 cursor-pointer rounded-none"
         >
           <option value="All Categories">All Categories</option>
           {categories.map((cat) => (
@@ -253,55 +252,54 @@ export default function ManageFoods() {
       </div>
 
       {loading ? (
-        <div className="text-center py-10 text-xs font-semibold text-slate-500">Loading foods...</div>
+        <div className="text-center py-16 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-white border border-slate-200">
+          Loading menu items...
+        </div>
       ) : (
         <>
-          {/* Mobile View: Cards Layout */}
-          <div className="grid grid-cols-1 gap-3 sm:hidden">
+          {/* Mobile View: Crisp Cards */}
+          <div className="grid grid-cols-1 gap-4 sm:hidden">
             {filteredFoods.map((food) => {
               const isAvailable = getFoodStatus(food) === 'available';
               return (
-                <div key={food.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+                <div key={food.id} className="bg-white p-4 border border-slate-300 space-y-3 rounded-none">
                   <div className="flex items-start gap-3">
                     <img
                       src={food.image || DEFAULT_FOOD_IMAGE}
                       alt={food.name}
-                      className="w-14 h-14 rounded-xl object-cover shrink-0"
+                      className="w-16 h-16 object-cover shrink-0 border border-slate-200 rounded-none"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-bold text-slate-900 text-sm truncate">{food.name}</h3>
-                        <span className="font-bold text-slate-900 text-sm shrink-0">${food.price}</span>
+                        <span className="font-bold text-blue-950 text-sm shrink-0">${food.price}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{food.description || food.desc}</p>
+                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">{food.description || food.desc}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#f6f2ec] text-slate-600 text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-slate-200 text-slate-800 text-[10px] font-semibold border border-slate-300 rounded-none uppercase">
                           {food.category?.name || food.category || 'General'}
                         </span>
                         <div className="flex items-center gap-1 font-bold text-slate-800 text-[11px]">
-                          <Star size={12} className="fill-amber-400 text-amber-400" />
+                          <Star size={12} className="fill-amber-500 text-amber-500" />
                           <span>{food.rating || '5.0'}</span>
                         </div>
-                        <span className="text-[11px] text-orange-600 font-semibold">
-                          {food.recommendations_count || 0} recommends
-                        </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-200">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold text-slate-500">Available:</span>
+                      <span className="text-[11px] font-semibold text-slate-600 uppercase">Available:</span>
                       <button
                         onClick={() => handleToggleAvailable(food.id)}
-                        className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
-                          isAvailable ? 'bg-orange-500' : 'bg-slate-300'
-                        }`}
+                        className={`w-9 h-5 flex items-center border transition-colors ${
+                          isAvailable ? 'bg-blue-900 border-blue-950' : 'bg-slate-300 border-slate-400'
+                        } rounded-none p-0.5`}
                       >
                         <div
-                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                          className={`bg-white w-3.5 h-3.5 transform transition-transform ${
                             isAvailable ? 'translate-x-4' : 'translate-x-0'
-                          }`}
+                          } rounded-none`}
                         />
                       </button>
                     </div>
@@ -309,13 +307,13 @@ export default function ManageFoods() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleOpenEditModal(food)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-none transition"
                       >
                         <Edit size={14} /> Edit
                       </button>
                       <button
                         onClick={() => handleDeleteFood(food.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-none transition"
                       >
                         <Trash2 size={14} /> Delete
                       </button>
@@ -326,78 +324,91 @@ export default function ManageFoods() {
             })}
           </div>
 
-          {/* Desktop/Tablet View: Table */}
-          <div className="hidden sm:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          {/* Desktop/Tablet View: Sharp Table */}
+          <div className="hidden sm:block bg-white border border-slate-300 overflow-hidden rounded-none shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#faf8f5] text-slate-400 text-xs font-semibold">
-                    <th className="py-3 px-5">Item</th>
-                    <th className="py-3 px-5">Category</th>
-                    <th className="py-3 px-5">Price</th>
-                    <th className="py-3 px-5">Rating</th>
-                    <th className="py-3 px-5">Available</th>
-                    <th className="py-3 px-5">Actions</th>
+                  <tr className="bg-slate-900 text-white text-xs font-semibold uppercase tracking-wider">
+                    <th className="py-3.5 px-5 border-b border-slate-800">Item Details</th>
+                    <th className="py-3.5 px-5 border-b border-slate-800">Category</th>
+                    <th className="py-3.5 px-5 border-b border-slate-800">Price</th>
+                    <th className="py-3.5 px-5 border-b border-slate-800">Rating & Activity</th>
+                    <th className="py-3.5 px-5 border-b border-slate-800">Status</th>
+                    <th className="py-3.5 px-5 border-b border-slate-800 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium">
+                <tbody className="divide-y divide-slate-200 text-xs font-medium">
                   {filteredFoods.map((food) => {
                     const isAvailable = getFoodStatus(food) === 'available';
                     return (
-                      <tr key={food.id} className="hover:bg-slate-50/50 transition">
-                        <td className="py-3.5 px-5">
+                      <tr key={food.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
                             <img
                               src={food.image || DEFAULT_FOOD_IMAGE}
                               alt={food.name}
-                              className="w-10 h-10 rounded-xl object-cover shrink-0"
+                              className="w-12 h-12 object-cover border border-slate-300 shrink-0 rounded-none"
                             />
                             <div>
-                              <h2 className="font-bold text-slate-900">{food.name}</h2>
-                              <p className="text-[11px] text-slate-400 truncate max-w-[160px]">{food.description || food.desc}</p>
+                              <h2 className="font-bold text-slate-900 text-sm">{food.name}</h2>
+                              <p className="text-[11px] text-slate-500 truncate max-w-[200px] mt-0.5">{food.description || food.desc}</p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="py-3.5 px-5">
-                          <span className="px-3 py-1 rounded-full bg-[#f6f2ec] text-slate-600 text-[11px] font-semibold">
+                        <td className="py-4 px-5">
+                          <span className="px-2.5 py-1 bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-semibold uppercase rounded-none">
                             {food.category?.name || food.category || 'General'}
                           </span>
                         </td>
 
-                        <td className="py-3.5 px-5 font-bold text-slate-900">${food.price}</td>
+                        <td className="py-4 px-5 font-bold text-blue-950 text-sm">${Number(food.price).toFixed(2)}</td>
 
-                        <td className="py-3.5 px-5">
+                        <td className="py-4 px-5">
                           <div className="flex items-center gap-1 font-bold text-slate-800">
-                            <Star size={14} className="fill-amber-400 text-amber-400" />
+                            <Star size={14} className="fill-amber-500 text-amber-500" />
                             <span>{food.rating || '5.0'}</span>
                           </div>
-                          <span className="text-[11px] text-orange-600 font-semibold mt-1">
-                            {food.recommendations_count || 0} recommends
+                          <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
+                            {food.recommendations_count || 0} recommendations
                           </span>
                         </td>
 
-                        <td className="py-3.5 px-5">
-                          <button
-                            onClick={() => handleToggleAvailable(food.id)}
-                            className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
-                              isAvailable ? 'bg-orange-500' : 'bg-slate-300'
-                            }`}
-                          >
-                            <div
-                              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                                isAvailable ? 'translate-x-5' : 'translate-x-0'
-                              }`}
-                            />
-                          </button>
+                        <td className="py-4 px-5">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleAvailable(food.id)}
+                              className={`w-10 h-5 flex items-center border transition-colors ${
+                                isAvailable ? 'bg-blue-900 border-blue-950' : 'bg-slate-300 border-slate-400'
+                              } rounded-none p-0.5`}
+                            >
+                              <div
+                                className={`bg-white w-3.5 h-3.5 transform transition-transform ${
+                                  isAvailable ? 'translate-x-5' : 'translate-x-0'
+                                } rounded-none`}
+                              />
+                            </button>
+                            <span className={`text-[11px] font-bold uppercase ${isAvailable ? 'text-blue-900' : 'text-slate-500'}`}>
+                              {isAvailable ? 'Available' : 'Unavailable'}
+                            </span>
+                          </div>
                         </td>
 
-                        <td className="py-3.5 px-5">
-                          <div className="flex items-center gap-3 text-slate-500">
-                            <button onClick={() => handleOpenEditModal(food)} className="hover:text-slate-900 transition">
+                        <td className="py-4 px-5 text-right">
+                          <div className="flex items-center justify-end gap-3 text-slate-600">
+                            <button
+                              onClick={() => handleOpenEditModal(food)}
+                              className="p-1.5 hover:bg-slate-200 border border-transparent hover:border-slate-300 text-slate-700 transition rounded-none"
+                              title="Edit item"
+                            >
                               <Edit size={16} />
                             </button>
-                            <button onClick={() => handleDeleteFood(food.id)} className="hover:text-rose-500 transition">
+                            <button
+                              onClick={() => handleDeleteFood(food.id)}
+                              className="p-1.5 hover:bg-rose-100 border border-transparent hover:border-rose-200 text-rose-700 transition rounded-none"
+                              title="Delete item"
+                            >
                               <Trash2 size={16} />
                             </button>
                           </div>
@@ -414,38 +425,41 @@ export default function ManageFoods() {
 
       {/* Modal Dialog (Add & Edit Food) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-400 w-full max-w-md p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto rounded-none">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">
                 {editingFood ? 'Edit Food Item' : 'Add New Food Item'}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-500 hover:text-slate-900 p-1 border border-transparent hover:border-slate-300 transition rounded-none"
+              >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-3">
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Food Name</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Food Name</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. Bacon Cheeseburger"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:border-blue-900 text-slate-900 rounded-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Category</label>
                   <select
                     required
                     value={formData.category_id}
                     onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:border-blue-900 text-slate-900 cursor-pointer rounded-none"
                   >
                     <option value="">Select Category</option>
                     {categories.map((cat) => (
@@ -455,18 +469,18 @@ export default function ManageFoods() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Restaurant</label>
+                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Restaurant</label>
                   <input
                     required
                     value={restaurant?.name || 'Loading restaurant...'}
                     readOnly
-                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 focus:outline-none"
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-300 text-xs font-medium text-slate-600 focus:outline-none rounded-none cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Price ($)</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Price ($)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -474,51 +488,51 @@ export default function ManageFoods() {
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   placeholder="12.99"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:border-blue-900 text-slate-900 rounded-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Description</label>
                 <textarea
-                  rows="2"
+                  rows="3"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Ingredients, details..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                  placeholder="Ingredients, dietary details..."
+                  className="w-full px-3 py-2 bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:border-blue-900 text-slate-900 rounded-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Food Image (Optional)</label>
-                <div className="flex gap-2 items-center">
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Food Image (Optional)</label>
+                <div className="flex gap-3 items-center">
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] || '' })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:border-blue-900 text-slate-900 rounded-none"
                   />
                   <img 
                     src={typeof formData.image === 'string' ? (formData.image || DEFAULT_FOOD_IMAGE) : DEFAULT_FOOD_IMAGE}
                     alt="Preview" 
-                    className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
+                    className="w-10 h-10 object-cover border border-slate-300 shrink-0 rounded-none"
                     onError={(e) => { e.target.src = DEFAULT_FOOD_IMAGE; }}
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition"
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold uppercase tracking-wider border border-slate-300 rounded-none transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl hover:bg-orange-700 transition disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold uppercase tracking-wider border border-blue-950 rounded-none transition disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : (editingFood ? 'Save Changes' : 'Add Item')}
                 </button>

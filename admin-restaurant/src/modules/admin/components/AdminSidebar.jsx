@@ -1,29 +1,31 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Store, 
-  Bike, 
-  FolderTree, 
+import {
+  LayoutDashboard,
+  Users,
+  Store,
+  Bike,
+  FolderTree,
   Utensils,
-  ShoppingBag, 
-  CreditCard, 
-  Star, 
+  ShoppingBag,
+  CreditCard,
+  Star,
   ExternalLink,
   HelpCircle,
   Settings,
   LogOut,
-  X 
+  ClipboardCheck,
+  X
 } from 'lucide-react';
 
 import logoImg from '../../../assets/logo_no_bg.png';
 
-export default function AdminSidebar({ onClose }) {
+export default function AdminSidebar({ onClose, pendingApplicationsCount = 0 }) {
   const menuGroups = [
     { label: 'Overview', items: [{ name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard }] },
     { label: 'Marketplace', items: [
       { name: 'Users', path: '/admin/users', icon: Users },
       { name: 'Restaurants', path: '/admin/restaurants', icon: Store },
+      { name: 'Restaurant Applications', path: '/admin/restaurant-applications', icon: ClipboardCheck, badge: pendingApplicationsCount },
       { name: 'Riders', path: '/admin/drivers', icon: Bike },
       { name: 'Categories', path: '/admin/categories', icon: FolderTree },
       { name: 'Menu / Foods', path: '/admin/foods', icon: Utensils },
@@ -79,7 +81,12 @@ export default function AdminSidebar({ onClose }) {
                 }
               >
                 <Icon size={18} />
-                {item.name}
+                <span className="flex-1">{item.name}</span>
+                {!!item.badge && (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                )}
               </NavLink>
             );
           })}</div>

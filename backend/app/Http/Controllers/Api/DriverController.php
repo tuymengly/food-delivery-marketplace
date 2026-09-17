@@ -202,7 +202,8 @@ class DriverController extends Controller
         $startOfWeekInCurrentMonth = $startOfWeek->greaterThan($startOfMonth) ? $startOfWeek : $startOfMonth;
 
         $availableRequests = $orders
-            ->filter(fn ($order) => in_array(strtolower($order->status), $availableStatuses, true)
+            ->filter(fn ($order) => $order->order_type !== 'pickup'
+                && in_array(strtolower($order->status), $availableStatuses, true)
                 && (!$order->delivery || $order->delivery->status === 'pending'))
             ->map(fn ($order) => $this->formatOrderForDriver($order))
             ->values();
@@ -271,6 +272,8 @@ class DriverController extends Controller
             $delivery = $order->delivery;
 
             if ($status === 'accepted') {
+                abort_if($order->order_type === 'pickup', 422, 'Pickup orders are collected in person and cannot be claimed by a rider.');
+
                 if ($delivery && $delivery->status !== 'pending') {
                     abort(422, 'This delivery is no longer available.');
                 }

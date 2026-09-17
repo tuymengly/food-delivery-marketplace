@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { ChevronDown, Menu, Search, LogOut, User as UserIcon } from 'lucide-react';
-import { getAdminProfile } from '../../../services/adminService'; 
+import { getAdminProfile, getRestaurantApplications } from '../../../services/adminService';
 import API from '../../../services/api';
 import NotificationBell from '../../../components/ui/NotificationBell';
 
@@ -10,12 +10,14 @@ export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const pageTitle = {
     '/admin/dashboard': 'Dashboard',
     '/admin/users': 'Users',
     '/admin/restaurants': 'Restaurants',
+    '/admin/restaurant-applications': 'Restaurant Applications',
     '/admin/drivers': 'Riders',
     '/admin/categories': 'Categories',
     '/admin/foods': 'Menu & Foods',
@@ -70,6 +72,19 @@ export default function AdminLayout() {
 
     fetchProfile();
 
+    const fetchPendingApplicationsCount = async () => {
+      try {
+        const response = await getRestaurantApplications('pending');
+        const applications = response.data.data || response.data || [];
+        setPendingApplicationsCount(applications.length);
+      } catch (error) {
+        console.error('Failed to fetch pending restaurant applications count:', error);
+      }
+    };
+
+    fetchPendingApplicationsCount();
+    window.addEventListener('restaurant-application-reviewed', fetchPendingApplicationsCount);
+
     const handleProfileUpdated = (event) => {
       if (event.detail) {
         setUser((currentUser) => ({ ...currentUser, ...event.detail }));
@@ -77,7 +92,10 @@ export default function AdminLayout() {
     };
 
     window.addEventListener('admin-profile-updated', handleProfileUpdated);
-    return () => window.removeEventListener('admin-profile-updated', handleProfileUpdated);
+    return () => {
+      window.removeEventListener('admin-profile-updated', handleProfileUpdated);
+      window.removeEventListener('restaurant-application-reviewed', fetchPendingApplicationsCount);
+    };
   }, [navigate]);
 
   const handleLogout = () => {
@@ -112,7 +130,7 @@ export default function AdminLayout() {
       <div className={`fixed md:sticky top-0 z-50 h-screen transition-transform duration-300 ease-in-out ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        <AdminSidebar onClose={() => setIsSidebarOpen(false)} />
+        <AdminSidebar onClose={() => setIsSidebarOpen(false)} pendingApplicationsCount={pendingApplicationsCount} />
       </div>
  
       {/* Main Content Area */}

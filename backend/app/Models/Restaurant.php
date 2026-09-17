@@ -19,9 +19,20 @@ class Restaurant extends Model
         'delivery_fee',
         'min_order',
         'avg_delivery_time',
+        'opening_hours',
         'image',
+        'photos',
+        'documents',
         'status',
+        'rejection_reason',
         'accepts_vouchers',
+    ];
+
+    // Submitted documents (business license, ID, etc.) can contain sensitive
+    // files, so they're hidden by default and only exposed to the owner and
+    // admins via makeVisible() in RestaurantController.
+    protected $hidden = [
+        'documents',
     ];
 
     protected function casts(): array
@@ -30,6 +41,9 @@ class Restaurant extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'accepts_vouchers' => 'boolean',
+            'opening_hours' => 'array',
+            'photos' => 'array',
+            'documents' => 'array',
         ];
     }
 

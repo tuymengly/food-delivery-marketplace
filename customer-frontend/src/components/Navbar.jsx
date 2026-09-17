@@ -100,9 +100,14 @@ const Navbar = () => {
     };
   }, []);
 
-  // Change "avatar" to whatever field your backend actually returns
-  // (e.g. currentUser.profileImage, currentUser.photoUrl, etc.)
-  const avatarUrl = currentUser?.avatar || currentUser?.profileImage || currentUser?.photoUrl || "";
+  // The Profile page saves the uploaded photo under "profile_image".
+  // Checked first so the navbar picks up whatever the user uploaded there.
+  const avatarUrl =
+    currentUser?.profile_image ||
+    currentUser?.avatar ||
+    currentUser?.profileImage ||
+    currentUser?.photoUrl ||
+    "";
 
   return (
     <div className="w-full shadow-sm sticky top-0 z-50 bg-white border-b border-slate-200">
@@ -223,8 +228,6 @@ const Navbar = () => {
               <LanguageSwitcher />
             </div>
 
-
-
             <FaBars
               onClick={() => setOpenSidebar(!openSidebar)}
               className="text-2xl lg:text-xl lg:hidden flex cursor-pointer text-gray-700 hover:text-orange-600"
@@ -233,7 +236,7 @@ const Navbar = () => {
             {currentUser ? (
               <div className="relative group lg:flex hidden">
                 <div className="flex items-center gap-2 cursor-pointer">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-orange-500 to-red-500">
+                  <div className="w-9 h-9 rounded-3xl border overflow-hidden flex items-center justify-center transition-colors">
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
@@ -244,88 +247,95 @@ const Navbar = () => {
                         }}
                       />
                     ) : (
-                      <span className="text-white font-bold text-sm">
-                        {currentUser.name.charAt(0).toUpperCase()}
+                      <span className="text-white font-bold text-sm uppercase">
+                        {currentUser.name.charAt(0)}
                       </span>
                     )}
                   </div>
-                </div>
-                <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl py-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100">
-                  <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 shrink-0">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={currentUser.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <span className="text-white font-bold text-sm">
-                          {currentUser.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
+
+                  <div className="absolute right-0 top-12 bg-white rounded-none shadow-xl py-1 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-slate-300">
+                    {/* Dropdown Header */}
+                    <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-3xl border border-blue-950 overflow-hidden flex items-center justify-center bg-blue-900 shrink-0">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={currentUser.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <span className="text-white font-bold text-sm uppercase">
+                            {currentUser.name.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 text-xs uppercase tracking-wide truncate">
+                          {currentUser.name}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mt-0.5">
+                          {currentUser.email}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm truncate">
-                        {currentUser.name}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
-                    </div>
+
+                    {/* Dropdown Links */}
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2.5 text-slate-700 hover:bg-slate-100 hover:text-blue-900 transition-colors text-[11px] font-bold uppercase tracking-wider"
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      to="/favorites"
+                      className="block px-4 py-2.5 text-slate-700 hover:bg-slate-100 hover:text-blue-900 transition-colors text-[11px] font-bold uppercase tracking-wider"
+                    >
+                      {t("nav.myFavorites")}
+                    </Link>
+                    <Link
+                      to="/cart"
+                      className="block px-4 py-2.5 text-slate-700 hover:bg-slate-100 hover:text-blue-900 transition-colors text-[11px] font-bold uppercase tracking-wider"
+                    >
+                      {t("nav.myCart")}
+                    </Link>
+                    <Link
+                      to="/order-history"
+                      className="block px-4 py-2.5 text-slate-700 hover:bg-slate-100 hover:text-blue-900 transition-colors text-[11px] font-bold uppercase tracking-wider"
+                    >
+                      {t("nav.orderHistory")}
+                    </Link>
+
+                    {/* Logout Button */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          await logoutUser();
+                        } catch (requestError) {
+                          console.error("Logout request failed:", requestError);
+                        } finally {
+                          clearAuthSession();
+                          localStorage.removeItem("cart");
+                          localStorage.removeItem("favorites");
+                          localStorage.removeItem("deliveryLocation");
+                          localStorage.removeItem("deliveryAddress");
+                          localStorage.removeItem("deliveryCoords");
+                          setCurrentUser(null);
+                          setCartCount(0);
+                          setFavoritesCount(0);
+                          window.dispatchEvent(new Event("authChanged"));
+                          window.dispatchEvent(new Event("cartUpdated"));
+                          window.dispatchEvent(new Event("favoritesUpdated"));
+                          navigate("/");
+                        }
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-rose-700 hover:bg-rose-50 hover:text-rose-800 transition-colors text-[11px] font-bold uppercase tracking-wider border-t border-slate-200"
+                    >
+                      {t("nav.logout")}
+                    </button>
                   </div>
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm"
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    to="/favorites"
-                    className="block px-4 py-2 text-gray-700 hover:bg-orange-50
-                         hover:text-orange-600 transition-colors text-sm"
-                  >
-                    {t("nav.myFavorites")}
-                  </Link>
-                  <Link
-                    to="/cart"
-                    className="block px-4 py-2 text-gray-700
-                         hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm"
-                  >
-                    {t("nav.myCart")}
-                  </Link>
-                  <Link
-                    to="/order-history"
-                    className="block px-4 py-2 text-gray-700 hover:bg-orange-50
-                       hover:text-orange-600 transition-colors text-sm"
-                  >
-                    {t("nav.orderHistory")}
-                  </Link>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await logoutUser();
-                      } catch (requestError) {
-                        console.error("Logout request failed:", requestError);
-                      } finally {
-                        clearAuthSession();
-                        localStorage.removeItem("cart");
-                        localStorage.removeItem("favorites");
-                        setCurrentUser(null);
-                        setCartCount(0);
-                        setFavoritesCount(0);
-                        window.dispatchEvent(new Event("authChanged"));
-                        window.dispatchEvent(new Event("cartUpdated"));
-                        window.dispatchEvent(new Event("favoritesUpdated"));
-                        navigate("/");
-                      }
-                    }}
-                    className="w-full text-left px-4 py-2 text-red-600
-                     hover:bg-red-50 transition-colors text-sm border-t border-gray-100"
-                  >
-                    {t("nav.logout")}
-                  </button>
                 </div>
               </div>
             ) : (
@@ -335,7 +345,12 @@ const Navbar = () => {
                 className="group relative hidden h-[35px] w-[90px] items-center justify-center rounded-[15px] bg-[linear-gradient(to_bottom_right,#2e8eff_0%,rgba(46,142,255,0)_30%)] bg-[rgb(2,17,34)] transition duration-300 ease-in-out hover:bg-blue hover:shadow-[0_0_10px_rgba(46,142,255,0.5)] focus:outline-none focus:ring-2 focus:ring-blue-900 lg:flex"
               >
                 <span className="flex h-[35px] w-[110px] items-center justify-center gap-[8px] rounded-[15px] bg-[#1a1a1a] text-white">
-                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-[20px] w-[20px] fill-white">
+                  <svg
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="h-[20px] w-[20px] fill-white"
+                  >
                     <g data-name="Layer 2" id="Layer_2">
                       <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z" />
                     </g>

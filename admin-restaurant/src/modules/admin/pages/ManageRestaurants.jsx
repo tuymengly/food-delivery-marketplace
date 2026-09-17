@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Plus, Check, X, Star, Edit, Trash2 } from 'lucide-react';
-import { getRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, updateRestaurantStatus } from '../../../services/adminService';
+import { Link } from 'react-router-dom';
+import { Search, Eye, Plus, Star, Edit, Trash2, ClipboardList, X } from 'lucide-react';
+import { getRestaurantApplications, createRestaurant, updateRestaurant, deleteRestaurant, updateRestaurantStatus } from '../../../services/adminService';
 import { uploadImageToCloudinary } from '../../../services/cloudinary';
 
 export default function ManageRestaurants() {
@@ -27,7 +28,7 @@ export default function ManageRestaurants() {
   const fetchRestaurantsData = async () => {
     try {
       setLoading(true);
-      const res = await getRestaurants();
+      const res = await getRestaurantApplications('all');
       setRestaurants(res.data.data || res.data || []);
     } catch (error) {
       console.error('Error fetching restaurants:', error);
@@ -229,6 +230,7 @@ export default function ManageRestaurants() {
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
                         ['active', 'Active'].includes(item.status) ? 'bg-emerald-100/80 text-emerald-600' :
                         ['pending', 'Pending'].includes(item.status) ? 'bg-amber-100/80 text-amber-700' :
+                        ['rejected', 'Rejected'].includes(item.status) ? 'bg-rose-100/80 text-rose-600' :
                         'bg-slate-100 text-slate-500'
                       }`}>
                         {item.status}
@@ -255,20 +257,12 @@ export default function ManageRestaurants() {
                         )}
 
                         {['pending', 'Pending'].includes(item.status) && (
-                          <>
-                            <button
-                              onClick={() => handleStatusChange(item.id, 'Active')}
-                              className="px-2.5 py-1 bg-emerald-100 text-emerald-600 text-xs font-semibold rounded-lg hover:bg-emerald-200 transition flex items-center gap-1 cursor-pointer"
-                            >
-                              <Check size={12} /> Approve
-                            </button>
-                            <button
-                              onClick={() => handleStatusChange(item.id, 'Disabled')}
-                              className="px-2.5 py-1 bg-rose-100 text-rose-600 text-xs font-semibold rounded-lg hover:bg-rose-200 transition flex items-center gap-1 cursor-pointer"
-                            >
-                              <X size={12} /> Reject
-                            </button>
-                          </>
+                          <Link
+                            to="/admin/restaurant-applications"
+                            className="px-2.5 py-1 bg-[#0B1F3B] text-white text-xs font-semibold rounded-lg hover:bg-[#132C52] transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <ClipboardList size={12} /> Review
+                          </Link>
                         )}
 
                         {['disabled', 'Disabled', 'inactive'].includes(item.status) && (

@@ -107,7 +107,9 @@ const AllMenu = () => {
   const clearFilters = () => updateFilters({ sort: "relevance" });
 
   const filteredFoods = useMemo(() => {
-    const order = new Map(restaurants.map((restaurant, index) => [restaurant.id, index]));
+    const order = new Map(
+      restaurants.map((restaurant, index) => [restaurant.id, index]),
+    );
     return foods
       .filter((food) => order.has(food.restaurantId))
       .sort((a, b) => order.get(a.restaurantId) - order.get(b.restaurantId));
@@ -168,7 +170,7 @@ const AllMenu = () => {
               )}
             </div>
             {loading ? (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((item) => (
                   <div
                     key={item}
@@ -197,13 +199,13 @@ const AllMenu = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredFoods.map((food) => (
-                  <Link
-                    key={food.id}
-                    to={`/restaurants/${food.restaurantId}`}
-                    className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
+<Link
+  key={food.id}
+  to={`/restaurants/${food.restaurantId}`}
+  className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+>
                     <div className="h-40 bg-slate-100">
                       <img
                         src={food.image}
@@ -211,19 +213,19 @@ const AllMenu = () => {
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <div className="p-4">
+                    <div className="flex flex-1 flex-col p-4">
                       <div className="flex items-start justify-between gap-2">
-                        <h2 className="text-lg font-bold text-[#0B1F3A]">
+                        <h2 className="min-w-0 flex-1 truncate text-lg font-bold text-[#0B1F3A]">
                           {food.name}
                         </h2>
                         <span className="shrink-0 text-sm font-bold text-[#2563EB]">
                           ${food.price.toFixed(2)}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm text-slate-500">
+                      <p className="mt-2 truncate text-sm text-slate-500">
                         {food.category}
                       </p>
-                      <p className="mt-3 text-xs text-slate-400">
+                      <p className="mt-3 truncate text-xs text-slate-400">
                         From: {food.restaurantName}
                       </p>
                     </div>

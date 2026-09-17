@@ -46,6 +46,12 @@ Route::post('/auth/otp/resend', [AuthController::class, 'resendOtp'])->middlewar
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->middleware('throttle:20,1');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:20,1');
 
+// ABA PayWay callback/webhook endpoint. It is intentionally public because
+// PayWay calls it server-to-server; PaymentController still verifies the
+// transaction with PayWay before changing payment state.
+Route::match(['get', 'post'], '/payments/payway/callback', [PaymentController::class, 'payWayCallback'])
+    ->middleware('throttle:120,1');
+
 // Protected Routes (Sanctum Auth)
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -97,6 +103,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
     Route::post('/orders/{order}/assign-rider', [OrderController::class, 'assignRider']);
     Route::post('/vouchers/validate', [VoucherController::class, 'validateCode']);
+
+    // Customer payments. PayWay is the primary provider for KHQR and card;
+    // Bakong support remains isolated in its service for legacy/internal use.
+    Route::post('/payments/payway', [PaymentController::class, 'createPayWayPayment']);
+    Route::post('/payments/khqr', [PaymentController::class, 'createKhqrPayment']);
+    Route::get('/payments/{payment}', [PaymentController::class, 'showPayment']);
 
     Route::get('/rider/profile', [RiderProfileController::class, 'show']);
     Route::post('/rider/profile', [RiderProfileController::class, 'store']);
@@ -165,6 +177,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::get('/reviews', [ReviewController::class, 'index']);
     Route::patch('/reviews/{review}/status', [ReviewController::class, 'updateStatus']);
     Route::post('/reviews/{review}/reply', [ReviewController::class, 'reply']);
+
+    // Restaurant Applications (registration review workflow)
+    Route::get('/restaurants', [RestaurantController::class, 'adminIndex']);
+    Route::get('/restaurants/{restaurant}', [RestaurantController::class, 'adminShow']);
+    Route::put('/restaurants/{restaurant}/approve', [RestaurantController::class, 'approve']);
+    Route::put('/restaurants/{restaurant}/reject', [RestaurantController::class, 'reject']);
 });
 
 // Admin Dashboard & Payments Routes (Aligned with /admin/dashboard/stats)

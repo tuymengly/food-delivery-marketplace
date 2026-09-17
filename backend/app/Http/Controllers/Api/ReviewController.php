@@ -26,14 +26,14 @@ class ReviewController extends Controller
             if (!$restaurantId || !Restaurant::whereKey($restaurantId)->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'រកមិនឃើញទិន្នន័យហាងឡើយ!',
+                    'message' => 'Not Found!',
                 ], 404);
             }
 
             $query->where('restaurant_id', $restaurantId);
         }
 
-        return response()->json([
+        return response()->json([ 
             'success' => true,
             'data' => $query->get(),
         ]);

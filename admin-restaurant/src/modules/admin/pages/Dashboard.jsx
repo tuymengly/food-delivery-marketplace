@@ -174,9 +174,9 @@ export default function Dashboard() {
                 const ownerName = item.user?.name || item.owner_name || 'Owner';
 
                 return (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-slate-100 rounded-sm">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center font-bold shrink-0">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-900 flex items-center justify-center font-bold shrink-0">
                         {item.name?.charAt(0) || 'R'}
                       </div>
                       <div className="truncate">
@@ -184,11 +184,11 @@ export default function Dashboard() {
                         <p className="text-xs text-slate-500 truncate">{ownerName}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <button onClick={() => handleApprove(item.id)} className="p-2 bg-emerald-100 text-emerald-600 rounded-full hover:bg-emerald-200">
+                    <div className="flex items-center cursor-pointer gap-1.5 shrink-0 ml-2">
+                      <button onClick={() => handleApprove(item.id)} className="p-2 bg-green-700 text-black-900 rounded-full hover:bg-emerald-200">
                         <Check size={16} />
                       </button>
-                      <button onClick={() => handleReject(item.id)} className="p-2 bg-rose-100 text-rose-500 rounded-full hover:bg-rose-200">
+                      <button onClick={() => handleReject(item.id)} className="p-2 bg-rose-500 text-black-900 rounded-full hover:bg-rose-200">
                         <X size={16} />
                       </button>
                     </div>

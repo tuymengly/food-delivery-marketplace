@@ -123,6 +123,7 @@ export default function ManageOrders() {
                 <th className="py-3 px-4 sm:px-6">Order #</th>
                 <th className="py-3 px-4 sm:px-6">Customer</th>
                 <th className="py-3 px-4 sm:px-6">Restaurant</th>
+                <th className="py-3 px-4 sm:px-6">Fulfillment</th>
                 <th className="py-3 px-4 sm:px-6">Total</th>
                 <th className="py-3 px-4 sm:px-6">Time</th>
                 <th className="py-3 px-4 sm:px-6">Status</th>
@@ -138,6 +139,15 @@ export default function ManageOrders() {
                       <td className="py-3.5 px-4 sm:px-6 font-semibold text-[#1A2233] whitespace-nowrap">{order.id}</td>
                       <td className="py-3.5 px-4 sm:px-6 font-bold text-[#1A2233] whitespace-nowrap">{order.customer}</td>
                       <td className="py-3.5 px-4 sm:px-6 text-slate-500 whitespace-nowrap">{order.restaurant_name}</td>
+                      <td className="py-3.5 px-4 sm:px-6 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-[11px] font-semibold border-l-2 ${
+                          order.order_type === 'pickup'
+                            ? 'bg-violet-50 text-violet-700 border-violet-500'
+                            : 'bg-sky-50 text-sky-700 border-sky-500'
+                        }`}>
+                          {order.order_type === 'pickup' ? 'Pick-up' : 'Delivery'}
+                        </span>
+                      </td>
                       <td className="py-3.5 px-4 sm:px-6 font-bold text-[#1A2233] whitespace-nowrap">{order.price}</td>
                       <td className="py-3.5 px-4 sm:px-6 text-slate-400 text-xs whitespace-nowrap">{order.time}</td>
                       <td className="py-3.5 px-4 sm:px-6 whitespace-nowrap">
@@ -165,7 +175,7 @@ export default function ManageOrders() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-slate-400 text-sm">
+                  <td colSpan="8" className="py-8 text-center text-slate-400 text-sm">
                     No orders found matching your filter.
                   </td>
                 </tr>
@@ -208,7 +218,11 @@ export default function ManageOrders() {
                   <p className="text-xs font-semibold text-slate-400 mb-1">Customer info</p>
                   <p className="font-bold text-[#1A2233]">{selectedOrder.customer}</p>
                   <p className="text-slate-500 text-xs">{selectedOrder.phone || 'N/A'}</p>
-                  <p className="text-slate-500 text-xs">{selectedOrder.address || 'N/A'}</p>
+                  <p className="text-slate-500 text-xs">
+                    {selectedOrder.order_type === 'pickup'
+                      ? `Pick-up in person${selectedOrder.pickup_location ? ` — ${selectedOrder.pickup_location}` : ''}`
+                      : (selectedOrder.address || 'N/A')}
+                  </p>
                 </div>
 
                 <div>

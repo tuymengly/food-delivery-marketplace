@@ -16,6 +16,7 @@ use App\Models\Voucher;
 use App\Services\OrderFinanceCalculator;
 use App\Services\RiderMatchingService;
 use App\Support\OrderStatuses;
+use App\Support\PaymentStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -54,17 +55,24 @@ class OrderController extends Controller
                 return ($item->food->name ?? 'Item') . ' × ' . $item->quantity;
             })->implode(', ');
 
+            $isPickup = $order->order_type === 'pickup';
+
             return [
-                'id'              => '#BR-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
-                'real_id'         => $order->id,
-                'customer'        => $order->user->name ?? 'Guest Customer',
-                'phone'           => $order->user->phone ?? null,
-                'address'         => $order->user->location ?? null,
-                'restaurant_name' => $order->restaurant->name ?? 'N/A',
-                'items'           => $itemsFormatted ?: 'No items',
-                'price'           => '$' . number_format($order->total_price ?? $order->total ?? 0, 2),
-                'time'            => $order->created_at ? $order->created_at->diffForHumans() : 'Just now',
-                'status'          => ucfirst($order->status),
+                'id'                 => '#BR-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                'real_id'            => $order->id,
+                'customer'           => $order->user->name ?? 'Guest Customer',
+                'phone'              => $order->user->phone ?? null,
+                // A pickup order has no delivery address - the customer
+                // collects it at the restaurant, so surface that location
+                // instead of the (irrelevant) customer address.
+                'address'            => $isPickup ? null : ($order->user->location ?? null),
+                'order_type'         => $order->order_type ?? 'delivery',
+                'pickup_location'    => $isPickup ? ($order->restaurant->address ?? null) : null,
+                'restaurant_name'    => $order->restaurant->name ?? 'N/A',
+                'items'              => $itemsFormatted ?: 'No items',
+                'price'              => '$' . number_format($order->total_price ?? $order->total ?? 0, 2),
+                'time'               => $order->created_at ? $order->created_at->diffForHumans() : 'Just now',
+                'status'             => ucfirst($order->status),
             ];
         });
 
@@ -293,10 +301,12 @@ class OrderController extends Controller
 
         $total = max(0, $subtotal + $deliveryFee + $serviceFee - $discountAmount);
         $breakdown = OrderFinanceCalculator::breakdown($subtotal, $deliveryFee, $total);
+        $paymentMethod = $validated['payment_method'] ?? null;
+        $requiresVerifiedPayment = in_array($paymentMethod, ['khqr', 'card'], true);
 
         return DB::transaction(function () use (
             $cart, $user, $address, $restaurantIds, $subtotal, $deliveryFee, $serviceFee,
-            $discountAmount, $total, $orderType, $validated, $voucher, $breakdown
+            $discountAmount, $total, $orderType, $paymentMethod, $requiresVerifiedPayment, $validated, $voucher, $breakdown
         ) {
             $order = Order::create([
                 'restaurant_id' => $restaurantIds->first(),
@@ -310,7 +320,8 @@ class OrderController extends Controller
                 'total_price' => $total,
                 'status' => OrderStatuses::PENDING,
                 'order_type' => $orderType,
-                'payment_method' => $validated['payment_method'] ?? null,
+                'payment_method' => $paymentMethod,
+                'payment_status' => $requiresVerifiedPayment ? PaymentStatuses::PENDING : null,
                 'notes' => $validated['notes'] ?? null,
                 'voucher_id' => $voucher?->id,
                 'voucher_code' => $voucher?->code,
@@ -328,17 +339,20 @@ class OrderController extends Controller
                 ]);
             }
 
-            $delivery = Delivery::create([
-                'order_id' => $order->id,
-                'status' => 'pending',
-            ]);
+            // Pickup orders are collected in person and must never enter the
+            // rider pool, so - unlike delivery orders - they get no Delivery
+            // row at all (DriverController::orders() also excludes them
+            // explicitly, but not creating the row is the primary guard).
+            $delivery = $orderType === 'delivery'
+                ? Delivery::create(['order_id' => $order->id, 'status' => 'pending'])
+                : null;
             $cart->items()->delete();
 
             if ($voucher) {
                 $voucher->increment('times_used');
             }
 
-            if ($orderType === 'delivery' && $address) {
+            if ($orderType === 'delivery' && $delivery && $address && ! $requiresVerifiedPayment) {
                 $restaurant = Restaurant::find($restaurantIds->first());
                 if ($restaurant) {
                     app(RiderMatchingService::class)->assignBestRider($order, $delivery, $restaurant, $address);
@@ -384,6 +398,12 @@ class OrderController extends Controller
 
     public function assignRider(Request $request, Order $order)
     {
+        if ($order->order_type === 'pickup') {
+            throw ValidationException::withMessages([
+                'order_type' => ['Pickup orders are collected in person and do not require a rider.'],
+            ]);
+        }
+
         $user = $request->user();
         $role = strtolower((string) $user?->role);
         $isAdmin = in_array($role, ['admin', 'super_admin', 'super admin'], true);

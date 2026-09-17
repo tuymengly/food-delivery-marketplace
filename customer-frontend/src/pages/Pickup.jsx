@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { fetchRestaurants } from "../api/restaurantApi";
 import RestaurantFilters from "../components/RestaurantFilters";
 import { parseCuisines } from "../components/restaurantFilterData";
@@ -89,11 +89,12 @@ const Pickup = () => {
           </aside>
           <section>
             <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-              Pick-up ordering is not currently supported by the marketplace
-              backend. Restaurant ordering remains available through Delivery.
+              Choose a restaurant, add items to your cart, then select
+              "Pick-up" as the order type at checkout to skip the delivery
+              fee and collect your order in person.
             </div>
             {loading ? (
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((item) => (
                   <div
                     key={item}
@@ -115,11 +116,12 @@ const Pickup = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {restaurants.map((restaurant) => (
-                  <article
+                  <Link
                     key={restaurant.id}
-                    className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                    to={`/restaurants/${restaurant.id}?type=pickup`}
+                    className="block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="h-40 bg-slate-100">
                       {restaurant.image ? (
@@ -145,7 +147,7 @@ const Pickup = () => {
                         {restaurant.address}
                       </p>
                     </div>
-                  </article>
+                  </Link>
                 ))}
               </div>
             )}

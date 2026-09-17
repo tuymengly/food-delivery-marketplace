@@ -113,27 +113,27 @@ const FoodDetail = () => {
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
-        <p className="text-gray-600 text-lg font-medium">Loading food details...</p>
+      <div className="w-full min-h-screen flex items-center justify-center bg-[#F4F5F7]">
+        <p className="text-slate-600 text-lg font-medium">Loading food details...</p>
       </div>
     );
   }
 
   if (!food) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
+      <div className="w-full min-h-screen flex items-center justify-center bg-[#F4F5F7]">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          <h2 className="text-3xl font-bold text-[#1A2233] mb-4">
             {error ? 'Unable to Load Food' : 'Food Not Found'}
           </h2>
           {error && (
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            <p className="text-slate-600 mb-6 max-w-md mx-auto">
               {error}
             </p>
           )}
           <Link
             to="/menu"
-            className="text-orange-600 hover:text-orange-700 font-semibold inline-block"
+            className="text-[#0B1F3B] hover:text-[#132C52] font-semibold inline-block"
           >
             ← Back to Menu
           </Link>
@@ -204,11 +204,11 @@ const FoodDetail = () => {
     <>
       {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
 
-      <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white py-10 px-4 sm:px-6 md:px-12 lg:px-20 overflow-x-hidden">
+      <div className="w-full min-h-screen bg-[#F4F5F7] py-10 px-4 sm:px-6 md:px-12 lg:px-20 overflow-x-hidden">
         {/* Back Button */}
         <Link
           to="/menu"
-          className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold mb-8 group"
+          className="inline-flex items-center gap-2 text-[#0B1F3B] hover:text-[#132C52] font-semibold mb-8 group"
         >
           <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-300" />
           {t('button.backToMenu') || 'Back to Menu'}
@@ -217,58 +217,58 @@ const FoodDetail = () => {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-start">
           {/* Image */}
           <div className="relative w-full">
-            <div className="rounded-3xl overflow-hidden shadow-2xl">
+            <div className="border border-[#D6DBE3] overflow-hidden">
               <img
                 src={food.image_url || food.image || 'https://via.placeholder.com/500'}
                 alt={food.name}
-                className="w-full h-auto max-h-[450px] sm:max-h-[500px] object-cover rounded-3xl transition-transform duration-700 hover:scale-105"
+                className="w-full h-auto max-h-[450px] sm:max-h-[500px] object-cover transition-transform duration-700 hover:scale-105"
               />
             </div>
 
             {/* Favorite Button */}
             <button
               onClick={handleFavoriteToggle}
-              className="absolute top-4 right-4 w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+              className="absolute top-4 right-4 w-11 h-11 bg-white border border-[#D6DBE3] flex items-center justify-center hover:scale-105 transition-transform"
             >
               <FaHeart
-                className={`text-lg ${isFavorite ? 'text-red-500' : 'text-gray-400'}`}
+                className={`text-lg ${isFavorite ? 'text-[#A6321E]' : 'text-slate-400'}`}
               />
             </button>
 
             {/* Category Badge */}
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
-              <span className="text-orange-600 font-bold text-sm">
+            <div className="absolute bottom-4 left-4 bg-[#0B1F3B] px-3 py-1.5">
+              <span className="text-white font-semibold text-sm">
                 {food.category?.name || food.category || 'Food'}
               </span>
             </div>
           </div>
 
           {/* Info Section */}
-          <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 md:p-10">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <div className="bg-white border border-[#D6DBE3] p-6 sm:p-8 md:p-10">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A2233] mb-4">
               {food.name}
             </h1>
 
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <div className="flex gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <FaStar key={i} className="text-yellow-400 text-lg" />
+                  <FaStar key={i} className="text-amber-400 text-lg" />
                 ))}
               </div>
-              <span className="text-gray-600 text-sm sm:text-base font-medium">
+              <span className="text-slate-600 text-sm sm:text-base font-medium">
                 (4.9) • 127 Reviews
               </span>
             </div>
             <FoodRecommendButton food={food} />
 
-            <p className="text-gray-700 text-base sm:text-lg leading-relaxed mb-8">
+            <p className="text-slate-700 text-base sm:text-lg leading-relaxed mb-8">
               {food.description}
             </p>
 
             {/* Price */}
             <div className="mb-8">
               <div className="flex flex-wrap items-baseline gap-3">
-                <span className="text-4xl sm:text-5xl font-bold text-transparent bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text">
+                <span className="text-4xl sm:text-5xl font-bold text-[#0B1F3B]">
                   ${totalPrice}
                 </span>
               </div>
@@ -276,28 +276,28 @@ const FoodDetail = () => {
 
             {/* Quantity Selector */}
             <div className="mb-8">
-              <label className="block text-gray-700 font-semibold mb-3 text-lg">
+              <label className="block text-slate-700 font-semibold mb-3 text-lg">
                 Quantity
               </label>
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   onClick={() => handleQuantityChange('decrease')}
-                  className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 hover:bg-orange-200 rounded-full flex items-center justify-center transition"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-[#EEF2F8] hover:bg-[#DFE7F2] flex items-center justify-center transition cursor-pointer"
                 >
-                  <FaMinus className="text-orange-600" />
+                  <FaMinus className="text-[#0B1F3B]" />
                 </button>
-                <span className="text-2xl font-bold text-gray-900 w-14 text-center">
+                <span className="text-2xl font-bold text-[#1A2233] w-14 text-center">
                   {quantity}
                 </span>
                 <button
                   onClick={() => handleQuantityChange('increase')}
-                  className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 hover:bg-orange-200 rounded-full flex items-center justify-center transition"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-[#EEF2F8] hover:bg-[#DFE7F2] flex items-center justify-center transition cursor-pointer"
                 >
-                  <FaPlus className="text-orange-600" />
+                  <FaPlus className="text-[#0B1F3B]" />
                 </button>
-                <span className="text-gray-500 text-sm sm:text-base">
+                <span className="text-slate-500 text-sm sm:text-base">
                   Available:{' '}
-                  <span className="font-semibold text-green-600">
+                  <span className="font-semibold text-emerald-600">
                     {food.qty || 10} items
                   </span>
                 </span>
@@ -308,13 +308,13 @@ const FoodDetail = () => {
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <button
                 onClick={addToCart}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:scale-105 transition flex items-center justify-center gap-2"
+                className="flex-1 bg-[#0B1F3B] hover:bg-[#132C52] text-white py-4 font-bold text-lg transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <FaShoppingCart /> Add to Cart
               </button>
               <Link
                 to="/cart"
-                className="flex-1 sm:flex-none px-6 bg-orange-100 hover:bg-orange-200 text-orange-600 py-4 rounded-xl font-bold shadow-lg hover:scale-105 transition text-center"
+                className="flex-1 sm:flex-none px-6 border border-[#0B1F3B] hover:bg-[#EEF2F8] text-[#0B1F3B] py-4 font-bold transition text-center"
               >
                 Buy Now
               </Link>
@@ -322,17 +322,17 @@ const FoodDetail = () => {
 
             {/* Features */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-orange-50 p-4 rounded-xl text-center">
-                <MdDeliveryDining className="text-3xl text-orange-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-700">Free Delivery</p>
+              <div className="bg-[#EEF2F8] p-4 text-center">
+                <MdDeliveryDining className="text-3xl text-[#0B1F3B] mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-700">Free Delivery</p>
               </div>
-              <div className="bg-orange-50 p-4 rounded-xl text-center">
-                <BiTime className="text-3xl text-orange-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-700">30 Min</p>
+              <div className="bg-[#EEF2F8] p-4 text-center">
+                <BiTime className="text-3xl text-[#0B1F3B] mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-700">30 Min</p>
               </div>
-              <div className="bg-orange-50 p-4 rounded-xl text-center">
-                <FaStar className="text-3xl text-orange-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-700">Top Rated</p>
+              <div className="bg-[#EEF2F8] p-4 text-center">
+                <FaStar className="text-3xl text-[#0B1F3B] mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-700">Top Rated</p>
               </div>
             </div>
           </div>

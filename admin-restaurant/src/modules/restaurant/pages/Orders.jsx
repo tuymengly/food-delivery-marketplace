@@ -7,7 +7,9 @@ import {
   X,
   User,
   Phone,
-  MapPin
+  MapPin,
+  Store,
+  Bike
 } from 'lucide-react';
 import API from '../../../services/api';
 
@@ -86,46 +88,46 @@ const Orders = () => {
     return matchesTab && matchesSearch;
   });
 
-  // Helper Badge Styling
+  // Helper Badge Styling — square, left-accented tag instead of a rounded pill
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Pending':
-        return 'bg-blue-50 text-blue-600 border-blue-200';
+        return 'bg-[#EEF2F8] text-[#0B1F3B] border-l-2 border-[#0B1F3B]';
       case 'Accepted':
-        return 'bg-orange-50 text-orange-600 border-orange-200';
+        return 'bg-[#EEF2F8] text-[#0B1F3B] border-l-2 border-[#0B1F3B]';
       case 'Preparing':
-        return 'bg-amber-50 text-amber-600 border-amber-200';
+        return 'bg-amber-50 text-amber-700 border-l-2 border-amber-500';
       case 'Ready':
-        return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+        return 'bg-emerald-50 text-emerald-700 border-l-2 border-emerald-500';
       case 'Completed':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-emerald-50 text-emerald-700 border-l-2 border-emerald-700';
       case 'Cancelled':
-        return 'bg-rose-50 text-rose-600 border-rose-200';
+        return 'bg-[#FBEEEC] text-[#A6321E] border-l-2 border-[#A6321E]';
       default:
-        return 'bg-slate-50 text-slate-600 border-slate-200';
+        return 'bg-slate-50 text-slate-600 border-l-2 border-slate-400';
     }
   };
 
   const tabs = ['All', 'Pending', 'Accepted', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
 
   return (
-    <div className="p-6 space-y-6 bg-[#fcfbfa] min-h-screen">
+    <div className="p-6 space-y-6 bg-[#F4F5F7] min-h-screen">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Order Management</h1>
+          <h1 className="text-2xl font-bold text-[#0B1F3B]">Order Management</h1>
           <p className="text-sm text-slate-500">Monitor and update incoming customer orders</p>
         </div>
         <button
           onClick={fetchOrders}
-          className="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-xl hover:bg-slate-700 transition"
+          className="px-4 py-2 bg-[#0B1F3B] text-white text-sm font-semibold hover:bg-[#132C52] transition cursor-pointer"
         >
           Refresh Data
         </button>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+      <div className="bg-white p-4 border border-[#D6DBE3] space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Status Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
@@ -133,9 +135,9 @@ const Orders = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   activeTab === tab
-                    ? 'bg-orange-500 text-white shadow-sm'
+                    ? 'bg-[#0B1F3B] text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -152,7 +154,7 @@ const Orders = () => {
               placeholder="Search by Order ID, Name, Phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+              className="w-full pl-9 pr-4 py-2 bg-[#FAFBFC] border border-[#D6DBE3] text-xs focus:outline-none focus:border-[#0B1F3B] transition"
             />
           </div>
         </div>
@@ -160,17 +162,17 @@ const Orders = () => {
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200">
-          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center justify-center py-20 bg-white border border-[#D6DBE3]">
+          <div className="w-10 h-10 border-4 border-[#0B1F3B] border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-sm text-slate-500 font-medium">Loading order data...</p>
         </div>
       ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center">
-          <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
-          <p className="text-rose-700 font-medium">{error}</p>
+        <div className="p-6 bg-[#FBEEEC] border border-[#F0D5CF] text-center">
+          <AlertCircle className="w-10 h-10 text-[#A6321E] mx-auto mb-2" />
+          <p className="text-[#A6321E] font-medium">{error}</p>
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="p-12 bg-white rounded-2xl border border-slate-200 text-center">
+        <div className="p-12 bg-white border border-[#D6DBE3] text-center">
           <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-slate-700">No Orders Found</h3>
           <p className="text-xs text-slate-400 mt-1">There are no orders matching your selected criteria.</p>
@@ -181,14 +183,22 @@ const Orders = () => {
           {filteredOrders.map((order) => (
             <div
               key={order.real_id}
-              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              className="bg-white border border-[#D6DBE3] p-5 hover:border-[#0B1F3B] transition flex flex-col lg:flex-row lg:items-center justify-between gap-4"
             >
               {/* Left Info */}
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-slate-800 text-base">{order.id}</span>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(order.status)}`}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="font-bold text-[#1A2233] text-base">{order.id}</span>
+                  <span className={`px-2.5 py-1 text-xs font-semibold ${getStatusBadge(order.status)}`}>
                     {order.status}
+                  </span>
+                  <span className={`px-2.5 py-1 text-xs font-semibold flex items-center gap-1 ${
+                    order.order_type === 'pickup'
+                      ? 'bg-violet-50 text-violet-700 border-l-2 border-violet-500'
+                      : 'bg-sky-50 text-sky-700 border-l-2 border-sky-500'
+                  }`}>
+                    {order.order_type === 'pickup' ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
+                    {order.order_type === 'pickup' ? 'Pick-up' : 'Delivery'}
                   </span>
                   <span className="text-xs text-slate-400 flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
@@ -202,7 +212,7 @@ const Orders = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end border-t pt-3 lg:pt-0 lg:border-t-0">
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end border-t border-[#EBEDF1] pt-3 lg:pt-0 lg:border-t-0">
                 {updatingId === order.real_id ? (
                   <span className="text-xs text-slate-400 font-medium px-4">Updating...</span>
                 ) : (
@@ -211,13 +221,13 @@ const Orders = () => {
                       <>
                         <button
                           onClick={() => handleUpdateStatus(order.real_id, 'Accepted')}
-                          className="px-3.5 py-1.5 bg-orange-600 text-white rounded-xl text-xs font-bold hover:bg-orange-700 transition"
+                          className="px-3.5 py-1.5 bg-[#0B1F3B] text-white text-xs font-bold hover:bg-[#132C52] transition cursor-pointer"
                         >
                           Accept
                         </button>
                         <button
                           onClick={() => handleUpdateStatus(order.real_id, 'Cancelled')}
-                          className="px-3.5 py-1.5 text-rose-500 text-xs font-bold hover:bg-rose-50 rounded-xl transition"
+                          className="px-3.5 py-1.5 text-[#A6321E] text-xs font-bold hover:bg-[#FBEEEC] transition cursor-pointer"
                         >
                           Reject
                         </button>
@@ -227,33 +237,33 @@ const Orders = () => {
                     {order.status === 'Accepted' && (
                       <button 
                         onClick={() => handleUpdateStatus(order.real_id, 'Preparing')}
-                        className="px-3.5 py-1.5 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition"
+                        className="px-3.5 py-1.5 bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition cursor-pointer"
                       >
                         Mark Preparing
                       </button>
                     )}
 
                     {order.status === 'Preparing' && (
-                      <button 
+                      <button
                         onClick={() => handleUpdateStatus(order.real_id, 'Ready')}
-                        className="px-3.5 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition"
+                        className="px-3.5 py-1.5 bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition cursor-pointer"
                       >
-                        Mark Ready
+                        {order.order_type === 'pickup' ? 'Mark Ready for Pickup' : 'Mark Ready'}
                       </button>
                     )}
 
                     {order.status === 'Ready' && (
-                      <button 
+                      <button
                         onClick={() => handleUpdateStatus(order.real_id, 'Completed')}
-                        className="px-3.5 py-1.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition"
+                        className="px-3.5 py-1.5 bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800 transition cursor-pointer"
                       >
-                        Mark Completed
+                        {order.order_type === 'pickup' ? 'Mark Picked Up' : 'Mark Completed'}
                       </button>
                     )}
 
                     <button 
                       onClick={() => setSelectedOrderDetails(order)}
-                      className="px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition"
+                      className="px-3.5 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition cursor-pointer"
                     >
                       Details
                     </button>
@@ -267,59 +277,67 @@ const Orders = () => {
 
       {/* 4. Order Details Modal */}
       {selectedOrderDetails && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-[#0B1F3B]/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50">
+          <div className="bg-white max-w-lg w-full shadow-2xl space-y-0 max-h-[90vh] overflow-y-auto border border-[#D6DBE3]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D6DBE3] bg-[#0B1F3B]">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">Order Details - {selectedOrderDetails.id}</h3>
-                <p className="text-xs text-slate-400">{selectedOrderDetails.time}</p>
+                <h3 className="text-lg font-bold text-white">Order Details - {selectedOrderDetails.id}</h3>
+                <p className="text-xs text-white/70">{selectedOrderDetails.time}</p>
               </div>
               <button
                 onClick={() => setSelectedOrderDetails(null)}
-                className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition"
+                className="p-1.5 text-white/70 hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Customer Details */}
-            <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
-              <div className="flex items-center gap-2 text-slate-700">
-                <User className="w-4 h-4 text-orange-500" />
-                <span className="font-semibold">Customer:</span> {selectedOrderDetails.customer}
-              </div>
-              {selectedOrderDetails.phone && (
+            <div className="p-6 space-y-6">
+              {/* Customer Details */}
+              <div className="space-y-2 bg-[#FAFBFC] p-4 border border-[#D6DBE3] text-xs">
                 <div className="flex items-center gap-2 text-slate-700">
-                  <Phone className="w-4 h-4 text-orange-500" />
-                  <span className="font-semibold">Phone:</span> {selectedOrderDetails.phone}
+                  <User className="w-4 h-4 text-[#0B1F3B]" />
+                  <span className="font-semibold">Customer:</span> {selectedOrderDetails.customer}
                 </div>
-              )}
-              {selectedOrderDetails.address && (
-                <div className="flex items-start gap-2 text-slate-700">
-                  <MapPin className="w-4 h-4 text-orange-500 mt-0.5" />
-                  <span><strong className="font-semibold">Address:</strong> {selectedOrderDetails.address}</span>
+                {selectedOrderDetails.phone && (
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Phone className="w-4 h-4 text-[#0B1F3B]" />
+                    <span className="font-semibold">Phone:</span> {selectedOrderDetails.phone}
+                  </div>
+                )}
+                {selectedOrderDetails.order_type === 'pickup' ? (
+                  <div className="flex items-start gap-2 text-slate-700">
+                    <Store className="w-4 h-4 text-[#0B1F3B] mt-0.5" />
+                    <span>
+                      <strong className="font-semibold">Pick-up in person</strong>
+                      {selectedOrderDetails.pickup_location && ` — ${selectedOrderDetails.pickup_location}`}
+                    </span>
+                  </div>
+                ) : selectedOrderDetails.address && (
+                  <div className="flex items-start gap-2 text-slate-700">
+                    <MapPin className="w-4 h-4 text-[#0B1F3B] mt-0.5" />
+                    <span><strong className="font-semibold">Address:</strong> {selectedOrderDetails.address}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Items Summary */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 mb-3">Ordered Items</h4>
+                <div className="p-3 bg-[#FAFBFC] border border-[#D6DBE3] text-xs text-slate-700 font-medium">
+                  {selectedOrderDetails.items}
                 </div>
-              )}
-            </div>
-
-            {/* Items Summary */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Ordered Items</h4>
-              <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 font-medium">
-                {selectedOrderDetails.items}
+                <div className="flex justify-between items-center pt-4 text-sm font-bold text-[#1A2233]">
+                  <span>Total Price:</span>
+                  <span className="text-[#0B1F3B]">{selectedOrderDetails.price}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center pt-4 text-sm font-bold text-slate-800">
-                <span>Total Price:</span>
-                <span className="text-orange-600">{selectedOrderDetails.price}</span>
-              </div>
-            </div>
 
-            {/* Close Button */}
-            <div className="pt-2">
+              {/* Close Button */}
               <button 
                 onClick={() => setSelectedOrderDetails(null)}
-                className="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition"
+                className="w-full py-2.5 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition cursor-pointer"
               >
                 Close
               </button>

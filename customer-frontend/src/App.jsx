@@ -6,6 +6,7 @@ import FoodDetail from './pages/FoodDetail';
 import Favorites from './pages/Favorites';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import KhqrPayment from './pages/KhqrPayment';
 import OrderSuccess from './pages/OrderSuccess';
 import OrderTracking from './pages/OrderTracking';
 import OrderHistory from './pages/OrderHistory';
@@ -55,7 +56,7 @@ const App = () => {
       <Routes>
         {/* Menu page is the default/first page customers see */}
         <Route path="/" element={<AllMenu />} />
-        <Route path="/home" element={<Navigate to="/" replace />} />
+        <Route path="/menu" element={<Navigate to="/" replace />} />
 
         {/* Food detail page (single page for every category - see FoodDetail.jsx) */}
         <Route path='/food/:id' element={<FoodDetail/>}/>
@@ -68,6 +69,10 @@ const App = () => {
 
         {/* Checkout page */}
         <Route path='/checkout' element={<Checkout/>}/>
+
+        {/* KHQR payment - scan/poll page shown after placing a KHQR order */}
+        <Route path='/payment/khqr/:paymentId' element={<KhqrPayment/>}/>
+        <Route path='/payment/payway/:paymentId' element={<KhqrPayment/>}/>
 
         {/* Order Success page */}
         <Route path='/order-success' element={<OrderSuccess/>}/>

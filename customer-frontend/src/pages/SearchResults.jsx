@@ -61,22 +61,22 @@ const SearchResults = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-orange-50 to-white pt-24 pb-16 px-6 md:px-14">
+    <div className="w-full min-h-screen bg-[#F4F5F7] pt-24 pb-16 px-6 md:px-14">
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
-        <Link to="/" className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold mb-8 group">
+        <Link to="/" className="inline-flex items-center gap-2 text-[#0B1F3B] hover:text-[#132C52] font-semibold mb-8 group">
           <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-300" />
           Back to Home
         </Link>
 
         {/* Search Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-gradient-to-r from-orange-600 via-red-500 to-orange-600 bg-clip-text mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-[#0B1F3B] mb-4">
             Search Results
           </h1>
           {query && (
-            <p className="text-gray-600 text-lg">
-              Showing results for "<span className="font-bold text-orange-600">{query}</span>"
+            <p className="text-slate-600 text-lg">
+              Showing results for "<span className="font-bold text-[#0B1F3B]">{query}</span>"
             </p>
           )}
         </div>
@@ -84,13 +84,13 @@ const SearchResults = () => {
         {/* Search Bar */}
         <div className="max-w-3xl mx-auto mb-12">
           <form onSubmit={handleSearch} className="relative">
-            <IoSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-orange-500 text-2xl" />
+            <IoSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-2xl" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search your favourite foods today"
-              className="w-full pl-14 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all duration-300 shadow-lg text-lg"
+              className="w-full pl-14 pr-4 py-4 border border-[#D6DBE3] focus:border-[#0B1F3B] outline-none transition-all duration-300 text-lg bg-white"
             />
             {searchQuery && (
               <button
@@ -99,7 +99,7 @@ const SearchResults = () => {
                   setSearchQuery('');
                   setResults([]);
                 }}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xl"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#1A2233] font-bold text-xl cursor-pointer"
               >
                 ✕
               </button>
@@ -109,51 +109,50 @@ const SearchResults = () => {
 
         {/* Results Count */}
         <div className="mb-8">
-          <p className="text-center text-gray-700 text-lg font-semibold">
-            Found <span className="text-orange-600">{results.length}</span> {results.length === 1 ? 'item' : 'items'}
+          <p className="text-center text-slate-700 text-lg font-semibold">
+            Found <span className="text-[#0B1F3B]">{results.length}</span> {results.length === 1 ? 'item' : 'items'}
           </p>
         </div>
 
         {/* Results Grid */}
         {loading ? (
-          <div className="text-center py-20 text-gray-600">Searching menu...</div>
+          <div className="text-center py-20 text-slate-600">Searching menu...</div>
         ) : results.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {results.map((item) => (
               <Link
                 key={`${item.type}-${item.id}`}
                 to={item.detailLink}
-                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border border-gray-100 group"
+                className="bg-white overflow-hidden border border-[#D6DBE3] hover:border-[#0B1F3B] transition group"
               >
                 {/* Image */}
-                <div className="relative h-64 overflow-hidden bg-gradient-to-br from-orange-400 via-red-400 to-orange-500 p-4">
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-all duration-500"></div>
+                <div className="relative h-56 overflow-hidden bg-[#0B1F3B]">
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-full h-full object-cover rounded-xl shadow-xl group-hover:scale-110 transition-transform duration-700"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-6 left-6 bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 rounded-full shadow-lg font-bold text-lg">
+                  <div className="absolute top-4 left-4 bg-[#0B1F3B] text-white px-3 py-1.5 font-bold text-base">
                     ${item.price}
                   </div>
-                  <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
-                    <span className="text-orange-600 font-semibold text-xs uppercase">{item.type}</span>
+                  <div className="absolute top-4 right-4 bg-white px-2.5 py-1">
+                    <span className="text-[#0B1F3B] font-semibold text-xs uppercase">{item.type}</span>
                   </div>
                 </div>
 
                 {/* Details */}
                 <div className="p-5">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors duration-300">
+                  <h3 className="text-xl font-bold text-[#1A2233] mb-1 group-hover:text-[#0B1F3B] transition-colors">
                     {item.name}
                   </h3>
-                  <p className="text-sm text-gray-500 mb-3">{item.category}</p>
-                  <p className="text-sm text-orange-600 font-semibold mb-3">
+                  <p className="text-sm text-slate-500 mb-2">{item.category}</p>
+                  <p className="text-sm text-[#0B1F3B] font-semibold mb-3">
                     From: {item.restaurantName}
                   </p>
                   {item.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-4">{item.description}</p>
+                    <p className="text-sm text-slate-600 line-clamp-2 mb-4">{item.description}</p>
                   )}
-                  <div className="w-full px-4 py-2 text-center rounded-xl text-white bg-gradient-to-r from-orange-500 to-red-500 group-hover:from-orange-600 group-hover:to-red-600 transition-all duration-300 font-semibold text-sm">
+                  <div className="w-full px-4 py-2 text-center text-white bg-[#0B1F3B] group-hover:bg-[#132C52] transition font-semibold text-sm">
                     View Details
                   </div>
                 </div>
@@ -164,8 +163,8 @@ const SearchResults = () => {
           /* No Results */
           <div className="text-center py-20">
             <div className="text-7xl mb-6">🔍</div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">No results found</h3>
-            <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+            <h3 className="text-3xl font-bold text-[#1A2233] mb-4">No results found</h3>
+            <p className="text-slate-600 mb-8 text-lg max-w-md mx-auto">
               We couldn't find any dishes matching "<span className="font-bold">{query}</span>". Try searching with different keywords.
             </p>
             <button
@@ -174,7 +173,7 @@ const SearchResults = () => {
                 setResults([]);
                 navigate('/search', { replace: true });
               }}
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              className="px-8 py-4 bg-[#0B1F3B] hover:bg-[#132C52] text-white font-bold text-lg transition cursor-pointer"
             >
               Clear Search
             </button>
@@ -183,8 +182,8 @@ const SearchResults = () => {
           /* Empty State */
           <div className="text-center py-20">
             <div className="text-7xl mb-6">🍽️</div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">Start Searching</h3>
-            <p className="text-gray-600 text-lg">
+            <h3 className="text-3xl font-bold text-[#1A2233] mb-4">Start Searching</h3>
+            <p className="text-slate-600 text-lg">
               Enter a keyword to search across all our delicious menu items
             </p>
           </div>

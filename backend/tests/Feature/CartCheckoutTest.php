@@ -59,10 +59,11 @@ class CartCheckoutTest extends TestCase
             ->assertJsonPath('data.delivery_fee', '0.00')
             ->assertJsonPath('data.service_fee', '0.00');
 
-        $this->assertDatabaseHas('deliveries', [
-            'order_id' => $response->json('data.id'),
-            'rider_id' => null,
-        ]);
+        // Pickup orders are collected in person, so - unlike delivery
+        // orders - no Delivery row should ever be created for them. This is
+        // the guard that keeps them out of the rider claim pool (see
+        // DriverController::orders(), which also filters by order_type).
+        $this->assertDatabaseCount('deliveries', 0);
     }
 
     public function test_valid_voucher_discounts_the_order_and_increments_usage(): void
