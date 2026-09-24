@@ -37,15 +37,11 @@
         <!-- Dummy, non-real Bakong config so KHQR generation works offline
              in tests; verification calls are faked with Http::fake(), never
              sent to the real Bakong API. -->
-        <env name="BAKONG_API_URL" value="https://api-bakong.test"/>
-        <env name="BAKONG_TOKEN" value="test-token-not-real"/>
-        <env name="BAKONG_ACCOUNT_ID" value="merchant_test@devb"/>
-        <env name="BAKONG_MERCHANT_NAME" value="Test Merchant"/>
-        <env name="BAKONG_MERCHANT_CITY" value="Phnom Penh"/>
-        <env name="PAYWAY_ENV" value="sandbox"/>
-        <env name="PAYWAY_MERCHANT_ID" value="payway-test-merchant"/>
-        <env name="PAYWAY_API_KEY" value="payway-test-key"/>
-        <env name="PAYWAY_RSA_PRIVATE_KEY" value="payway-test-private-key"/>
-        <env name="PAYWAY_CURRENCY" value="USD"/>
+        <env name="KHQR_BAKONG_API_URL" value="https://api-bakong.test"/>
+        <env name="KHQR_BAKONG_TOKEN" value="test-token-not-real"/>
+        <env name="KHQR_BAKONG_ID" value="merchant_test@devb"/>
+        <env name="KHQR_MERCHANT_NAME" value="Test Merchant"/>
+        <env name="KHQR_MERCHANT_CITY" value="Phnom Penh"/>
+        <env name="KHQR_CURRENCY" value="USD"/>
     </php>
 </phpunit>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rider;
+use App\Services\RiderMatchingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -109,7 +110,15 @@ class RiderProfileController extends Controller
             ], 404);
         }
 
-        $profile->update($validated);
+        // Query-based write: the model in $profile may have been cached from an
+        // earlier read in this request and Eloquent skips an update when
+        // nothing is dirty, which would leave the rider unavailable/unmatched.
+        Rider::whereKey($profile->id)->update($validated);
+
+        // Coming back available may unblock an order nobody could be matched
+        // to earlier (WAITING_FOR_RIDER) - retry it for this rider now rather
+        // than waiting for the next order to trigger a fresh match.
+        app(RiderMatchingService::class)->assignWaitingDeliveryToRider($profile->refresh());
 
         return response()->json([
             'success' => true,
@@ -147,6 +156,11 @@ class RiderProfileController extends Controller
             'location_updated_at' => now(),
         ]);
 
+        // A fresh location fix can also be what makes this rider eligible
+        // (the matching query requires a recent location_updated_at) -
+        // retry any order still waiting for a rider.
+        app(RiderMatchingService::class)->assignWaitingDeliveryToRider($profile->refresh());
+
         return response()->json([
             'success' => true,
             'message' => 'Rider location updated successfully.',
@@ -176,7 +190,12 @@ class RiderProfileController extends Controller
             ], 404);
         }
 
-        $profile->update($validated);
+        // Query-based for the same reason as availability() above.
+        Rider::whereKey($profile->id)->update($validated);
+
+        // Coming online can also unblock a waiting order for the same reason
+        // as availability() above.
+        app(RiderMatchingService::class)->assignWaitingDeliveryToRider($profile->refresh());
 
         return response()->json([
             'success' => true,

@@ -120,7 +120,7 @@ const Pickup = () => {
                 {restaurants.map((restaurant) => (
                   <Link
                     key={restaurant.id}
-                    to={`/restaurants/${restaurant.id}?type=pickup`}
+                    to={`/shops/${restaurant.id}?type=pickup`}
                     className="block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="h-40 bg-slate-100">

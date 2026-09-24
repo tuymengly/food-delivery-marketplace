@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import logoImg from '../../../assets/logo_no_bg.png';
+import { logout } from '../../../services/session';
 
 export default function AdminSidebar({ onClose, pendingApplicationsCount = 0 }) {
   const menuGroups = [
@@ -117,8 +118,8 @@ export default function AdminSidebar({ onClose, pendingApplicationsCount = 0 }) 
           <HelpCircle size={18} /> Help Center
         </NavLink>
 
-        <button 
-          onClick={onClose}
+        <button
+          onClick={logout}
           className="flex items-center gap-3 px-4 py-2.5 text-white/90 hover:text-white hover:bg-white/15 rounded-md transition w-full text-left text-sm"
         >
           <LogOut size={18} /> Exit Admin

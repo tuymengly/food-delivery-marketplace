@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\UserRoles;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,7 +11,10 @@ class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! in_array(strtolower((string) $request->user()?->role), ['admin', 'super_admin', 'super admin'], true)) {
+        // Role aliases live in App\Support\UserRoles (the same resolver
+        // EnsureUserHasRole uses), so 'super_admin' etc. stay recognised
+        // in one place instead of being duplicated per middleware.
+        if (! UserRoles::isAdmin($request->user())) {
             return response()->json([
                 'success' => false,
                 'message' => 'Only administrators can access this resource.',
@@ -20,3 +24,4 @@ class EnsureUserIsAdmin
         return $next($request);
     }
 }
+

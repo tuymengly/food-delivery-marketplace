@@ -18,6 +18,15 @@ class FoodController extends Controller
         $query = Food::with(['restaurant', 'category'])
             ->withCount('recommendations')
             ->latest();
+
+        if ($request->filled('restaurant_id')) {
+            $request->validate([
+                'restaurant_id' => ['integer', 'exists:restaurants,id'],
+            ]);
+
+            $query->where('restaurant_id', (int) $request->query('restaurant_id'));
+        }
+
         if ($this->isRestaurantUser($request)) {
             $query->whereIn('restaurant_id', $this->ownedRestaurantIds($request));
         }

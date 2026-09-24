@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Menu, LogOut, User as UserIcon } from 'lucide-react';
 import API from "../../../services/api";
+import { getStoredUser, logout, persistUser } from "../../../services/session";
 import NotificationBell from '../../../components/ui/NotificationBell';
 
 export default function Header({ 
@@ -12,8 +13,7 @@ export default function Header({
 }) {
   const [userData, setUserData] = useState(() => {
     if (propsUser) return propsUser;
-    const localUser = localStorage.getItem('user');
-    return localUser ? JSON.parse(localUser) : { name: 'Driver', role: 'Driver' };
+    return getStoredUser() || { name: 'Rider', role: 'rider' };
   });
   
   const [loading, setLoading] = useState(!propsUser);
@@ -33,13 +33,14 @@ export default function Header({
         const userProfile = response.data?.data?.user || response.data?.data || response.data;
         if (userProfile) {
           setUserData(userProfile);
-          localStorage.setItem('user', JSON.stringify(userProfile));
+          // Laravel's answer replaces the cached session user (role included).
+          persistUser(userProfile);
         }
       } catch (error) {
         console.error('Failed to fetch driver profile in header:', error);
-        const localUser = localStorage.getItem('user');
+        const localUser = getStoredUser();
         if (localUser) {
-          setUserData(JSON.parse(localUser));
+          setUserData(localUser);
         }
       } finally {
         setLoading(false);
@@ -50,11 +51,10 @@ export default function Header({
   }, [propsUser]);
 
   // មុខងារសម្រាប់ Logout ចេញពីប្រព័ន្ធ
+  // Revokes the token in Laravel and clears every cached auth key before
+  // returning to the login page.
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    window.location.assign(`${import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174'}/login`);
+    logout();
   };
 
   return (

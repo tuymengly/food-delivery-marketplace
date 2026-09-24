@@ -1,25 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaStore } from 'react-icons/fa';
 import { registerUser, saveOtpChallenge } from '../api/app';
 import GoogleButton from '../components/GoogleButton';
 import brandLogo from '../assets/icon/logo_no_bg.png';
 
-const GOOGLE_ERROR_MESSAGES = {
-  auth_failed: 'Google sign-in was cancelled or failed. Please try again.',
-  no_email: 'Your Google account has no email address we can use to sign in.',
-  not_configured: 'Google sign-in is not set up on this server yet. Please use email sign-up, or contact the site admin.',
-  oauth_exchange_failed: 'Google rejected the sign-in request (a server configuration issue). Please use email sign-up, or contact the site admin.',
-  account_error: 'Google sign-in worked, but we could not finish creating your account. Please try again or contact support.',
-  role_not_supported: 'This account cannot sign up with Google. Please use your email and password to log in.',
-};
+const getGoogleErrorMessages = (t) => ({
+  auth_failed: t('authExtra.googleAuthFailed'),
+  no_email: t('authExtra.googleNoEmail'),
+  not_configured: t('authExtra.googleNotConfiguredSignUp'),
+  oauth_exchange_failed: t('authExtra.googleExchangeFailedSignUp'),
+  account_error: t('authExtra.googleAccountError'),
+  role_not_supported: t('authExtra.googleRoleUnsupportedSignUp'),
+});
 
-const readGoogleErrorFromUrl = () => {
+const readGoogleErrorFromUrl = (t) => {
   const googleError = new URLSearchParams(window.location.search).get('google_error');
-  return googleError ? (GOOGLE_ERROR_MESSAGES[googleError] || 'Google sign-in failed. Please try again.') : '';
+  return googleError ? (getGoogleErrorMessages(t)[googleError] || t('authExtra.googleDefaultError')) : '';
 };
 
 const Register = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,7 +34,7 @@ const Register = () => {
     restaurant_address: '',
     restaurant_phone: '',
   });
-  const [error, setError] = useState(readGoogleErrorFromUrl);
+  const [error, setError] = useState(() => readGoogleErrorFromUrl(t));
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ const Register = () => {
     setError('');
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('authExtra.passwordMinError'));
       return;
     }
 
@@ -99,10 +101,10 @@ const Register = () => {
             <img src={brandLogo} alt="24-Hour Food logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-xl font-bold text-[#0B1F3A] mb-2">
-            Welcome!
+            {t('authExtra.welcome')}
           </h1>
           <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">
-            Create an Account
+            {t('authExtra.createAccountTitle')}
           </h1>
         </div>
 
@@ -117,7 +119,7 @@ const Register = () => {
 
             {/* Account type */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-1 text-sm">Account Type</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.accountType')}</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -128,7 +130,7 @@ const Register = () => {
                       : 'border-[#D1D5DB] bg-white text-gray-600 hover:border-[#0B1F3A]'
                   }`}
                 >
-                  <FaUser /> Customer
+                  <FaUser /> {t('authExtra.customer')}
                 </button>
                 <button
                   type="button"
@@ -139,14 +141,14 @@ const Register = () => {
                       : 'border-[#D1D5DB] bg-white text-gray-600 hover:border-[#0B1F3A]'
                   }`}
                 >
-                  <FaStore /> Restaurant Owner
+                  <FaStore /> {t('authExtra.restaurantOwner')}
                 </button>
               </div>
             </div>
 
             {/* Name */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-1 text-sm">Full Name</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.fullName')}</label>
               <div className="relative">
                 <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -155,7 +157,7 @@ const Register = () => {
                   value={formData.name}
                   onChange={handleChange}
                   className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
-                  placeholder="Your Name"
+                  placeholder={t('authExtra.yourName')}
                   required
                 />
               </div>
@@ -163,7 +165,7 @@ const Register = () => {
 
             {/* Email */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-1 text-sm">Email Address</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.emailAddress')}</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -182,7 +184,7 @@ const Register = () => {
             {formData.role === 'restaurant' && (
               <>
                 <div>
-                  <label className="block text-gray-700 font-semibold mb-1 text-sm">Restaurant Name</label>
+                  <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.restaurantName')}</label>
                   <div className="relative">
                     <FaStore className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -191,25 +193,25 @@ const Register = () => {
                       value={formData.restaurant_name}
                       onChange={handleChange}
                       className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
-                      placeholder="Your Restaurant Name"
+                      placeholder={t('authExtra.yourRestaurantName')}
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-gray-700 font-semibold mb-1 text-sm">Restaurant Address</label>
+                  <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.restaurantAddress')}</label>
                   <input
                     type="text"
                     name="restaurant_address"
                     value={formData.restaurant_address}
                     onChange={handleChange}
                     className="app-input w-full px-4 py-3 outline-none transition-all text-sm"
-                    placeholder="Street, City"
+                    placeholder={t('authExtra.streetCity')}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-700 font-semibold mb-1 text-sm">Restaurant Phone</label>
+                  <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.restaurantPhone')}</label>
                   <input
                     type="text"
                     name="restaurant_phone"
@@ -225,7 +227,7 @@ const Register = () => {
 
             {/* Password */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-1 text-sm">Password</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.password')}</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -234,7 +236,7 @@ const Register = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className="app-input w-full pl-12 pr-12 py-3 outline-none transition-all text-sm"
-                  placeholder="At least 8 characters"
+                  placeholder={t('authExtra.passwordMin')}
                   required
                 />
                 <button
@@ -249,7 +251,7 @@ const Register = () => {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-1 text-sm">Confirm Password</label>
+              <label className="block text-gray-700 font-semibold mb-1 text-sm">{t('authExtra.confirmPassword')}</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -258,7 +260,7 @@ const Register = () => {
                   value={formData.password_confirmation}
                   onChange={handleChange}
                   className="app-input w-full pl-12 pr-4 py-3 outline-none transition-all text-sm"
-                  placeholder="Confirm password"
+                  placeholder={t('authExtra.confirmPasswordPlaceholder')}
                   required
                 />
               </div>
@@ -270,14 +272,14 @@ const Register = () => {
               disabled={loading}
               className="app-button-primary w-full py-3 font-bold text-base disabled:opacity-50 mt-2"
             >
-              {loading ? 'Creating Account...' : 'Sign Up'}
+              {loading ? t('authExtra.creatingAccount') : t('authExtra.signUp')}
             </button>
           </form>
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">or</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t('authExtra.or')}</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
@@ -286,9 +288,9 @@ const Register = () => {
           {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
-              Already have an account?{' '}
+              {t('authExtra.haveAccount')}{' '}
               <Link to="/login" className="text-black hover:text-[#163A63] font-bold">
-                Sign Up
+                {t('authExtra.signUp')}
               </Link>
             </p>
           </div>
@@ -298,7 +300,7 @@ const Register = () => {
         {/* Back to Home */}
         <div className="text-center mt-6">
           <Link to="/" className="text-gray-600 hover:text-gray-900 font-semibold text-sm">
-            ← Back to Home
+            {'← '}{t('authExtra.backHome')}
           </Link>
         </div>
       </div>

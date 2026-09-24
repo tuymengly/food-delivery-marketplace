@@ -8,7 +8,7 @@ import { FaBars } from "react-icons/fa";
 import { HiOutlineShoppingCart } from "react-icons/hi";
 import LanguageSwitcher from "./LanguageSwitcher";
 import LocationSelector from "./LocationSelector";
-import { clearAuthSession, logoutUser } from "../api/app";
+import { endSession } from "../api/app";
 import { fetchCart } from "../api/foodApi";
 import brandLogo from "../assets/icon/logo_no_bg.png";
 
@@ -189,9 +189,12 @@ const Navbar = () => {
               />
               {favoritesCount > 0 && (
                 <div
-                  className="w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 flex items-center
-                    absolute -top-2 -right-2 text-xs font-bold justify-center text-white rounded-full
-                    shadow-lg group-hover:scale-110 transition-transform duration-300"
+                  className="w-3 h-3 bg-gradient-to-r
+                    from-red-500
+                    to-red-500 flex items-center
+                    absolute -top-2 -right-2 text-xs
+                    font-bold justify-center text-white
+                    rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"
                 >
                   {favoritesCount}
                 </div>
@@ -311,25 +314,22 @@ const Navbar = () => {
                     {/* Logout Button */}
                     <button
                       onClick={async () => {
-                        try {
-                          await logoutUser();
-                        } catch (requestError) {
-                          console.error("Logout request failed:", requestError);
-                        } finally {
-                          clearAuthSession();
-                          localStorage.removeItem("cart");
-                          localStorage.removeItem("favorites");
-                          localStorage.removeItem("deliveryLocation");
-                          localStorage.removeItem("deliveryAddress");
-                          localStorage.removeItem("deliveryCoords");
-                          setCurrentUser(null);
-                          setCartCount(0);
-                          setFavoritesCount(0);
-                          window.dispatchEvent(new Event("authChanged"));
-                          window.dispatchEvent(new Event("cartUpdated"));
-                          window.dispatchEvent(new Event("favoritesUpdated"));
-                          navigate("/");
-                        }
+                        // Revokes the token in Laravel (so the admin portal's
+                        // copy of it dies too) and clears every cached auth
+                        // key - no role survives for the next sign-in.
+                        await endSession();
+                        localStorage.removeItem("cart");
+                        localStorage.removeItem("favorites");
+                        localStorage.removeItem("deliveryLocation");
+                        localStorage.removeItem("deliveryAddress");
+                        localStorage.removeItem("deliveryCoords");
+                        setCurrentUser(null);
+                        setCartCount(0);
+                        setFavoritesCount(0);
+                        window.dispatchEvent(new Event("authChanged"));
+                        window.dispatchEvent(new Event("cartUpdated"));
+                        window.dispatchEvent(new Event("favoritesUpdated"));
+                        navigate("/");
                       }}
                       className="w-full text-left px-4 py-2.5 text-rose-700 hover:bg-rose-50 hover:text-rose-800 transition-colors text-[11px] font-bold uppercase tracking-wider border-t border-slate-200"
                     >
@@ -381,10 +381,10 @@ const Navbar = () => {
           Pick-up
         </Link>
         <Link
-          to="/restaurants"
-          className={`text-sm font-semibold transition-colors ${isActive("/restaurants") ? "text-[#0B1F3A]" : "text-slate-600 hover:text-[#2563EB]"}`}
+          to="/shops"
+          className={`text-sm font-semibold transition-colors ${isActive("/shops") ? "text-[#0B1F3A]" : "text-slate-600 hover:text-[#2563EB]"}`}
         >
-          Restaurants
+          Shop
         </Link>
       </nav>
 
@@ -447,14 +447,14 @@ const Navbar = () => {
             </Link>
           </li>
           <li
-            className={`rounded-lg px-3 py-3.5 transition-colors ${isActive("/restaurants") ? "bg-white/20" : "hover:bg-white/15"}`}
+            className={`rounded-lg px-3 py-3.5 transition-colors ${isActive("/shops") ? "bg-white/20" : "hover:bg-white/15"}`}
           >
             <Link
-              to="/restaurants"
+              to="/shops"
               className="flex text-base font-semibold text-white"
               onClick={() => setOpenSidebar(false)}
             >
-              Restaurants
+              Shop
             </Link>
           </li>
           {menu.map((u) => (

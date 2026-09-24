@@ -7,6 +7,7 @@ export default function Sidebar({
   activeTab,
   setActiveTab,
   navItems,
+  onLogout,
 }) {
   return (
     <>
@@ -90,7 +91,11 @@ export default function Sidebar({
               Help Center
             </button>
 
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition">
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition"
+            >
               <LogOut size={18} />
               Exit Driver
             </button>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaEnvelope } from 'react-icons/fa';
 import { forgotPassword, saveOtpChallenge } from '../api/app';
 import brandLogo from '../assets/icon/logo_no_bg.png';
 
 const ForgotPassword = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -31,9 +33,9 @@ const ForgotPassword = () => {
           <div className="w-40 h-40 rounded-md flex items-center justify-center mx-auto mb-4">
             <img src={brandLogo} alt="24-Hour Food logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">Forgot Password</h1>
+          <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">{t('authExtra.forgotTitle')}</h1>
           <p className="text-gray-600">
-            Enter your account email and we'll send you a 6-digit code to reset your password.
+            {t('authExtra.forgotIntro')}
           </p>
         </div>
 
@@ -46,7 +48,7 @@ const ForgotPassword = () => {
             )}
 
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Email Address</label>
+              <label className="block text-gray-700 font-semibold mb-2">{t('authExtra.emailAddress')}</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -66,13 +68,13 @@ const ForgotPassword = () => {
               disabled={loading}
               className="app-button-primary w-full py-3 font-bold text-lg disabled:opacity-50"
             >
-              {loading ? 'Sending code...' : 'Send reset code'}
+              {loading ? t('authExtra.sendingCode') : t('authExtra.sendResetCode')}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <Link to="/login" className="text-gray-600 hover:text-gray-900 font-semibold">
-              ← Back to sign in
+              {'← '}{t('authExtra.backSignIn')}
             </Link>
           </div>
         </div>

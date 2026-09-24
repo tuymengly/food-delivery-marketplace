@@ -1,25 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { getRoleRedirect, loginUser, saveAuthSession } from '../api/app';
+import { completeLogin, loginUser } from '../api/app';
 import GoogleButton from '../components/GoogleButton';
 import brandLogo from '../assets/icon/logo_no_bg.png';
 
-const GOOGLE_ERROR_MESSAGES = {
-  auth_failed: 'Google sign-in was cancelled or failed. Please try again.',
-  no_email: 'Your Google account has no email address we can use to sign in.',
-  not_configured: 'Google sign-in is not set up on this server yet. Please use email sign-in, or contact the site admin.',
-  oauth_exchange_failed: 'Google rejected the sign-in request (a server configuration issue). Please use email sign-in, or contact the site admin.',
-  account_error: 'Google sign-in worked, but we could not finish creating your account. Please try again or contact support.',
-  role_not_supported: 'This account cannot sign in with Google. Please use your email and password to log in.',
-};
+const getGoogleErrorMessages = (t) => ({
+  auth_failed: t('authExtra.googleAuthFailed'),
+  no_email: t('authExtra.googleNoEmail'),
+  not_configured: t('authExtra.googleNotConfiguredSignIn'),
+  oauth_exchange_failed: t('authExtra.googleExchangeFailedSignIn'),
+  account_error: t('authExtra.googleAccountError'),
+  role_not_supported: t('authExtra.googleRoleUnsupportedSignIn'),
+});
 
-const readGoogleErrorFromUrl = () => {
+const readGoogleErrorFromUrl = (t) => {
   const googleError = new URLSearchParams(window.location.search).get('google_error');
-  return googleError ? (GOOGLE_ERROR_MESSAGES[googleError] || 'Google sign-in failed. Please try again.') : '';
+  return googleError ? (getGoogleErrorMessages(t)[googleError] || t('authExtra.googleDefaultError')) : '';
 };
 
 const Login = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -27,10 +29,10 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [error, setError] = useState(readGoogleErrorFromUrl);
+  const [error, setError] = useState(() => readGoogleErrorFromUrl(t));
   const [successMessage] = useState(() =>
     location.state?.passwordResetSuccess
-      ? 'Password reset successful. Please sign in with your new password.'
+      ? t('authExtra.passwordResetSuccess')
       : ''
   );
   const [loading, setLoading] = useState(false);
@@ -56,10 +58,11 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { user, token } = saveAuthSession(await loginUser(formData));
-      window.dispatchEvent(new Event('authChanged'));
-      const redirect = getRoleRedirect(user?.role, token);
-      redirect.startsWith('http') ? window.location.assign(redirect) : navigate(redirect);
+      // Laravel authenticates the credentials and answers with the user and
+      // its role. completeLogin() re-confirms that user via GET /api/user
+      // before redirecting, so the dashboard is chosen by the database role -
+      // never by anything a previous session left in localStorage.
+      await completeLogin(await loginUser(formData), navigate);
     } catch (requestError) {
       setError(requestError.response?.data?.message || requestError.message);
       setLoading(false);
@@ -75,9 +78,9 @@ const Login = () => {
             <img src={brandLogo} alt="24-Hour Food logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-[#0B1F3A] mb-2">
-            Welcome Back!
+            {t('authExtra.welcomeBack')}
           </h1>
-          <p className="text-gray-600 text-sm">Sign in to continue to 24-Hour Food</p>
+          <p className="text-gray-600 text-sm">{t('authExtra.signInContinue')}</p>
         </div>
 
         {/* Login Form */}
@@ -96,7 +99,7 @@ const Login = () => {
 
             {/* Email */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2 text-sm">Email Address</label>
+              <label className="block text-gray-700 font-semibold mb-2 text-sm">{t('authExtra.emailAddress')}</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -113,7 +116,7 @@ const Login = () => {
 
             {/* Password */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2 text-sm">Password</label>
+              <label className="block text-gray-700 font-semibold mb-2 text-sm">{t('authExtra.password')}</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -122,7 +125,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className="app-input w-full pl-12 pr-12 py-3 rounded-lg border border-[#D1D5DB] outline-none transition-all focus:border-[#0B1F3A] focus:ring-2 focus:ring-[#0B1F3A]/10"
-                  placeholder="Enter your password"
+                  placeholder={t('authExtra.enterPassword')}
                   required
                 />
                 <button
@@ -135,7 +138,7 @@ const Login = () => {
               </div>
               <div className="mt-2 text-right">
                 <Link to="/forgot-password" className="text-sm font-semibold text-[#2563EB] hover:text-[#163A63]">
-                  Forgot password?
+                  {t('authExtra.forgotPassword')}
                 </Link>
               </div>
             </div>
@@ -146,14 +149,14 @@ const Login = () => {
               disabled={loading}
               className="app-button-primary w-full py-3 rounded-lg font-bold text-base transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? t('authExtra.signingIn') : t('authExtra.signIn')}
             </button>
           </form>
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">or</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t('authExtra.or')}</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
@@ -162,9 +165,9 @@ const Login = () => {
           {/* Register Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
-              Don't have an account?{' '}
+              {t('authExtra.noAccount')}{' '}
               <Link to="/register" className="text-black hover:text-[#163A63] font-bold">
-                Sign Up
+                {t('authExtra.signUp')}
               </Link>
             </p>
           </div>
@@ -173,7 +176,7 @@ const Login = () => {
         {/* Back to Home */}
         <div className="text-center mt-6">
           <Link to="/" className="text-gray-600 hover:text-gray-900 font-semibold">
-            ← Back to Home
+            {'← '}{t('authExtra.backHome')}
           </Link>
         </div>
       </div>

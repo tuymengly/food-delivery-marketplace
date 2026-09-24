@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, CheckCircle2, Loader2, AlertCircle, Clock, ImagePlus, X, FileText, FilePlus2, Hourglass, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Upload, CheckCircle2, Loader2, AlertCircle, Clock, ImagePlus, X, FileText, FilePlus2, Hourglass, ShieldAlert, ShieldCheck, LocateFixed } from 'lucide-react';
 import API from '../../../services/api';
 import { uploadImageToCloudinary, uploadFileToCloudinary } from '../../../services/cloudinary';
+import LocationMapPicker from '../../../components/ui/LocationMapPicker';
 
 const DAYS = [
   ['monday', 'Monday'],
@@ -32,6 +33,8 @@ export default function RestaurantProfile() {
     phone: '',
     email: '',
     address: '',
+    latitude: null,
+    longitude: null,
     deliveryFee: '',
     minOrder: '',
     avgDeliveryTime: '',
@@ -61,6 +64,8 @@ export default function RestaurantProfile() {
         phone: data.phone || '',
         email: data.user?.email || data.email || '',
         address: data.address || '',
+        latitude: data.latitude !== null && data.latitude !== undefined ? Number(data.latitude) : null,
+        longitude: data.longitude !== null && data.longitude !== undefined ? Number(data.longitude) : null,
         deliveryFee: data.delivery_fee || '',
         minOrder: data.min_order || '',
         avgDeliveryTime: data.avg_delivery_time || '',
@@ -95,6 +100,37 @@ export default function RestaurantProfile() {
       const imageUrl = URL.createObjectURL(file);
       setProfile((prev) => ({ ...prev, coverImage: imageUrl }));
     }
+  };
+
+  const [locatingSelf, setLocatingSelf] = useState(false);
+  const [locateError, setLocateError] = useState('');
+
+  const handleMapPick = (latitude, longitude) => {
+    setProfile((prev) => ({ ...prev, latitude, longitude }));
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocateError('Location is not available in this browser.');
+      return;
+    }
+    setLocatingSelf(true);
+    setLocateError('');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setProfile((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+        setLocatingSelf(false);
+      },
+      (err) => {
+        setLocateError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location access is disabled. Please set the pin manually on the map.'
+            : 'Unable to detect your location. Please set the pin manually on the map.',
+        );
+        setLocatingSelf(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   };
 
   const handleDayChange = (dayKey, field, value) => {
@@ -171,6 +207,8 @@ export default function RestaurantProfile() {
         phone: profile.phone,
         email: profile.email,
         address: profile.address,
+        latitude: profile.latitude,
+        longitude: profile.longitude,
         delivery_fee: profile.deliveryFee,
         min_order: profile.minOrder,
         avg_delivery_time: profile.avgDeliveryTime,
@@ -191,6 +229,8 @@ export default function RestaurantProfile() {
         phone: saved.phone || profile.phone,
         email: saved.user?.email || profile.email,
         address: saved.address || profile.address,
+        latitude: saved.latitude !== null && saved.latitude !== undefined ? Number(saved.latitude) : profile.latitude,
+        longitude: saved.longitude !== null && saved.longitude !== undefined ? Number(saved.longitude) : profile.longitude,
         deliveryFee: saved.delivery_fee ?? profile.deliveryFee,
         minOrder: saved.min_order ?? profile.minOrder,
         avgDeliveryTime: saved.avg_delivery_time || profile.avgDeliveryTime,
@@ -375,6 +415,32 @@ export default function RestaurantProfile() {
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-none text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-900 transition-colors"
               />
+            </div>
+
+            <div className="sm:col-span-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-700">
+                  Map Location
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locatingSelf}
+                  className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-900 hover:text-blue-700 disabled:opacity-50"
+                >
+                  <LocateFixed size={13} className={locatingSelf ? 'animate-pulse' : ''} />
+                  {locatingSelf ? 'Locating...' : 'Use my current location'}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">
+                Tap the map or drag the pin to set exactly where riders should pick up orders.
+              </p>
+              <LocationMapPicker
+                latitude={profile.latitude}
+                longitude={profile.longitude}
+                onChange={handleMapPick}
+              />
+              {locateError && <p className="text-[10px] text-rose-600 font-bold">{locateError}</p>}
             </div>
 
             <div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverController;
+use App\Http\Controllers\Api\EmailController;
 use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\FoodRecommendationController;
 use App\Http\Controllers\Api\GoogleAuthController;
@@ -46,13 +47,13 @@ Route::post('/auth/otp/resend', [AuthController::class, 'resendOtp'])->middlewar
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->middleware('throttle:20,1');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:20,1');
 
-// ABA PayWay callback/webhook endpoint. It is intentionally public because
-// PayWay calls it server-to-server; PaymentController still verifies the
-// transaction with PayWay before changing payment state.
-Route::match(['get', 'post'], '/payments/payway/callback', [PaymentController::class, 'payWayCallback'])
-    ->middleware('throttle:120,1');
-
 // Protected Routes (Sanctum Auth)
+//
+// Role-specific endpoints additionally pass through the 'role' gate
+// (App\Http\Middleware\EnsureUserHasRole, resolved via App\Support\UserRoles)
+// so a token alone is never enough to reach another portal's API - changing
+// localStorage or typing a URL can't get a customer into restaurant-owner,
+// rider or admin endpoints.
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -60,29 +61,29 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::put('/change-password', [AuthController::class, 'changePassword']);
 
     // Restaurant Profile & Settings Routes
-    Route::get('/restaurant/profile', [RestaurantController::class, 'profile']);
-    Route::match(['post', 'put'], '/restaurant/profile', [RestaurantController::class, 'updateProfile']);
-    Route::get('/restaurant/stats', [DashboardController::class, 'restaurantStats']);
-    Route::get('/restaurant/sales', [DashboardController::class, 'restaurantSales']);
+    Route::get('/restaurant/profile', [RestaurantController::class, 'profile'])->middleware('role:restaurant_owner,admin');
+    Route::match(['post', 'put'], '/restaurant/profile', [RestaurantController::class, 'updateProfile'])->middleware('role:restaurant_owner,admin');
+    Route::get('/restaurant/stats', [DashboardController::class, 'restaurantStats'])->middleware('role:restaurant_owner,admin');
+    Route::get('/restaurant/sales', [DashboardController::class, 'restaurantSales'])->middleware('role:restaurant_owner,admin');
 
-    // Protected marketplace write routes
-    Route::post('/restaurants', [RestaurantController::class, 'store']);
-    Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update']);
-    Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
+    // Protected marketplace write routes (restaurant-owner / admin only)
+    Route::post('/restaurants', [RestaurantController::class, 'store'])->middleware('role:restaurant_owner,admin');
+    Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update'])->middleware('role:restaurant_owner,admin');
+    Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy'])->middleware('role:restaurant_owner,admin');
 
     Route::put('/restaurants/{restaurant}/status', [RestaurantController::class, 'updateStatus'])
         ->middleware('admin');
 
-    Route::get('/restaurants/{restaurant}/nearby-riders', [RestaurantController::class, 'nearbyRiders']);
+    Route::get('/restaurants/{restaurant}/nearby-riders', [RestaurantController::class, 'nearbyRiders'])->middleware('role:restaurant_owner,admin');
 
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::match(['post', 'put'], '/categories/{category}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    Route::post('/categories', [CategoryController::class, 'store'])->middleware('role:restaurant_owner,admin');
+    Route::match(['post', 'put'], '/categories/{category}', [CategoryController::class, 'update'])->middleware('role:restaurant_owner,admin');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->middleware('role:restaurant_owner,admin');
 
-    Route::post('/foods', [FoodController::class, 'store']);
-    Route::put('/foods/{food}', [FoodController::class, 'update']);
-    Route::delete('/foods/{food}', [FoodController::class, 'destroy']);
-    Route::post('/foods/{food}/recommend', [FoodRecommendationController::class, 'toggle']);
+    Route::post('/foods', [FoodController::class, 'store'])->middleware('role:restaurant_owner,admin');
+    Route::put('/foods/{food}', [FoodController::class, 'update'])->middleware('role:restaurant_owner,admin');
+    Route::delete('/foods/{food}', [FoodController::class, 'destroy'])->middleware('role:restaurant_owner,admin');
+    Route::post('/foods/{food}/recommend', [FoodRecommendationController::class, 'toggle'])->middleware('role:restaurant_owner,admin');
     Route::get('/foods/{food}/recommendation', [FoodRecommendationController::class, 'show']);
 
     Route::get('/addresses', [AddressController::class, 'index']);
@@ -104,25 +105,26 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/orders/{order}/assign-rider', [OrderController::class, 'assignRider']);
     Route::post('/vouchers/validate', [VoucherController::class, 'validateCode']);
 
-    // Customer payments. PayWay is the primary provider for KHQR and card;
-    // Bakong support remains isolated in its service for legacy/internal use.
-    Route::post('/payments/payway', [PaymentController::class, 'createPayWayPayment']);
+    // Customer payments via KHQR.LINK. Creation always validates the amount
+    // server-side from the order's own stored total; showPayment is the
+    // only path that can mark a payment (and its order) PAID - it verifies
+    // against KHQR.LINK itself, never trusting the frontend's word for it.
     Route::post('/payments/khqr', [PaymentController::class, 'createKhqrPayment']);
     Route::get('/payments/{payment}', [PaymentController::class, 'showPayment']);
 
-    Route::get('/rider/profile', [RiderProfileController::class, 'show']);
-    Route::post('/rider/profile', [RiderProfileController::class, 'store']);
-    Route::put('/rider/profile', [RiderProfileController::class, 'update']);
-    Route::put('/rider/availability', [RiderProfileController::class, 'availability']);
-    Route::put('/rider/location', [RiderProfileController::class, 'updateLocation']);
-    Route::put('/rider/online-status', [RiderProfileController::class, 'updateOnlineStatus']);
+    Route::get('/rider/profile', [RiderProfileController::class, 'show'])->middleware('role:rider');
+    Route::post('/rider/profile', [RiderProfileController::class, 'store'])->middleware('role:rider');
+    Route::put('/rider/profile', [RiderProfileController::class, 'update'])->middleware('role:rider');
+    Route::put('/rider/availability', [RiderProfileController::class, 'availability'])->middleware('role:rider');
+    Route::put('/rider/location', [RiderProfileController::class, 'updateLocation'])->middleware('role:rider');
+    Route::put('/rider/online-status', [RiderProfileController::class, 'updateOnlineStatus'])->middleware('role:rider');
 
-    Route::get('/rider/deliveries', [RiderDeliveryController::class, 'index']);
-    Route::get('/rider/deliveries/{delivery}', [RiderDeliveryController::class, 'show']);
-    Route::post('/rider/deliveries/{delivery}/accept', [RiderDeliveryController::class, 'accept']);
-    Route::post('/rider/deliveries/{delivery}/pickup', [RiderDeliveryController::class, 'pickup']);
-    Route::post('/rider/deliveries/{delivery}/start', [RiderDeliveryController::class, 'start']);
-    Route::post('/rider/deliveries/{delivery}/deliver', [RiderDeliveryController::class, 'deliver']);
+    Route::get('/rider/deliveries', [RiderDeliveryController::class, 'index'])->middleware('role:rider');
+    Route::get('/rider/deliveries/{delivery}', [RiderDeliveryController::class, 'show'])->middleware('role:rider');
+    Route::post('/rider/deliveries/{delivery}/accept', [RiderDeliveryController::class, 'accept'])->middleware('role:rider');
+    Route::post('/rider/deliveries/{delivery}/pickup', [RiderDeliveryController::class, 'pickup'])->middleware('role:rider');
+    Route::post('/rider/deliveries/{delivery}/start', [RiderDeliveryController::class, 'start'])->middleware('role:rider');
+    Route::post('/rider/deliveries/{delivery}/deliver', [RiderDeliveryController::class, 'deliver'])->middleware('role:rider');
 });
 
 // Category Routes
@@ -140,7 +142,7 @@ Route::get('/foods/{food}', [FoodController::class, 'show']);
 // --------------------------------------------------------------------------
 // Order Routes ( Restaurant Panel & Postman API )
 // --------------------------------------------------------------------------
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'role:restaurant_owner,admin'])->group(function (): void {
     Route::get('/restaurant/orders', [OrderController::class, 'index']);
     Route::post('/restaurant/orders', [OrderController::class, 'store']);
     Route::patch('/restaurant/orders/{id}/status', [OrderController::class, 'updateStatus']);
@@ -148,7 +150,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 });
 
 // Restaurant Reviews
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'role:restaurant_owner,admin'])->group(function (): void {
     Route::get('/restaurant/reviews', [ReviewController::class, 'index']);
     Route::post('/restaurant/reviews', [ReviewController::class, 'store']);
     Route::post('/restaurant/reviews/{review}/reply', [ReviewController::class, 'reply']);
@@ -194,10 +196,15 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
 });
 
 // Driver Dashboard Routes (self-service; requires an approved rider/driver account)
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'role:rider'])->group(function (): void {
     Route::get('/driver/orders', [DriverController::class, 'orders']);
     Route::patch('/driver/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
     Route::put('/driver/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
+});
+
+// Admin: Send rider credentials email
+Route::middleware(['auth:sanctum', 'admin'])->group(function (): void {
+    Route::post('/admin/drivers/send-credentials', [EmailController::class, 'sendRiderCredentials']);
 });
 
 // Driver Resource Route (admin management only)

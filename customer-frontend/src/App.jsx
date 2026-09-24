@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import 'aos/dist/aos.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import FoodDetail from './pages/FoodDetail';
 import Favorites from './pages/Favorites';
@@ -20,18 +20,28 @@ import Service from './pages/Service';
 import Contact from './pages/Contact';
 import Pickup from './pages/Pickup';
 import Shops from './pages/Shops';
-import Restaurants from './pages/Restaurants';
-import RestaurantDetail from './pages/RestaurantDetail';
+import ShopDetail from './pages/ShopDetail';
 import Profile from './pages/Profile';
 import VerifyOtp from './pages/VerifyOtp';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import { bootstrapSessionFromUrlToken } from './api/app';
+import { bootstrapSessionFromUrlToken, hydrateAuthSession, redirectAwayIfNotCustomer } from './api/app';
 
 // import { Contact } from 'lucide-react';
 import AOS from "aos";
 import "aos/dist/aos.css";
 
+
+// The customer-facing list used to be called "Restaurants" and is now "Shop(s)".
+// The singular /shop alias and the older /restaurants links (bookmarks, shared
+// URLs) both resolve by redirecting to the canonical /shops routes, keeping any
+// query string (e.g. ?type=pickup).
+const ShopRedirect = () => {
+  const { id } = useParams();
+  const location = useLocation();
+  const target = `/shops${id ? `/${id}` : ''}`;
+  return <Navigate to={`${target}${location.search}`} replace />;
+};
 
 const App = () => {
     useEffect(() => {
@@ -42,12 +52,23 @@ const App = () => {
     });
   }, []);
 
-  // Picks up a session handed off from the admin-restaurant app via ?token=,
-  // e.g. a customer who logged in on the wrong portal and got redirected here.
+  // Re-establishes the session from Laravel on every app start/refresh:
+  // picks up a ?token= handoff from the admin-restaurant app (verified against
+  // GET /api/user) and otherwise re-reads the current user for the stored
+  // token, so the cached user/role is always replaced by the database's
+  // answer. An invalid/expired token clears the cache instead of leaving a
+  // stale role behind.
   useEffect(() => {
-    bootstrapSessionFromUrlToken().then((didBootstrap) => {
+    (async () => {
+      const didBootstrap = await bootstrapSessionFromUrlToken();
+      const user = await hydrateAuthSession();
+
+      // A role change (or a session that only ever belonged on the other
+      // portal) must not leave a non-customer role browsable here.
+      if (user && redirectAwayIfNotCustomer(user)) return;
+
       if (didBootstrap) window.dispatchEvent(new Event('authChanged'));
-    });
+    })();
   }, []);
 
   return (
@@ -72,7 +93,6 @@ const App = () => {
 
         {/* KHQR payment - scan/poll page shown after placing a KHQR order */}
         <Route path='/payment/khqr/:paymentId' element={<KhqrPayment/>}/>
-        <Route path='/payment/payway/:paymentId' element={<KhqrPayment/>}/>
 
         {/* Order Success page */}
         <Route path='/order-success' element={<OrderSuccess/>}/>
@@ -89,8 +109,13 @@ const App = () => {
         {/* Primary marketplace modes */}
         <Route path='/pickup' element={<Pickup/>}/>
         <Route path='/shops' element={<Shops/>}/>
-        <Route path='/restaurants' element={<Restaurants/>}/>
-        <Route path='/restaurants/:id' element={<RestaurantDetail/>}/>
+        <Route path='/shops/:id' element={<ShopDetail/>}/>
+
+        {/* Renamed from /restaurants - /shop and old links keep working */}
+        <Route path='/shop' element={<ShopRedirect/>}/>
+        <Route path='/shop/:id' element={<ShopRedirect/>}/>
+        <Route path='/restaurants' element={<ShopRedirect/>}/>
+        <Route path='/restaurants/:id' element={<ShopRedirect/>}/>
 
         {/* About page */}
         <Route path='/about' element={<About/>}/>

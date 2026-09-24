@@ -20,6 +20,15 @@ const getFoodType = (category = '') => {
   return 'food';
 };
 
+const getCartItemCount = () => {
+  try {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    return Array.isArray(cart) ? cart.length : 0;
+  } catch {
+    return 0;
+  }
+};
+
 const FoodDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,6 +41,16 @@ const FoodDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [cartHasItems, setCartHasItems] = useState(getCartItemCount() > 0);
+
+  // Buy Now should reflect the actual cart, not just "this page just added
+  // something" - stay in sync with adds/removes/clears from anywhere
+  // (Cart.jsx, Favorites.jsx, this page) via the shared cartUpdated event.
+  useEffect(() => {
+    const syncCartState = () => setCartHasItems(getCartItemCount() > 0);
+    window.addEventListener('cartUpdated', syncCartState);
+    return () => window.removeEventListener('cartUpdated', syncCartState);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -312,12 +331,14 @@ const FoodDetail = () => {
               >
                 <FaShoppingCart /> Add to Cart
               </button>
-              <Link
-                to="/cart"
-                className="flex-1 sm:flex-none px-6 border border-[#0B1F3B] hover:bg-[#EEF2F8] text-[#0B1F3B] py-4 font-bold transition text-center"
-              >
-                Buy Now
-              </Link>
+              {cartHasItems && (
+                <Link
+                  to="/cart"
+                  className="flex-1 sm:flex-none px-6 border border-[#0B1F3B] hover:bg-[#EEF2F8] text-[#0B1F3B] py-4 font-bold transition text-center"
+                >
+                  Buy Now
+                </Link>
+              )}
             </div>
 
             {/* Features */}

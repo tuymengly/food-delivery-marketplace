@@ -28,18 +28,18 @@ class CartCheckoutTest extends TestCase
         $response = $this->postJson('/api/orders', [
             'address_id' => $address->id,
             'order_type' => 'delivery',
-            'payment_method' => 'aba',
+            'payment_method' => 'khqr',
             'notes' => 'Please make it less spicy.',
         ])
             ->assertCreated()
             ->assertJsonPath('data.order_type', 'delivery')
-            ->assertJsonPath('data.payment_method', 'aba')
+            ->assertJsonPath('data.payment_method', 'khqr')
             ->assertJsonPath('data.notes', 'Please make it less spicy.');
 
         $this->assertDatabaseHas('orders', [
             'id' => $response->json('data.id'),
             'order_type' => 'delivery',
-            'payment_method' => 'aba',
+            'payment_method' => 'khqr',
         ]);
     }
 

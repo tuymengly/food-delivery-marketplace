@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FaLocationArrow, FaMapMarkerAlt, FaTimes } from 'react-icons/fa';
 import { createAddress, fetchAddresses } from '../api/addressApi';
-import { detectCurrentLocation, saveStoredLocation, searchLocation } from '../utils/location';
+import { detectCurrentLocation, reverseGeocode, saveStoredLocation, searchLocation } from '../utils/location';
+import LocationMapPicker from './LocationMapPicker';
 
 const getUser = () => {
   try {
@@ -14,10 +16,15 @@ const getUser = () => {
 // Only rendered by the parent while open, so a fresh mount already gives a
 // clean slate — no separate "reset on open" effect needed.
 const AddressPickerModal = ({ onClose, onSelect }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [savedAddresses, setSavedAddresses] = useState([]);
+  // A location the map/search/GPS has picked but not yet saved - lets the
+  // user fine-tune the exact pin (drag/click) before it's written to
+  // Laravel, instead of every GPS/search result being final immediately.
+  const [draftLocation, setDraftLocation] = useState(null);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) return;
@@ -31,17 +38,17 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
     if (user && localStorage.getItem('token') && !addressId) {
       try {
         const saved = await createAddress({
-          label: 'Delivery location',
-          recipient_name: user.name || 'Customer',
-          phone: user.phone || 'N/A',
-          address: location.address || 'Selected location',
+          label: t('location.deliveryLocation'),
+          recipient_name: user.name || t('location.customer'),
+          phone: user.phone || t('location.notAvailable'),
+          address: location.address || t('location.selectedLocation'),
           latitude: location.latitude,
           longitude: location.longitude,
           is_default: true,
         });
         normalized.addressId = saved?.id || null;
       } catch {
-        setStatus('Could not save this address to your account. Please try again.');
+        setStatus(t('location.saveFailed'));
         return;
       }
     }
@@ -53,9 +60,9 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
 
   const handleCurrentLocation = async () => {
     setIsLoading(true);
-    setStatus('Detecting your location...');
+    setStatus(t('location.detecting'));
     try {
-      await persistAndSelect(await detectCurrentLocation());
+      setDraftLocation(await detectCurrentLocation());
       setStatus('');
     } catch (error) {
       setStatus(error.message);
@@ -68,15 +75,38 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
     event.preventDefault();
     if (!query.trim()) return;
     setIsLoading(true);
-    setStatus('Searching for that location...');
+    setStatus(t('location.searching'));
     try {
-      await persistAndSelect(await searchLocation(query));
+      setDraftLocation(await searchLocation(query));
       setStatus('');
     } catch (error) {
       setStatus(error.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Click/drag on the map: keep the pin exactly where the user put it and
+  // look up a readable address for it in the background - never block the
+  // marker from moving on the reverse-geocode call.
+  const handleMapPick = (latitude, longitude) => {
+    setDraftLocation((current) => ({ ...current, latitude, longitude }));
+
+    reverseGeocode(latitude, longitude)
+      .then((place) => setDraftLocation((current) => (
+        current?.latitude === latitude && current?.longitude === longitude
+          ? { ...current, ...place }
+          : current
+      )))
+      .catch(() => {
+        // Keep the pin and its coordinates even if reverse-geocoding fails -
+        // only the display address text is missing, not the location itself.
+      });
+  };
+
+  const confirmDraftLocation = () => {
+    if (!draftLocation) return;
+    persistAndSelect(draftLocation);
   };
 
   const chooseSavedAddress = (address) => persistAndSelect({
@@ -91,7 +121,7 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-0 sm:px-4">
       <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold" style={{ color: 'var(--brand-navy)' }}>Choose delivery address</h3>
+          <h3 className="text-lg font-bold" style={{ color: 'var(--brand-navy)' }}>{t('location.chooseAddress')}</h3>
           <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500">
             <FaTimes />
           </button>
@@ -105,7 +135,7 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
           style={{ color: 'var(--brand-accent)' }}
         >
           <FaLocationArrow className="text-xs" />
-          {isLoading ? 'Detecting your location...' : 'Use my current location'}
+          {isLoading ? t('location.detecting') : t('location.useCurrent')}
         </button>
 
         <form onSubmit={handleSearch} className="mt-3 flex gap-2">
@@ -113,7 +143,7 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search location or address"
+            placeholder={t('location.searchPlaceholder')}
             className="app-input flex-1 h-11 px-4 text-sm"
           />
           <button
@@ -121,13 +151,40 @@ const AddressPickerModal = ({ onClose, onSelect }) => {
             disabled={isLoading || !query.trim()}
             className="app-button-primary px-4 text-sm font-semibold disabled:opacity-50"
           >
-            Search
+            {t('location.search')}
           </button>
         </form>
 
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-slate-500 mb-2">
+            {t('location.tapMapToAdjust')}
+          </p>
+          <LocationMapPicker
+            latitude={draftLocation?.latitude}
+            longitude={draftLocation?.longitude}
+            onChange={handleMapPick}
+          />
+          {draftLocation && Number.isFinite(draftLocation.latitude) && (
+            <div className="mt-3 flex items-start gap-2">
+              <FaMapMarkerAlt className="mt-0.5 shrink-0" style={{ color: 'var(--brand-accent)' }} />
+              <p className="text-xs text-slate-600 flex-1">
+                {draftLocation.address || t('location.selectedLocation')}
+              </p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={confirmDraftLocation}
+            disabled={!draftLocation || !Number.isFinite(draftLocation.latitude)}
+            className="app-button-primary w-full mt-3 py-2.5 text-sm font-semibold disabled:opacity-50"
+          >
+            {t('location.confirmLocation')}
+          </button>
+        </div>
+
         {savedAddresses.length > 0 && (
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <p className="text-xs font-semibold text-slate-500 mb-2">Saved addresses</p>
+            <p className="text-xs font-semibold text-slate-500 mb-2">{t('location.savedAddresses')}</p>
             <div className="space-y-1">
               {savedAddresses.map((address) => (
                 <button

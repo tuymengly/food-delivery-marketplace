@@ -5,6 +5,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\Delivery;
 use App\Models\Rider;
+use App\Services\RiderMatchingService;
 use App\Support\OrderStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -24,9 +25,18 @@ class DriverController extends Controller
             'price'       => '$' . number_format($order->total_price ?? 0, 2),
             'restaurant'  => $order->restaurant->name ?? 'N/A',
             'pickup'      => $order->restaurant->address ?? 'N/A',
+            // Map markers for the rider dashboard - the restaurant's own
+            // saved coordinates (RestaurantController::updateProfile) and
+            // this specific order's delivery address (not the generic,
+            // rarely-set User::location string, which is unrelated to any
+            // one order and was never the right source for a dropoff pin).
+            'restaurant_lat' => $order->restaurant?->latitude !== null ? (float) $order->restaurant->latitude : null,
+            'restaurant_lng' => $order->restaurant?->longitude !== null ? (float) $order->restaurant->longitude : null,
+            'dropoff_lat' => $order->address?->latitude !== null ? (float) $order->address->latitude : null,
+            'dropoff_lng' => $order->address?->longitude !== null ? (float) $order->address->longitude : null,
             'customer'    => $order->user->name ?? 'Guest Customer',
             'phone'       => $order->user->phone ?? 'N/A',
-            'dropoff'     => $order->user->location ?? 'N/A',
+            'dropoff'     => $order->address->address ?? $order->user->location ?? 'N/A',
             'items'       => $itemsFormatted ?: 'No items',
             'time'        => $order->created_at ? $order->created_at->diffForHumans() : 'Just now',
             'status'      => ucfirst($order->status),
@@ -192,38 +202,43 @@ class DriverController extends Controller
         }
 
         $rider = $request->user()->rider;
-        $orders = Order::with(['user', 'restaurant', 'items.food', 'delivery'])->latest()->get();
+        $orders = Order::with(['user', 'restaurant', 'address', 'items.food', 'delivery'])->latest()->get();
 
-        $availableStatuses = ['pending', 'new', 'preparing', 'ready'];
-        $activeStatuses = ['accepted', 'picked_up', 'delivering', 'out_for_delivery'];
-        $historyStatuses = ['completed', 'delivered'];
         $startOfWeek = now()->startOfWeek();
         $startOfMonth = now()->startOfMonth();
         $startOfWeekInCurrentMonth = $startOfWeek->greaterThan($startOfMonth) ? $startOfWeek : $startOfMonth;
 
+        // Open pool: ONLY orders the restaurant has already accepted, prepared
+        // and marked READY_FOR_PICKUP whose delivery has no rider yet (either
+        // nobody was eligible when it became ready, or the previous rider
+        // released it). A rider must never see - let alone accept - an order
+        // that is still with the restaurant.
         $availableRequests = $orders
             ->filter(fn ($order) => $order->order_type !== 'pickup'
-                && in_array(strtolower($order->status), $availableStatuses, true)
-                && (!$order->delivery || $order->delivery->status === 'pending'))
+                && OrderStatuses::isReadyForPickup($order->status)
+                && $order->delivery
+                && $order->delivery->rider_id === null
+                && $order->delivery->status === 'pending')
             ->map(fn ($order) => $this->formatOrderForDriver($order))
             ->values();
 
+        // This rider's own delivery - both the ones Laravel assigned
+        // automatically and the ones they claimed from the pool above. Keyed
+        // on deliveries.status, not orders.status, because an order stays
+        // READY_FOR_PICKUP until the rider actually collects it.
         $activeOrder = $orders
             ->first(fn ($order) => $order->delivery?->rider_id === $rider->id
-                && in_array(strtolower($order->status), $activeStatuses, true));
+                && in_array($order->delivery->status, ['assigned', 'picked_up', 'delivering'], true));
 
-        $history = $orders
+        $deliveredToThisRider = $orders
             ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id
-                && in_array(strtolower($order->status), $historyStatuses, true))
+                && $order->delivery->status === 'delivered');
+
+        $history = $deliveredToThisRider
             ->map(fn ($order) => $this->formatOrderForDriver($order))
             ->values();
 
-        $completedToday = $orders->filter(function ($order) use ($historyStatuses, $rider) {
-            return $order->delivery?->rider_id === $rider->id
-                && in_array(strtolower($order->status), $historyStatuses, true)
-                && $order->updated_at
-                && $order->updated_at->isToday();
-        });
+        $completedToday = $deliveredToThisRider->filter(fn ($order) => $order->updated_at && $order->updated_at->isToday());
 
         return response()->json([
             'success' => true,
@@ -238,13 +253,13 @@ class DriverController extends Controller
                     'today_earnings' => '$' . number_format($completedToday->sum('rider_amount'), 2),
                     'week_earnings' => '$' . number_format(
                         $orders
-                            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id && in_array(strtolower($order->status), $historyStatuses, true) && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfWeekInCurrentMonth))
+                            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id && $order->delivery->status === 'delivered' && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfWeekInCurrentMonth))
                             ->sum('rider_amount'),
                         2
                     ),
                     'month_earnings' => '$' . number_format(
                         $orders
-                            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id && in_array(strtolower($order->status), $historyStatuses, true) && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfMonth))
+                            ->filter(fn ($order) => $order->delivery?->rider_id === $rider->id && $order->delivery->status === 'delivered' && $order->updated_at && $order->updated_at->greaterThanOrEqualTo($startOfMonth))
                             ->sum('rider_amount'),
                         2
                     ),
@@ -264,7 +279,7 @@ class DriverController extends Controller
         ]);
 
         $cleanId = preg_replace('/[^0-9]/', '', $id);
-        $order = Order::with(['user', 'restaurant', 'items.food', 'delivery'])->findOrFail($cleanId);
+        $order = Order::with(['user', 'restaurant', 'address', 'items.food', 'delivery'])->findOrFail($cleanId);
         $rider = $request->user()->rider;
         $status = strtolower($validated['status']);
 
@@ -274,19 +289,59 @@ class DriverController extends Controller
             if ($status === 'accepted') {
                 abort_if($order->order_type === 'pickup', 422, 'Pickup orders are collected in person and cannot be claimed by a rider.');
 
-                if ($delivery && $delivery->status !== 'pending') {
+                // A rider may ONLY take an order the restaurant has already
+                // accepted, prepared and marked READY_FOR_PICKUP. While the
+                // restaurant is still deciding or cooking there is nothing to
+                // claim, and the driver dashboard never lists such an order.
+                abort_unless(
+                    OrderStatuses::isReadyForPickup($order->status),
+                    422,
+                    'This order is not ready for pickup yet.'
+                );
+
+                // Two riders tapping "Accept" on the same pool order at
+                // nearly the same moment must not both win it: lock the row
+                // (creating it first if this is its very first claim) and
+                // re-check status against the locked read, not the copy
+                // loaded before this transaction opened.
+                $delivery = $delivery
+                    ? Delivery::whereKey($delivery->id)->lockForUpdate()->first()
+                    : Delivery::create(['order_id' => $order->id, 'status' => 'pending']);
+
+                if ($delivery->rider_id !== null || $delivery->status !== 'pending') {
                     abort(422, 'This delivery is no longer available.');
                 }
-                $delivery = $delivery ?: Delivery::create(['order_id' => $order->id, 'status' => 'pending']);
+
+                $rider = Rider::whereKey($rider->id)->lockForUpdate()->first();
+                if (!$rider->is_available) {
+                    abort(422, 'You are no longer available to accept deliveries.');
+                }
+
                 $delivery->update(['rider_id' => $rider->id, 'status' => 'assigned']);
                 $rider->update(['is_available' => false]);
-                // A rider can claim an order from the pool at any stage the
-                // restaurant already has it in (e.g. already 'ready'). Only
-                // advance order.status forward - never regress it back to
-                // 'accepted' if the restaurant has already progressed it.
-                if (OrderStatuses::isForwardOrSame($order->status, OrderStatuses::ACCEPTED)) {
-                    $order->update(['status' => OrderStatuses::ACCEPTED]);
-                }
+                // The order deliberately stays READY_FOR_PICKUP: claiming the
+                // delivery is RIDER_ASSIGNED, and the order only moves to
+                // 'delivering' once the rider actually picks the food up.
+                return;
+            }
+
+            if ($status === 'cancelled') {
+                // The rider can no longer complete this one: release it back
+                // to the open pool (still READY_FOR_PICKUP, no rider) instead
+                // of leaving it stuck to them.
+                abort_unless($delivery && $delivery->rider_id === $rider->id, 403, 'You can only release your assigned delivery.');
+                abort_if(
+                    in_array($delivery->status, ['picked_up', 'delivering', 'delivered'], true),
+                    422,
+                    'A delivery that has already been picked up cannot be released.'
+                );
+
+                $locked = Delivery::whereKey($delivery->id)->lockForUpdate()->first();
+                abort_unless($locked, 422, 'This delivery is no longer available.');
+                $locked->update(['rider_id' => null, 'status' => 'pending']);
+                // Query-based: the same staleness caveat as the completion path.
+                Rider::whereKey($rider->id)->update(['is_available' => true]);
+
                 return;
             }
 
@@ -312,16 +367,29 @@ class DriverController extends Controller
                 $updates['status'] = 'delivered';
                 $updates['delivered_at'] = now();
                 $order->update(['status' => 'delivered']);
-                $rider->update(['is_available' => true]);
+                // Query-based on purpose - see RiderDeliveryController::deliver().
+                Rider::whereKey($rider->id)->update(['is_available' => true]);
             }
 
             $delivery->update($updates);
         });
 
+        // Finishing a delivery makes the rider available again, which is exactly
+        // the trigger for the "no rider was eligible" retry: any OTHER order
+        // still waiting in READY_FOR_PICKUP can now be matched to them.
+        //
+        // A rider who just RELEASED a delivery (status 'cancelled') is
+        // deliberately excluded: retrying there would hand the very order they
+        // just gave up straight back to them, because it is still ready and
+        // still unassigned.
+        if (in_array($status, ['completed', 'delivered'], true)) {
+            app(RiderMatchingService::class)->assignWaitingDeliveryToRider($rider->refresh());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Driver order status updated successfully.',
-            'data' => $this->formatOrderForDriver($order->refresh()->load(['user', 'restaurant', 'items.food'])),
+            'data' => $this->formatOrderForDriver($order->refresh()->load(['user', 'restaurant', 'address', 'items.food'])),
         ], 200);
     }
 }

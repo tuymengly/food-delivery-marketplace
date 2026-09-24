@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   clearOtpChallenge,
-  getRoleRedirect,
+  completeLogin,
   getStoredOtpChallenge,
   resendOtp,
-  saveAuthSession,
   saveOtpChallenge,
   verifyOtp,
 } from '../api/app';
@@ -28,6 +28,7 @@ const challengeFromUrl = () => {
 };
 
 const VerifyOtp = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [challenge, setChallenge] = useState(() =>
@@ -35,7 +36,7 @@ const VerifyOtp = () => {
   );
   const [code, setCode] = useState('');
   const [error, setError] = useState(() =>
-    challenge ? '' : 'Your verification session is missing. Please start again.'
+    challenge ? '' : t('authExtra.verifyMissing')
   );
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -55,13 +56,11 @@ const VerifyOtp = () => {
     return () => window.clearInterval(timer);
   }, [resendIn]);
 
-  const finishAuthentication = (response) => {
-    const { user, token } = saveAuthSession(response);
-    clearOtpChallenge();
-    window.dispatchEvent(new Event('authChanged'));
-
-    const redirect = getRoleRedirect(user?.role, token);
-    redirect.startsWith('http') ? window.location.assign(redirect) : navigate(redirect);
+  const finishAuthentication = async (response) => {
+    // Registration and Google sign-in complete here too: the role comes from
+    // Laravel's OTP-verify response (re-confirmed via GET /api/user inside
+    // completeLogin), so every login path routes the same way.
+    await completeLogin(response, navigate);
   };
 
   const handleSubmit = async (event) => {
@@ -87,7 +86,8 @@ const VerifyOtp = () => {
         return;
       }
 
-      finishAuthentication(response);
+      clearOtpChallenge();
+      await finishAuthentication(response);
     } catch (requestError) {
       const validationErrors = requestError.response?.data?.errors;
       setError(
@@ -130,10 +130,10 @@ const VerifyOtp = () => {
             <img src={brandLogo} alt="24-Hour Food logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-4xl font-bold text-[#0B1F3A] mb-2">
-            {challenge?.purpose === 'password_reset' ? 'Verify your code' : 'Verify your email'}
+            {challenge?.purpose === 'password_reset' ? t('authExtra.verifyCodeTitle') : t('authExtra.verifyEmailTitle')}
           </h1>
           <p className="text-gray-600">
-            Enter the six-digit code sent to {challenge?.masked_email || 'your email address'}.
+            {t('authExtra.codeSentTo', { email: challenge?.masked_email || t('authExtra.yourEmailAddress') })}
           </p>
         </div>
 
@@ -147,7 +147,7 @@ const VerifyOtp = () => {
           {challenge ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <label className="block text-gray-700 font-semibold" htmlFor="otp-code">
-                Verification code
+                {t('authExtra.verificationCode')}
               </label>
               <input
                 id="otp-code"
@@ -167,7 +167,7 @@ const VerifyOtp = () => {
                 disabled={loading || code.length !== 6}
                 className="app-button-primary w-full py-3 font-bold text-lg disabled:opacity-50"
               >
-                {loading ? 'Verifying...' : 'Verify code'}
+                {loading ? t('authExtra.verifying') : t('authExtra.verifyCode')}
               </button>
             </form>
           ) : null}
@@ -179,13 +179,13 @@ const VerifyOtp = () => {
               disabled={resending || resendIn > 0}
               className="w-full mt-5 text-sm font-semibold text-[#0B1F3A] disabled:text-gray-400"
             >
-              {resending ? 'Sending...' : resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+              {resending ? t('authExtra.sending') : resendIn > 0 ? t('authExtra.resendIn', { seconds: resendIn }) : t('authExtra.resendCode')}
             </button>
           )}
 
           <div className="mt-6 text-center">
             <Link to="/login" className="text-gray-600 hover:text-gray-900 font-semibold">
-              Back to sign in
+              {t('authExtra.backToSignIn')}
             </Link>
           </div>
         </div>

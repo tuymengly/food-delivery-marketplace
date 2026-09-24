@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 const TypeAnimation = () => {
   const { t, i18n } = useTranslation();
-  const isKhmer = i18n.language === "kh";
+  const isKhmer = i18n.language === "km" || i18n.language === "kh";
 
   return (
 <h1 className={`text-5xl lg:text-7xl pb-5 font-bold bg-white bg-clip-text text-transparent ${isKhmer ? '' : 'uppercase'}`}>

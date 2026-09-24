@@ -41,17 +41,35 @@ final class OrderStatuses
      */
     public const SETTLED = [self::DELIVERED, self::COMPLETED];
 
-    /** Historical/frontend synonyms mapped onto the canonical value above. */
+    /**
+     * Historical/frontend synonyms mapped onto the canonical value above.
+     *
+     * The marketplace lifecycle names are accepted here too, so a caller that
+     * speaks the documented vocabulary ("PENDING_RESTAURANT", "REJECTED",
+     * "READY_FOR_PICKUP") writes exactly the same canonical value as a caller
+     * using the short internal names.
+     *
+     * Note: "RIDER_ASSIGNED" is NOT an order status here. Rider assignment is
+     * tracked on the delivery row (deliveries.status = 'assigned') while the
+     * order itself stays READY_FOR_PICKUP until the rider actually picks it
+     * up - see RiderMatchingService.
+     */
     private const ALIASES = [
         'placed' => self::PENDING,
         'new' => self::PENDING,
+        'pending_restaurant' => self::PENDING,
         'processing' => self::PREPARING,
         'out_for_delivery' => self::DELIVERING,
         'picked_up' => self::DELIVERING,
+        'ready_for_pickup' => self::READY,
+        'rejected' => self::CANCELLED,
     ];
 
     private const TRANSITIONS = [
-        self::PENDING => [self::ACCEPTED, self::CANCELLED],
+        // Accept takes the order straight to PREPARING (restaurant UI "Accept"),
+        // while the two-step accepted -> preparing path stays valid for orders
+        // that were accepted before preparing started.
+        self::PENDING => [self::ACCEPTED, self::PREPARING, self::CANCELLED],
         self::ACCEPTED => [self::PREPARING, self::CANCELLED],
         self::PREPARING => [self::READY, self::CANCELLED],
         self::READY => [self::DELIVERING, self::COMPLETED, self::CANCELLED],
@@ -104,6 +122,26 @@ final class OrderStatuses
     public static function isSettled(?string $status): bool
     {
         return in_array($status ? self::normalize($status) : '', self::SETTLED, true);
+    }
+
+    /**
+     * The restaurant has not accepted the order yet - the customer placed it
+     * (and, for KHQR, paid it) and it is waiting for the restaurant to
+     * accept or reject. Rider assignment must never happen in this state.
+     */
+    public static function isAwaitingRestaurant(?string $status): bool
+    {
+        return ($status ? self::normalize($status) : self::PENDING) === self::PENDING;
+    }
+
+    /**
+     * The restaurant finished preparing and the order can be collected. This
+     * is the ONLY state in which a rider may be assigned or may accept a
+     * delivery (see RiderMatchingService / DriverController).
+     */
+    public static function isReadyForPickup(?string $status): bool
+    {
+        return $status !== null && self::normalize($status) === self::READY;
     }
 
     /**

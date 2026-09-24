@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+ * Khmer font: the locally installed "Khmer" font (family name "Khmer").
+ *
+ * The "Khmer" family only ships Khmer-script glyphs (it has no Latin letters),
+ * so ONLY Khmer characters render with it. Latin characters (English UI,
+ * prices, brand names, ...) always fall through to the existing English stack
+ * (Trebuchet MS / Segoe UI), which keeps the English font exactly as it was.
+ * ------------------------------------------------------------------------- */
+
+/* Pages that use Tailwind's `font-sans` utility must stay Khmer-aware too.
+ * `font-sans` lists "Khmer" first, but that family has no Latin glyphs, so the
+ * English/Latin rendering of `font-sans` is unchanged. */
+@theme {
+	--font-sans: "Khmer", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		"Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+		"Segoe UI Symbol", "Noto Color Emoji";
+}
+
 :root {
 	--brand-navy: #0b1f3a;
 	--brand-blue: #163a63;
@@ -9,6 +27,12 @@
 	--ink: #1f2937;
 	--muted: #64748b;
 	--line: #d1d5db;
+
+	/* Khmer text uses the locally installed "Khmer" font, English text keeps
+	 * using Trebuchet MS / Segoe UI. The system Khmer fonts at the end are only
+	 * a last-resort fallback when "Khmer" is not installed. */
+	--font-khmer: "Khmer", "Trebuchet MS", "Segoe UI", "Khmer OS", "Noto Sans Khmer",
+		"Leelawadee UI", sans-serif;
 }
 
 @layer base {
@@ -20,7 +44,7 @@
 		margin: 0;
 		background: var(--canvas);
 		color: var(--ink);
-		font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+		font-family: var(--font-khmer);
 		-webkit-font-smoothing: antialiased;
 	}
 
@@ -29,6 +53,11 @@
 	textarea,
 	select {
 		font: inherit;
+	}
+
+	/* Applied when i18next switches the UI to Khmer (html[lang="km"]) */
+	:lang(km) {
+		font-family: var(--font-khmer);
 	}
 }
 

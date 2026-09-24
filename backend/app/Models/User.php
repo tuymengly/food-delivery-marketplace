@@ -3,7 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\UserRoles;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -43,6 +45,36 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    /**
+     * Every user payload the API returns carries both the raw database role
+     * (`role`, unchanged so existing consumers keep working) and the
+     * normalized, unambiguous `role_key` the frontends route on. Laravel
+     * stays the single source of truth for both.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'role_key',
+    ];
+
+    /**
+     * Canonical role derived from the database `role` column
+     * (see App\Support\UserRoles) - 'user', 'restaurant_owner', 'rider'
+     * or 'admin'.
+     */
+    protected function roleKey(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => UserRoles::canonical($this));
+    }
+
+    /**
+     * True when this user's role is (or is an alias of) any given role.
+     */
+    public function hasRole(string ...$roles): bool
+    {
+        return UserRoles::has($this, ...$roles);
+    }
 
     /**
      * Get the attributes that should be cast.

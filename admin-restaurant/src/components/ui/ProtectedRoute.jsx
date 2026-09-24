@@ -1,41 +1,35 @@
 import { Navigate } from 'react-router-dom';
+import { getStoredUser, isRoleAllowed, redirectToCustomerApp, redirectToLogin, roleHomePath } from '../../services/session';
 
-const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174';
+/**
+ * Role gate for this app's portals.
+ *
+ * `user` is the session user Laravel confirmed at startup (App.jsx passes it
+ * down); when it isn't provided the last Laravel-verified user in localStorage
+ * is used. Either way the role comes from the database - never from a value
+ * this browser decided on its own - and an unrecognised role is treated as
+ * "no access" rather than being allowed through.
+ */
+export default function ProtectedRoute({ allowedRoles, user, children }) {
+  const sessionUser = user || getStoredUser();
 
-const normalizeRole = (role) => String(role || '').toLowerCase().trim();
-
-const roleHome = (role) => {
-  if (role === 'restaurant' || role === 'restaurant admin') return '/restaurant/dashboard';
-  if (role === 'driver' || role === 'rider') return '/driver/dashboard';
-  if (role === 'admin' || role === 'super_admin' || role === 'super admin') {
-    return '/admin/dashboard';
-  }
-  return '/';
-};
-
-export default function ProtectedRoute({ allowedRoles, children }) {
-  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-  const savedUser = localStorage.getItem('user');
-
-  if (!token || !savedUser) {
-    window.location.assign(`${CUSTOMER_APP_URL}/login`);
+  if (!sessionUser) {
+    redirectToLogin();
     return null;
   }
 
-  let user;
-  try {
-    user = JSON.parse(savedUser);
-  } catch {
-    window.location.assign(`${CUSTOMER_APP_URL}/login`);
+  if (isRoleAllowed(sessionUser, allowedRoles)) {
+    return children;
+  }
+
+  const home = roleHomePath(sessionUser);
+
+  // A customer belongs to the customer frontend - hand their session over
+  // instead of showing them a dashboard this portal doesn't own.
+  if (!home) {
+    redirectToCustomerApp();
     return null;
   }
 
-  const role = normalizeRole(user?.role);
-  const roles = allowedRoles.map(normalizeRole);
-
-  if (!roles.includes(role)) {
-    return <Navigate to={roleHome(role)} replace />;
-  }
-
-  return children;
+  return <Navigate to={home} replace />;
 }

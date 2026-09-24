@@ -104,8 +104,8 @@ export const updateAdminPassword = async (data) => {
   return await API.put('/admin/change-password', data);
 }; // <--- បានលុបលេខ ១ ចេញរួចរាល់
 
-export const getPaymentStats = () => {
-  return API.get('/admin/payments');
+export const getPaymentStats = (params = {}) => {
+  return API.get('/admin/payments', { params });
 };
 
 export const createPayout = (data) => {

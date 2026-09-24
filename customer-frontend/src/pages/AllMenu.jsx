@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { FaFilter, FaTimes } from "react-icons/fa";
 import { fetchRestaurants } from "../api/restaurantApi";
 import { fetchFoods } from "../api/foodApi";
@@ -8,6 +9,7 @@ import RestaurantFilters from "../components/RestaurantFilters";
 import { parseCuisines } from "../components/restaurantFilterData";
 
 const AllMenu = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [restaurants, setRestaurants] = useState([]);
   const [foods, setFoods] = useState([]);
@@ -60,7 +62,7 @@ const AllMenu = () => {
         if (requestError.code !== "ERR_CANCELED")
           setError(
             requestError.response?.data?.message ||
-              "Unable to load restaurants.",
+              t("restaurantsPage.loadError"),
           );
       } finally {
         setLoading(false);
@@ -75,6 +77,7 @@ const AllMenu = () => {
     cuisineQuery,
     location?.latitude,
     location?.longitude,
+    t,
   ]);
 
   const updateFilters = (next) => setSearchParams(next, { replace: true });
@@ -121,13 +124,13 @@ const AllMenu = () => {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-[#2563EB]">
-              Delivery
+              {t("restaurantsPage.delivery")}
             </p>
             <h1 className="mt-2 text-3xl font-bold text-[#0B1F3A] sm:text-4xl">
-              Restaurants near you
+              {t("restaurantsPage.title")}
             </h1>
             <p className="mt-2 text-slate-500">
-              Discover meals by cuisine, speed, rating, and offers.
+              {t("restaurantsPage.subtitle")}
             </p>
           </div>
           <button
@@ -135,7 +138,7 @@ const AllMenu = () => {
             onClick={() => setMobileFiltersOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2.5 text-sm font-semibold text-white lg:hidden"
           >
-            <FaFilter /> Filters
+            <FaFilter /> {t("restaurantsPage.filters")}
           </button>
         </div>
         <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
@@ -156,8 +159,8 @@ const AllMenu = () => {
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm font-medium text-slate-500">
                 {loading
-                  ? "Loading dishes..."
-                  : `${filteredFoods.length} dish${filteredFoods.length === 1 ? "" : "es"} found`}
+                  ? t("restaurantsPage.loadingDishes")
+                  : t("restaurantsPage.dishFound", { count: filteredFoods.length })}
               </p>
               {selectedCuisines.length > 0 && (
                 <button
@@ -165,7 +168,7 @@ const AllMenu = () => {
                   onClick={clearFilters}
                   className="text-sm font-semibold text-[#2563EB]"
                 >
-                  Clear filters
+                  {t("restaurantsPage.clearFilters")}
                 </button>
               )}
             </div>
@@ -185,17 +188,17 @@ const AllMenu = () => {
             ) : filteredFoods.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
                 <h2 className="text-xl font-bold text-[#0B1F3A]">
-                  No dishes found
+                  {t("restaurantsPage.noDishes")}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Try removing some filters or selecting a different cuisine.
+                  {t("restaurantsPage.tryFilters")}
                 </p>
                 <button
                   type="button"
                   onClick={clearFilters}
                   className="mt-5 rounded-md bg-[#0B1F3A] px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Clear filters
+                  {t("restaurantsPage.clearFilters")}
                 </button>
               </div>
             ) : (
@@ -203,7 +206,7 @@ const AllMenu = () => {
                 {filteredFoods.map((food) => (
 <Link
   key={food.id}
-  to={`/restaurants/${food.restaurantId}`}
+  to={`/shops/${food.restaurantId}`}
   className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
 >
                     <div className="h-40 bg-slate-100">
@@ -226,7 +229,7 @@ const AllMenu = () => {
                         {food.category}
                       </p>
                       <p className="mt-3 truncate text-xs text-slate-400">
-                        From: {food.restaurantName}
+                        {t("restaurantsPage.from")}: {food.restaurantName}
                       </p>
                     </div>
                   </Link>
@@ -239,18 +242,18 @@ const AllMenu = () => {
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-60 lg:hidden">
           <button
-            aria-label="Close filters"
+            aria-label={t("restaurantsPage.closeFilters")}
             type="button"
             onClick={() => setMobileFiltersOpen(false)}
             className="absolute inset-0 bg-slate-900/40"
           />
           <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#0B1F3A]">Filters</h2>
+              <h2 className="text-lg font-bold text-[#0B1F3A]">{t("restaurantsPage.filters")}</h2>
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(false)}
-                aria-label="Close filters"
+                aria-label={t("restaurantsPage.closeFilters")}
                 className="text-slate-500"
               >
                 <FaTimes />
@@ -273,14 +276,14 @@ const AllMenu = () => {
                 onClick={clearFilters}
                 className="flex-1 rounded-md border border-slate-300 py-3 text-sm font-semibold text-slate-700"
               >
-                Clear all
+                {t("restaurantsPage.clearAll")}
               </button>
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(false)}
                 className="flex-1 rounded-md bg-[#0B1F3A] py-3 text-sm font-semibold text-white"
               >
-                Apply filters
+                {t("restaurantsPage.applyFilters")}
               </button>
             </div>
           </div>

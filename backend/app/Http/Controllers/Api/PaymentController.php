@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\BakongConfigurationException;
+use App\Exceptions\KhqrConfigurationException;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Notifications\OrderPaidNotification;
 use App\Services\BakongService;
 use App\Services\PayoutCalculationService;
-use App\Services\PayWayService;
-use App\Services\RiderMatchingService;
 use App\Support\OrderStatuses;
 use App\Support\PaymentStatuses;
 use Illuminate\Database\QueryException;
@@ -18,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Throwable;
 
 class PaymentController extends Controller
 {
@@ -36,52 +36,75 @@ class PaymentController extends Controller
      * OrderFinanceCalculator) rather than a flat guess at read time, so the
      * "admin wallet" always reflects real platform PROFIT, never gross
      * customer sales.
+     *
+     * Supports date filtering: today, this week, this month, or custom range.
+     * Only includes valid COMPLETED/DELIVERED orders in financial totals.
      */
     public function getStatsAndTransactions(Request $request): JsonResponse
     {
-        $paidOrders = Order::with(['user:id,name', 'restaurant:id,name', 'delivery.rider.user:id,name'])
-            ->whereIn('status', $this->paidStatuses())
-            ->latest()
-            ->get();
-
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        // Apply date filtering
+        $query = Order::with(['user:id,name', 'restaurant:id,name', 'delivery.rider.user:id,name']);
+        
+        // Only include settled orders (DELIVERED or COMPLETED)
+        $query->whereIn('status', $this->paidStatuses());
+        
+        if ($startDate) {
+            $query->where('created_at', '>=', $startDate);
+        }
+        
+        if ($endDate) {
+            $query->where('created_at', '<=', $endDate . ' 23:59:59');
+        }
+        
+        $paidOrders = $query->latest()->get();
+        
         $totalVolume = (float) $paidOrders->sum('total_price');
         $restaurantPayouts = (float) $paidOrders->sum('restaurant_amount');
         $riderPayouts = (float) $paidOrders->sum('rider_amount');
         $platformProfit = (float) $paidOrders->sum('platform_profit');
-
-        $restaurantTransactions = $paidOrders->map(function (Order $order) {
-            return [
-                'id' => 'TXN-R-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
-                'dateTime' => $order->created_at ? $order->created_at->format('M d, H:i') : 'N/A',
-                'entity' => $order->restaurant->name ?? 'Restaurant',
-                'type' => 'Restaurant Payout',
-                'amount' => (float) ($order->restaurant_amount ?? 0),
-                'status' => 'Pending',
-                'category' => 'restaurant',
-                'avatar' => null,
-            ];
-        });
-
-        $riderTransactions = $paidOrders
-            ->filter(fn (Order $order) => $order->delivery?->rider)
+        
+        // Build detailed transaction records with order information
+        $transactions = $paidOrders
+            ->filter(function (Order $order) {
+                // Only include orders that have either a restaurant payout or rider payout
+                return ($order->restaurant_amount > 0) || ($order->rider_amount > 0);
+            })
             ->map(function (Order $order) {
+                $orderTotal = (float) ($order->total_price ?? 0);
+                $restaurantAmount = (float) ($order->restaurant_amount ?? 0);
+                $riderAmount = (float) ($order->rider_amount ?? 0);
+                $platformAmount = (float) ($order->platform_profit ?? 0);
+                
+                // Determine payment/order status
+                $paymentStatus = 'Pending';
+                if ($order->status === OrderStatuses::COMPLETED) {
+                    $paymentStatus = 'Completed';
+                }
+                
                 return [
-                    'id' => 'TXN-D-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
-                    'dateTime' => $order->created_at ? $order->created_at->format('M d, H:i') : 'N/A',
-                    'entity' => $order->delivery->rider->user->name ?? 'Rider',
-                    'type' => 'Driver Payout',
-                    'amount' => (float) ($order->rider_amount ?? 0),
-                    'status' => 'Pending',
-                    'category' => 'driver',
-                    'avatar' => null,
+                    'id' => 'TXN-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    'order_number' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    'dateTime' => $order->created_at ? $order->created_at->format('M d, Y H:i') : 'N/A',
+                    'restaurant' => $order->restaurant->name ?? 'Restaurant',
+                    'rider' => $order->delivery?->rider?->user?->name ?? '-',
+                    'order_total' => $orderTotal,
+                    'restaurant_amount' => $restaurantAmount,
+                    'rider_amount' => $riderAmount,
+                    'platform_amount' => $platformAmount,
+                    'status' => $paymentStatus,
+                    'category' => $restaurantAmount > 0 ? 'restaurant' : 'driver',
                 ];
-            });
-
-        $transactions = $restaurantTransactions->merge($riderTransactions)
+            })
             ->sortByDesc('dateTime')
-            ->take(20)
+            ->take(50)
             ->values();
-
+        
+        // Calculate completed orders count (only settled orders)
+        $completedOrders = $paidOrders->count();
+        
         return response()->json([
             'success' => true,
             'data' => [
@@ -97,6 +120,7 @@ class PaymentController extends Controller
                     'admin_wallet_balance' => round($platformProfit, 2),
                     'pending_payouts' => round($restaurantPayouts + $riderPayouts, 2),
                     'successful_payouts' => 0,
+                    'completed_orders' => $completedOrders,
                 ],
                 'transactions' => $transactions,
             ],
@@ -153,21 +177,14 @@ class PaymentController extends Controller
 
     /**
      * Customer-facing: create (or reuse an already-active) KHQR payment for
-     * one of the customer's own orders. Generation itself is a pure/offline
-     * KHQR string build - no Bakong API call happens here.
+     * one of the customer's own orders. The amount is always the order's
+     * own stored total - a value React sends is never trusted.
      */
     public function createKhqrPayment(Request $request, BakongService $bakong): JsonResponse
     {
-        return $this->createPayWayPayment($request, app(PayWayService::class), 'khqr');
-    }
-
-    public function createPayWayPayment(Request $request, PayWayService $payWay, ?string $forcedMethod = null): JsonResponse
-    {
         $validated = $request->validate([
             'order_id' => ['required', 'integer', 'exists:orders,id'],
-            'payment_method' => ['nullable', 'string', 'in:khqr,card'],
         ]);
-        $paymentMethod = $forcedMethod ?: ($validated['payment_method'] ?? 'khqr');
 
         $order = Order::findOrFail($validated['order_id']);
         $this->authorizeOrderOwner($request, $order);
@@ -180,8 +197,7 @@ class PaymentController extends Controller
         }
 
         $existing = Payment::where('order_id', $order->id)
-            ->where('provider', 'payway')
-            ->where('payment_method', $paymentMethod)
+            ->where('provider', 'bakong')
             ->where('status', PaymentStatuses::PENDING)
             ->latest()
             ->first();
@@ -194,71 +210,81 @@ class PaymentController extends Controller
         if ($existing) {
             return response()->json([
                 'success' => true,
-                'message' => 'An active PayWay payment already exists for this order.',
+                'message' => 'An active KHQR payment already exists for this order.',
                 'data' => $this->formatPayment($existing, $order),
             ]);
         }
 
-        if (! $payWay->isConfigured()) {
+        if (! $bakong->isConfigured()) {
             return response()->json([
                 'success' => false,
-                'message' => 'ABA PayWay is not available right now. Please choose another payment method.',
+                'message' => 'KHQR payment is not available right now. Please choose another payment method.',
             ], 500);
         }
 
         $amount = (float) ($order->total_price ?? $order->total);
-        $currency = strtoupper((string) config('services.payway.currency', 'USD'));
-        $transactionId = $this->payWayTransactionId($order, $paymentMethod);
+        $currency = strtoupper((string) config('khqr.currency', 'USD'));
 
         try {
-            $gatewayPayment = $paymentMethod === 'card'
-                ? $payWay->createCardPayment($order, $transactionId)
-                : $payWay->createQrPayment($order, $transactionId);
-        } catch (\App\Exceptions\PayWayConfigurationException $exception) {
-            Log::error('Failed to create a PayWay payment for an order.', [
+            $gatewayPayment = $bakong->createPayment($order);
+        } catch (KhqrConfigurationException $exception) {
+            Log::error('Failed to create a Bakong KHQR payment for an order.', [
                 'order_id' => $order->id,
-                'payment_method' => $paymentMethod,
                 'error' => $exception->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to start ABA PayWay payment right now. Please try again shortly.',
+                'message' => 'Unable to start a KHQR payment right now. Please try again shortly.',
             ], 500);
         }
 
-        $payment = Payment::create([
-            'order_id' => $order->id,
-            'payment_method' => $paymentMethod,
-            'provider' => 'payway',
-            'provider_transaction_id' => $gatewayPayment['provider_transaction_id'],
-            'amount' => $amount,
-            'currency' => $currency,
-            'status' => PaymentStatuses::PENDING,
-            'qr_string' => $gatewayPayment['qr_string'] ?? null,
-            'qr_image' => $gatewayPayment['qr_image'] ?? null,
-            'checkout_url' => $gatewayPayment['checkout_url'] ?? null,
-            'checkout_html' => $gatewayPayment['checkout_html'] ?? null,
-            'deeplink' => $gatewayPayment['deeplink'] ?? null,
-            'gateway_response' => $gatewayPayment['gateway_response'] ?? null,
-            'expires_at' => $gatewayPayment['expires_at'],
-        ]);
+        try {
+            $payment = Payment::create([
+                'order_id' => $order->id,
+                'payment_method' => 'khqr',
+                'provider' => 'bakong',
+                'provider_transaction_id' => $gatewayPayment['provider_transaction_id'],
+                'amount' => $amount,
+                'currency' => $currency,
+                'status' => PaymentStatuses::PENDING,
+                'qr_string' => $gatewayPayment['qr_string'] ?? null,
+                'qr_image' => $gatewayPayment['qr_image'] ?? null,
+                'md5' => $gatewayPayment['md5'],
+                'gateway_response' => $gatewayPayment['gateway_response'] ?? null,
+                'expires_at' => $gatewayPayment['expires_at'],
+            ]);
+        } catch (QueryException $exception) {
+            // The unique index on md5 tripped - the KHQR SDK builds MD5 from
+            // the full payload (account/amount/bill number/expiry), so a
+            // collision here would mean a real hash clash rather than a
+            // normal race. Ask the customer to retry rather than silently
+            // reusing another payment's QR code.
+            Log::warning('Bakong KHQR generation returned an MD5 that collided with an existing payment.', [
+                'order_id' => $order->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not generate a unique KHQR code right now. Please try again.',
+            ], 409);
+        }
 
         $order->update([
-            'payment_method' => $paymentMethod,
+            'payment_method' => 'khqr',
             'payment_status' => PaymentStatuses::PENDING,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'PayWay payment created successfully.',
+            'message' => 'KHQR payment created successfully.',
             'data' => $this->formatPayment($payment, $order),
         ], 201);
     }
 
     /**
      * Customer-facing: fetch a payment and, while it's still pending,
-     * verify it against Bakong. This is the ONLY path that can mark a
+     * verify it against KHQR.LINK. This is the ONLY path that can mark a
      * payment (and its order) PAID - the frontend polls this endpoint and
      * is never trusted to report success itself.
      */
@@ -286,70 +312,56 @@ class PaymentController extends Controller
             ]);
         }
 
-        if ($payment->provider === 'payway') {
-            $this->verifyPayWayPayment($payment, app(PayWayService::class));
+        $notice = $this->verifyKhqrPayment($payment, $bakong);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment status retrieved successfully.',
-                'data' => $this->formatPayment($payment->fresh(), $order->fresh()),
-            ]);
-        }
+        $data = $this->formatPayment($payment->fresh(), $order->fresh());
 
-        if ($payment->md5) {
-            try {
-                $verification = $bakong->verifyTransactionByMd5($payment->md5);
-                if ($this->applyVerificationResult($payment, $order, $verification, $bakong)) {
-                    $this->dispatchPaidDeliveryOrder($order->fresh());
-                }
-            } catch (BakongConfigurationException $exception) {
-                Log::error('Bakong verification unavailable.', [
-                    'payment_id' => $payment->id,
-                    'error' => $exception->getMessage(),
-                ]);
-            }
+        if ($notice) {
+            // Ephemeral - reflects only this one check, never persisted to
+            // the payment row, since the underlying status is genuinely
+            // still unknown (not a real "failure") when this is set.
+            $data['verification_notice'] = $notice;
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Payment status retrieved successfully.',
-            'data' => $this->formatPayment($payment->fresh(), $order->fresh()),
-        ]);
-    }
-
-    public function payWayCallback(Request $request, PayWayService $payWay): JsonResponse
-    {
-        $payload = array_merge($request->query(), $request->all());
-        $transactionId = $payload['tran_id'] ?? $payload['transaction_id'] ?? null;
-
-        if (! $transactionId) {
-            return response()->json(['success' => false, 'message' => 'Missing transaction id.'], 422);
-        }
-
-        $payment = Payment::where('provider', 'payway')
-            ->where('provider_transaction_id', $transactionId)
-            ->first();
-
-        if (! $payment) {
-            return response()->json(['success' => false, 'message' => 'Payment not found.'], 404);
-        }
-
-        $payment->update(['callback_payload' => $payWay->callbackPayload($payload)]);
-        $this->verifyPayWayPayment($payment, $payWay);
-
-        return response()->json([
-            'success' => true,
-            'data' => $this->formatPayment($payment->fresh()),
+            'data' => $data,
         ]);
     }
 
     /**
-     * @param  array{result: string, hash?: string|null, from_account_id?: string|null, to_account_id?: string|null, currency?: string|null, amount?: float|null}  $verification
+     * Returns a human-readable notice when the provider's response for this
+     * one check couldn't be classified as paid/pending/failed (e.g. Bakong's
+     * own daily request quota was exhausted) - null otherwise. The payment
+     * itself is never marked FAILED for this, since the real transaction
+     * status is still genuinely unknown, not negative.
      */
-    private function applyVerificationResult(Payment $payment, Order $order, array $verification, BakongService $bakong): bool
+    private function verifyKhqrPayment(Payment $payment, BakongService $bakong): ?string
     {
+        if (PaymentStatuses::isTerminal($payment->status)) {
+            return null;
+        }
+
+        if (! $payment->md5) {
+            return null;
+        }
+
+        $verification = $bakong->checkPayment($payment->md5);
+
         if ($verification['result'] === 'success') {
-            return $this->markPaidIfValid($payment, $order, $verification, $bakong);
+            $markedPaid = $this->markKhqrPaidIfValid($payment, $payment->order, $verification, $bakong);
+            if ($markedPaid) {
+                // Payment confirmed -> the order is now PENDING_RESTAURANT
+                // (that is the status it was created in; nothing here moves it
+                // forward). Rider matching deliberately does NOT run at this
+                // point: a rider may only be assigned after the restaurant has
+                // accepted, prepared and marked the order READY_FOR_PICKUP -
+                // see OrderController::updateStatus().
+                $this->notifyRestaurantOfPaidOrder($payment->order->fresh());
+            }
+
+            return null;
         }
 
         if ($verification['result'] === 'failed') {
@@ -357,19 +369,29 @@ class PaymentController extends Controller
                 'status' => PaymentStatuses::FAILED,
                 'failed_reason' => 'Bakong reported this transaction as failed.',
             ]);
-            $order->update(['payment_status' => PaymentStatuses::FAILED]);
+            $payment->order->update(['payment_status' => PaymentStatuses::FAILED]);
+
+            return null;
         }
 
-        // 'not_found' or 'error': no state change yet - the customer may not
-        // have paid yet, or Bakong is momentarily unreachable. The frontend
-        // keeps polling; expiry (checked above) is what eventually stops it.
-        return false;
+        // 'pending' or 'not_found': no state change yet - the customer
+        // simply hasn't paid. Nothing to tell them.
+        if ($verification['result'] === 'not_found' || $verification['result'] === 'pending') {
+            return null;
+        }
+
+        // 'error': the provider itself couldn't be checked this time (down,
+        // unreachable, or - as originally diagnosed here - its daily quota
+        // was exhausted). The frontend keeps polling; expiry is what
+        // eventually stops it. Surface whatever Bakong told us so the
+        // customer isn't left staring at a silent spinner.
+        return $verification['message'] ?? 'Payment verification is temporarily unavailable. Please wait a moment and keep this page open.';
     }
 
     /**
-     * @param  array{result: string, hash?: string|null, from_account_id?: string|null, to_account_id?: string|null, currency?: string|null, amount?: float|null}  $verification
+     * @param  array{result: string, hash?: string|null, from_account_id?: string|null, to_account_id?: string|null, currency?: string|null, amount?: float|null, raw?: array<string, mixed>}  $verification
      */
-    private function markPaidIfValid(Payment $payment, Order $order, array $verification, BakongService $bakong): bool
+    private function markKhqrPaidIfValid(Payment $payment, Order $order, array $verification, BakongService $bakong): bool
     {
         $amountMatches = isset($verification['amount'])
             && abs((float) $verification['amount'] - (float) $payment->amount) < 0.01;
@@ -423,15 +445,7 @@ class PaymentController extends Controller
                     'status' => PaymentStatuses::PAID,
                     'paid_at' => now(),
                     'bakong_transaction_hash' => $hash,
-                    'bakong_from_account_id' => $verification['from_account_id'] ?? null,
-                    'bakong_to_account_id' => $verification['to_account_id'] ?? null,
-                    'bakong_response' => [
-                        'hash' => $hash,
-                        'from_account_id' => $verification['from_account_id'] ?? null,
-                        'to_account_id' => $verification['to_account_id'] ?? null,
-                        'currency' => $verification['currency'] ?? null,
-                        'amount' => $verification['amount'] ?? null,
-                    ],
+                    'gateway_response' => $verification['raw'] ?? $locked->gateway_response,
                 ]);
             } catch (QueryException $exception) {
                 // The unique index on bakong_transaction_hash tripped: a
@@ -452,106 +466,34 @@ class PaymentController extends Controller
         });
     }
 
-    private function verifyPayWayPayment(Payment $payment, PayWayService $payWay): bool
-    {
-        if (PaymentStatuses::isTerminal($payment->status)) {
-            return false;
-        }
-
-        if (! $payment->provider_transaction_id) {
-            return false;
-        }
-
-        $verification = $payWay->checkTransaction($payment->provider_transaction_id);
-
-        if ($verification['result'] === 'success') {
-            $markedPaid = $this->markPayWayPaidIfValid($payment, $payment->order, $verification);
-            if ($markedPaid) {
-                $this->dispatchPaidDeliveryOrder($payment->order->fresh());
-            }
-
-            return $markedPaid;
-        }
-
-        if (in_array($verification['result'], ['failed', 'cancelled'], true)) {
-            $payment->update([
-                'status' => PaymentStatuses::FAILED,
-                'failed_reason' => $verification['result'] === 'cancelled'
-                    ? 'PayWay reported this payment as cancelled.'
-                    : 'PayWay reported this payment as declined or failed.',
-                'gateway_response' => $verification['raw'] ?? $payment->gateway_response,
-            ]);
-            $payment->order->update(['payment_status' => PaymentStatuses::FAILED]);
-        }
-
-        return false;
-    }
-
     /**
-     * @param  array{result: string, transaction_id?: string|null, amount?: float|null, currency?: string|null, reference?: string|null, payment_type?: string|null, raw?: array<string, mixed>}  $verification
+     * Fires once, right after a payment's PAID transition is confirmed.
+     *
+     * Only the restaurant owner is notified here (for delivery AND pickup
+     * orders): the order is PENDING_RESTAURANT and waits for them to accept.
+     * The rider is notified later - by RiderMatchingService, and only if/when
+     * the restaurant marks the order READY_FOR_PICKUP and a rider is actually
+     * assigned to it.
+     *
+     * Queued (ShouldQueue) so a slow/unavailable mail server never delays the
+     * customer's payment-confirmation response, and wrapped defensively so a
+     * notification failure can never be mistaken for - or interfere with -
+     * the payment itself already being safely marked PAID.
      */
-    private function markPayWayPaidIfValid(Payment $payment, Order $order, array $verification): bool
+    private function notifyRestaurantOfPaidOrder(Order $order): void
     {
-        $amountMatches = isset($verification['amount'])
-            && abs((float) $verification['amount'] - (float) $payment->amount) < 0.01;
-        $currencyMatches = strtoupper((string) ($verification['currency'] ?? '')) === strtoupper($payment->currency);
-        $transactionMatches = ($verification['transaction_id'] ?? $payment->provider_transaction_id) === $payment->provider_transaction_id;
+        $order->loadMissing(['restaurant.user']);
 
-        if (! $amountMatches || ! $currencyMatches || ! $transactionMatches) {
-            Log::warning('PayWay transaction verified but its details do not match the expected payment.', [
-                'payment_id' => $payment->id,
-                'expected_amount' => (float) $payment->amount,
-                'expected_currency' => $payment->currency,
-            ]);
-
-            $payment->update([
-                'status' => PaymentStatuses::FAILED,
-                'failed_reason' => 'The PayWay transaction did not match the expected order amount, currency, or transaction.',
-                'gateway_response' => $verification['raw'] ?? $payment->gateway_response,
-            ]);
-            $order->update(['payment_status' => PaymentStatuses::FAILED]);
-
-            return false;
-        }
-
-        return DB::transaction(function () use ($payment, $order, $verification): bool {
-            $locked = Payment::whereKey($payment->id)->lockForUpdate()->first();
-
-            if (! $locked || $locked->status !== PaymentStatuses::PENDING) {
-                return false;
+        if ($order->restaurant?->user) {
+            try {
+                $order->restaurant->user->notify(new OrderPaidNotification($order));
+            } catch (Throwable $exception) {
+                Log::warning('Failed to notify the restaurant owner of a paid order.', [
+                    'order_id' => $order->id,
+                    'error' => $exception->getMessage(),
+                ]);
             }
-
-            $locked->update([
-                'status' => PaymentStatuses::PAID,
-                'paid_at' => now(),
-                'bakong_transaction_hash' => $verification['reference'] ?? $locked->bakong_transaction_hash,
-                'gateway_response' => $verification['raw'] ?? $locked->gateway_response,
-            ]);
-
-            $order->update(['payment_status' => PaymentStatuses::PAID]);
-
-            return true;
-        });
-    }
-
-    private function dispatchPaidDeliveryOrder(Order $order): void
-    {
-        if ($order->order_type !== 'delivery' || $order->payment_status !== PaymentStatuses::PAID) {
-            return;
         }
-
-        $order->loadMissing(['delivery', 'restaurant', 'address']);
-
-        if (! $order->delivery || $order->delivery->rider_id || ! $order->restaurant || ! $order->address) {
-            return;
-        }
-
-        app(RiderMatchingService::class)->assignBestRider(
-            $order,
-            $order->delivery,
-            $order->restaurant,
-            $order->address
-        );
     }
 
     /**
@@ -573,18 +515,10 @@ class PaymentController extends Controller
             'currency' => $payment->currency,
             'qr_string' => $payment->qr_string,
             'qr_image' => $payment->qr_image,
-            'checkout_url' => $payment->checkout_url,
-            'checkout_html' => $payment->checkout_html,
-            'deeplink' => $payment->deeplink,
             'expires_at' => $payment->expires_at?->toIso8601String(),
             'paid_at' => $payment->paid_at?->toIso8601String(),
             'failed_reason' => $payment->failed_reason,
         ];
-    }
-
-    private function payWayTransactionId(Order $order, string $paymentMethod): string
-    {
-        return 'O'.$order->id.strtoupper(substr($paymentMethod, 0, 1)).now('UTC')->format('His');
     }
 
     private function authorizeOrderOwner(Request $request, Order $order): void

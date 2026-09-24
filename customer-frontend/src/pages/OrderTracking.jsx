@@ -1,28 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaCheck, FaTruck, FaStore, FaMapMarkerAlt } from 'react-icons/fa';
 import { apiRequest } from '../api/app';
+import DeliveryTrackingMap from '../components/DeliveryTrackingMap';
 
-const DELIVERY_STEPS = [
-  { id: 1, title: 'Order Placed', desc: 'We received your order' },
-  { id: 2, title: 'Restaurant Accepted', desc: 'They confirmed your order' },
-  { id: 3, title: 'Preparing', desc: 'The kitchen is on it' },
-  { id: 4, title: 'Ready for Pickup', desc: 'Almost there...' },
-  { id: 5, title: 'Out for Delivery', desc: 'Your rider is on the way' },
-  { id: 6, title: 'Delivered', desc: 'Enjoy your meal!' },
+const getDeliverySteps = (t) => [
+  { id: 1, title: t('orderTracking.stepOrderPlaced'), desc: t('orderTracking.stepOrderPlacedDesc') },
+  { id: 2, title: t('orderTracking.stepAccepted'), desc: t('orderTracking.stepAcceptedDesc') },
+  { id: 3, title: t('orderTracking.stepPreparing'), desc: t('orderTracking.stepPreparingDesc') },
+  { id: 4, title: t('orderTracking.stepReadyPickup'), desc: t('orderTracking.stepReadyDeliveryDesc') },
+  { id: 5, title: t('orderTracking.stepOutForDelivery'), desc: t('orderTracking.stepOutForDeliveryDesc') },
+  { id: 6, title: t('orderTracking.stepDelivered'), desc: t('orderTracking.enjoyMeal') },
 ];
 
 // Pickup orders never involve a rider, so they skip straight from "ready"
 // to "completed" instead of the delivering/delivered steps above.
-const PICKUP_STEPS = [
-  { id: 1, title: 'Order Placed', desc: 'We received your order' },
-  { id: 2, title: 'Restaurant Accepted', desc: 'They confirmed your order' },
-  { id: 3, title: 'Preparing', desc: 'The kitchen is on it' },
-  { id: 4, title: 'Ready for Pickup', desc: 'Head to the restaurant to collect it' },
-  { id: 5, title: 'Picked Up', desc: 'Enjoy your meal!' },
+const getPickupSteps = (t) => [
+  { id: 1, title: t('orderTracking.stepOrderPlaced'), desc: t('orderTracking.stepOrderPlacedDesc') },
+  { id: 2, title: t('orderTracking.stepAccepted'), desc: t('orderTracking.stepAcceptedDesc') },
+  { id: 3, title: t('orderTracking.stepPreparing'), desc: t('orderTracking.stepPreparingDesc') },
+  { id: 4, title: t('orderTracking.stepReadyPickup'), desc: t('orderTracking.stepReadyPickupDesc') },
+  { id: 5, title: t('orderTracking.stepPickedUp'), desc: t('orderTracking.enjoyMeal') },
 ];
 
 const OrderTracking = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const order = location.state?.order;
@@ -31,11 +34,17 @@ const OrderTracking = () => {
   const [apiError, setApiError] = useState('');
   const [orderType, setOrderType] = useState(order?.orderType || 'delivery');
   const [restaurant, setRestaurant] = useState(order?.pickupLocation || null);
+  const [delivery, setDelivery] = useState(null);
+  const [address, setAddress] = useState(null);
+  const [orderStatus, setOrderStatus] = useState('pending');
 
   const isPickup = orderType === 'pickup';
-  const steps = isPickup ? PICKUP_STEPS : DELIVERY_STEPS;
+  const isCancelled = orderStatus === 'cancelled';
+  const steps = isPickup ? getPickupSteps(t) : getDeliverySteps(t);
   const estimatedTime = Math.max(0, (isPickup ? 20 : 25) - currentStep * 4);
 
+  // The customer-facing lifecycle the backend writes to orders.status:
+  // pending -> accepted -> preparing -> ready -> delivering -> delivered.
   const statusToStep = (status) => {
     const normalizedStatus = String(status || '').toLowerCase();
 
@@ -46,6 +55,20 @@ const OrderTracking = () => {
     if (normalizedStatus === 'accepted') return 2;
     return 1;
   };
+
+  // Where the delivery itself is - a rider can already be assigned while the
+  // order is still sitting at "ready for pickup".
+  const deliveryStatus = String(delivery?.status || '').toLowerCase();
+  const riderAssigned = Boolean(delivery?.rider_id) && ['assigned', 'picked_up', 'delivering'].includes(deliveryStatus);
+
+  const deliveryStageLabel = {
+    pending: t('orderTracking.stageWaitingForRider'),
+    assigned: t('orderTracking.stageRiderAssigned'),
+    picked_up: t('orderTracking.stagePickedUp'),
+    delivering: t('orderTracking.stageOnTheWay'),
+    delivered: t('orderTracking.stageDelivered'),
+    cancelled: t('orderTracking.stageCancelled'),
+  }[deliveryStatus] || null;
 
   useEffect(() => {
     const orderId = order?.remoteId || order?.real_id || order?.id;
@@ -59,14 +82,22 @@ const OrderTracking = () => {
         if (isMounted && data) {
           const type = data.order_type || 'delivery';
           setOrderType(type);
-          if (type === 'pickup' && data.restaurant) {
-            setRestaurant({ name: data.restaurant.name, address: data.restaurant.address });
+          if (data.restaurant) {
+            setRestaurant({
+              name: data.restaurant.name,
+              address: data.restaurant.address,
+              latitude: data.restaurant.latitude,
+              longitude: data.restaurant.longitude,
+            });
           }
+          setDelivery(data.delivery || null);
+          setAddress(data.address || null);
+          setOrderStatus(String(data.status || 'pending').toLowerCase());
           setCurrentStep(statusToStep(data.status));
           setApiError('');
         }
       } catch (error) {
-        if (isMounted) setApiError(error.message || 'Unable to load order status.');
+        if (isMounted) setApiError(error.message || t('orderTracking.loadError'));
       }
     };
 
@@ -84,27 +115,51 @@ const OrderTracking = () => {
       <div className="w-full max-w-lg bg-white shadow-2xl p-6 border border-[#D6DBE3]">
         
         {/* Top Header Card */}
-        <div className="bg-[#0B1F3B] text-white p-6 flex items-center justify-between mb-8">
+        <div className={`text-white p-6 flex items-center justify-between mb-8 ${isCancelled ? 'bg-[#A6321E]' : 'bg-[#0B1F3B]'}`}>
           <div>
             <p className="text-sm font-medium text-white/80">
-              {isPickup ? 'Estimated Ready Time' : 'Estimated Arrival'}
+              {isCancelled
+                ? t('orderTracking.orderCancelled')
+                : isPickup
+                  ? t('orderTracking.estimatedReadyTime')
+                  : t('orderTracking.estimatedArrival')}
             </p>
             <h2 className="text-3xl font-bold my-1">
-              {currentStep === steps.length
-                ? (isPickup ? 'Picked Up!' : 'Arrived!')
-                : `About ${estimatedTime} mins away`}
+              {isCancelled
+                ? t('orderTracking.notDelivered')
+                : currentStep === steps.length
+                  ? (isPickup ? t('orderTracking.pickedUpExclaim') : t('orderTracking.arrivedExclaim'))
+                  : t('orderTracking.minsAway', { mins: estimatedTime })}
             </h2>
+            {deliveryStageLabel && !isCancelled && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{deliveryStageLabel}</p>
+            )}
           </div>
           <div className="w-14 h-14 bg-white/15 flex items-center justify-center">
             {isPickup ? <FaStore className="text-3xl text-white" /> : <FaTruck className="text-3xl text-white" />}
           </div>
         </div>
 
+        {isCancelled && (
+          <p className="mb-6 bg-[#FBEEEC] border border-[#F0D5CF] px-4 py-3 text-sm text-[#A6321E]">
+            {t('orderTracking.cancelledMessage')}
+          </p>
+        )}
+
+        {!isPickup && riderAssigned && delivery?.rider && (
+          <DeliveryTrackingMap
+            rider={delivery.rider}
+            restaurant={restaurant}
+            address={address}
+            hasBeenPickedUp={['picked_up', 'delivering', 'delivered'].includes(delivery.status)}
+          />
+        )}
+
         {isPickup && (restaurant?.name || restaurant?.address) && (
           <div className="mb-6 flex items-start gap-3 bg-[#EEF2F8] border border-[#D6DBE3] px-4 py-3">
             <FaMapMarkerAlt className="mt-0.5 shrink-0 text-[#0B1F3B]" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#0B1F3B]">Pickup Location</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#0B1F3B]">{t('orderPages.pickupLocation')}</p>
               {restaurant?.name && <p className="text-sm font-bold text-[#1A2233]">{restaurant.name}</p>}
               {restaurant?.address && <p className="text-sm text-slate-600">{restaurant.address}</p>}
             </div>
@@ -113,6 +168,23 @@ const OrderTracking = () => {
 
         {apiError && (
           <p className="mb-6 bg-[#FBEEEC] border border-[#F0D5CF] px-4 py-3 text-sm text-[#A6321E]">{apiError}</p>
+        )}
+
+        {/* The rider is only ever shown once the backend actually assigned this
+            order to them (i.e. after the restaurant marked it ready). */}
+        {!isPickup && riderAssigned && delivery?.rider && (
+          <div className="mb-6 flex items-start gap-3 bg-[#EEF2F8] border border-[#D6DBE3] px-4 py-3">
+            <FaTruck className="mt-0.5 shrink-0 text-[#0B1F3B]" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#0B1F3B]">
+                {t('orderTracking.yourRider')}
+              </p>
+              {delivery.rider.user?.name && (
+                <p className="text-sm font-bold text-[#1A2233]">{delivery.rider.user.name}</p>
+              )}
+              {delivery.rider.phone && <p className="text-sm text-slate-600">{delivery.rider.phone}</p>}
+            </div>
+          </div>
         )}
 
         {/* Timeline Steps */}
@@ -158,7 +230,7 @@ const OrderTracking = () => {
                   
                   {isCurrent && (
                     <span className="inline-block mt-2 px-3 py-1 bg-[#EEF2F8] text-[#0B1F3B] font-semibold text-xs animate-pulse">
-                      Current status
+                      {t('orderTracking.currentStatus')}
                     </span>
                   )}
                 </div>
@@ -172,7 +244,7 @@ const OrderTracking = () => {
           onClick={() => navigate('/')}
           className="w-full mt-8 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3.5 transition-all cursor-pointer"
         >
-          Back to Home
+          {t('orderTracking.backToHome')}
         </button>
       </div>
     </div>

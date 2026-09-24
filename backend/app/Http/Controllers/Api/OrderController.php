@@ -13,13 +13,16 @@ use App\Models\Address;
 use App\Models\Delivery;
 use App\Models\Rider;
 use App\Models\Voucher;
+use App\Notifications\OrderRejectedNotification;
 use App\Services\OrderFinanceCalculator;
 use App\Services\RiderMatchingService;
 use App\Support\OrderStatuses;
 use App\Support\PaymentStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class OrderController extends Controller
 {
@@ -31,7 +34,7 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['user', 'restaurant', 'items.food'])->latest();
+        $query = Order::with(['user', 'restaurant', 'items.food.category', 'delivery.rider.user'])->latest();
 
         $user = $request->user() ?: auth('sanctum')->user();
 
@@ -57,6 +60,21 @@ class OrderController extends Controller
 
             $isPickup = $order->order_type === 'pickup';
 
+            // Structured breakdown for the customer's order-detail view, which
+            // needs real numbers/images rather than the display-only strings
+            // ('items', 'price') used by the admin/restaurant order lists.
+            $itemsDetail = $order->items->map(function ($item) {
+                return [
+                    'id'       => $item->id,
+                    'food_id'  => $item->food_id,
+                    'name'     => $item->food_name ?? $item->food->name ?? 'Item',
+                    'category' => $item->food->category->name ?? null,
+                    'image'    => $item->food->image ?? null,
+                    'price'    => (float) $item->price,
+                    'quantity' => (int) $item->quantity,
+                ];
+            })->values();
+
             return [
                 'id'                 => '#BR-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
                 'real_id'            => $order->id,
@@ -70,9 +88,23 @@ class OrderController extends Controller
                 'pickup_location'    => $isPickup ? ($order->restaurant->address ?? null) : null,
                 'restaurant_name'    => $order->restaurant->name ?? 'N/A',
                 'items'              => $itemsFormatted ?: 'No items',
+                'items_detail'       => $itemsDetail,
+                'subtotal'           => (float) $order->subtotal,
+                'delivery_fee'       => (float) $order->delivery_fee,
+                'service_fee'        => (float) $order->service_fee,
+                'discount_amount'    => (float) $order->discount_amount,
+                'payment_method'     => $order->payment_method,
+                'created_at'         => $order->created_at,
                 'price'              => '$' . number_format($order->total_price ?? $order->total ?? 0, 2),
                 'time'               => $order->created_at ? $order->created_at->diffForHumans() : 'Just now',
                 'status'             => ucfirst($order->status),
+                // Delivery progress is tracked on the delivery row, not on
+                // orders.status: while the order sits at READY_FOR_PICKUP the
+                // delivery may already be 'assigned' to a rider (RIDER_ASSIGNED).
+                // The restaurant list needs both to show the rider it was given.
+                'delivery_status'    => $order->delivery->status ?? null,
+                'rider'              => $order->delivery?->rider?->user?->name,
+                'rider_phone'        => $order->delivery?->rider?->phone ?? $order->delivery?->rider?->user?->phone,
             ];
         });
 
@@ -217,12 +249,15 @@ class OrderController extends Controller
                 ]);
             }
 
-            $delivery = Delivery::create([
+            Delivery::create([
                 'order_id' => $order->id,
                 'status' => 'pending',
             ]);
 
-            app(RiderMatchingService::class)->assignBestRider($order, $delivery, $restaurant, $address);
+            // No rider is matched here: riders may only be assigned once the
+            // restaurant has accepted, prepared and marked the order
+            // READY_FOR_PICKUP (see updateStatus()). $delivery stays pending
+            // until then.
 
             return response()->json([
                 'success' => true,
@@ -240,7 +275,7 @@ class OrderController extends Controller
         $validated = $request->validate([
             'address_id' => ['nullable', 'integer', 'exists:addresses,id'],
             'order_type' => ['nullable', 'string', 'in:delivery,pickup'],
-            'payment_method' => ['nullable', 'string', 'in:cash,aba,khqr,card'],
+            'payment_method' => ['nullable', 'string', 'in:cash,khqr'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'voucher_code' => ['nullable', 'string', 'max:50'],
         ]);
@@ -302,7 +337,7 @@ class OrderController extends Controller
         $total = max(0, $subtotal + $deliveryFee + $serviceFee - $discountAmount);
         $breakdown = OrderFinanceCalculator::breakdown($subtotal, $deliveryFee, $total);
         $paymentMethod = $validated['payment_method'] ?? null;
-        $requiresVerifiedPayment = in_array($paymentMethod, ['khqr', 'card'], true);
+        $requiresVerifiedPayment = $paymentMethod === 'khqr';
 
         return DB::transaction(function () use (
             $cart, $user, $address, $restaurantIds, $subtotal, $deliveryFee, $serviceFee,
@@ -343,22 +378,19 @@ class OrderController extends Controller
             // rider pool, so - unlike delivery orders - they get no Delivery
             // row at all (DriverController::orders() also excludes them
             // explicitly, but not creating the row is the primary guard).
-            $delivery = $orderType === 'delivery'
-                ? Delivery::create(['order_id' => $order->id, 'status' => 'pending'])
-                : null;
+            if ($orderType === 'delivery') {
+                Delivery::create(['order_id' => $order->id, 'status' => 'pending']);
+            }
+
             $cart->items()->delete();
 
             if ($voucher) {
                 $voucher->increment('times_used');
             }
 
-            if ($orderType === 'delivery' && $delivery && $address && ! $requiresVerifiedPayment) {
-                $restaurant = Restaurant::find($restaurantIds->first());
-                if ($restaurant) {
-                    app(RiderMatchingService::class)->assignBestRider($order, $delivery, $restaurant, $address);
-                }
-            }
-
+            // No rider is assigned here. The order is PENDING_RESTAURANT: the
+            // restaurant has to accept, prepare and mark it READY_FOR_PICKUP
+            // before RiderMatchingService may match a rider (see updateStatus()).
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully.',
@@ -379,7 +411,10 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order retrieved successfully.',
-            'data' => $order->load(['user', 'restaurant', 'address', 'items.food', 'delivery.rider']),
+            // delivery.rider.user is included so the customer's tracking page
+            // can show WHO was assigned (name/phone) once the restaurant has
+            // marked the order ready and the backend matched a rider.
+            'data' => $order->load(['user', 'restaurant', 'address', 'items.food', 'delivery.rider.user']),
         ]);
     }
 
@@ -392,6 +427,12 @@ class OrderController extends Controller
         }
 
         $order->update(['status' => OrderStatuses::CANCELLED]);
+
+        // The order must not keep a rider attached to it. If one was already
+        // assigned (the order was READY_FOR_PICKUP or already on the road),
+        // the delivery is cancelled and the rider is freed up again. The
+        // customer cancelling their own order does not need an email about it.
+        $this->releaseOrderDelivery($order);
 
         return response()->json(['success' => true, 'message' => 'Order cancelled successfully.', 'data' => $order->refresh()]);
     }
@@ -416,20 +457,50 @@ class OrderController extends Controller
         }
 
         $request->validate(['rider_id' => ['required', 'integer', 'exists:riders,id']]);
-        $rider = Rider::findOrFail($request->rider_id);
 
-        if (!$rider->is_available) {
-            throw ValidationException::withMessages(['rider_id' => ['The selected rider is unavailable.']]);
+        // Restaurant acceptance must happen before rider assignment: an order
+        // that is still pending/accepted/preparing is not collectable yet, so
+        // there is nothing to hand to a rider.
+        if (!OrderStatuses::isReadyForPickup($order->status)) {
+            throw ValidationException::withMessages([
+                'status' => ['Riders can only be assigned once the restaurant marks the order ready for pickup.'],
+            ]);
         }
 
-        $delivery = $order->delivery()->firstOrCreate([], ['status' => 'pending']);
-        $delivery->update(['rider_id' => $rider->id, 'status' => 'assigned']);
-        $rider->update(['is_available' => false]);
+        $rider = DB::transaction(function () use ($order, $request): Rider {
+            $delivery = $order->delivery()->firstOrCreate([], ['status' => 'pending']);
+
+            // Locked reads: two assignments racing for the same order (or for
+            // the same rider) must not both succeed - the second request blocks
+            // here until the first transaction finishes, then sees the real
+            // state (delivery already assigned / rider already busy).
+            $lockedDelivery = Delivery::whereKey($delivery->id)->lockForUpdate()->first();
+
+            if (! $lockedDelivery || $lockedDelivery->rider_id !== null || $lockedDelivery->status !== 'pending') {
+                throw ValidationException::withMessages(['rider_id' => ['This order already has a rider assigned.']]);
+            }
+
+            $rider = Rider::lockForUpdate()->findOrFail($request->rider_id);
+
+            // Same eligibility rules as automatic matching: approved, online,
+            // not already busy, and with a valid, fresh location fix.
+            if (! app(RiderMatchingService::class)->isEligible($rider)) {
+                throw ValidationException::withMessages(['rider_id' => ['The selected rider is not available for a new delivery right now.']]);
+            }
+
+            $lockedDelivery->update(['rider_id' => $rider->id, 'status' => 'assigned']);
+            $rider->update(['is_available' => false]);
+
+            app(RiderMatchingService::class)->notifyAssignedRider($order->fresh());
+
+            return $rider;
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Rider assigned successfully.',
             'data' => $order->refresh()->load(['delivery.rider', 'items.food', 'address']),
+            'rider_id' => $rider->id,
         ]);
     }
 
@@ -494,10 +565,113 @@ class OrderController extends Controller
         $order->status = $requestedStatus;
         $order->save();
 
+        // The restaurant just finished preparing: READY_FOR_PICKUP is the one
+        // and only trigger for rider assignment. Laravel picks the nearest
+        // eligible rider itself - if none exists the order simply stays ready
+        // and unassigned until one becomes available.
+        $assignedRiderId = null;
+
+        if ($requestedStatus === OrderStatuses::READY) {
+            $assignedRiderId = $this->dispatchReadyOrderToNearestRider($order);
+        }
+
+        // The restaurant rejected the order (or an admin cancelled it before
+        // it was collected): never assign a rider, tear down any delivery that
+        // may exist, free the rider if one had already been attached, and tell
+        // the customer. The payment record is left untouched for the existing
+        // refund follow-up.
+        if ($requestedStatus === OrderStatuses::CANCELLED) {
+            $this->releaseOrderDelivery($order, notifyCustomer: true);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Order status updated successfully.',
-            'status'  => ucfirst($order->status) // ត្រឡប់ Capitalized format ដូច index (e.g. "Accepted")
+            'status'  => ucfirst($order->status), // ត្រឡប់ Capitalized format ដូច index (e.g. "Accepted")
+            'assigned_rider_id' => $assignedRiderId,
         ]);
+    }
+
+    /**
+     * Assigns the nearest eligible rider the moment the restaurant marks an
+     * order READY_FOR_PICKUP. Returns the assigned rider's id (or null when
+     * the order isn't an assignable delivery order or nobody is eligible).
+     *
+     * All of the decision-making lives in RiderMatchingService - this method
+     * only supplies the order context.
+     */
+    private function dispatchReadyOrderToNearestRider(Order $order): ?int
+    {
+        if ($order->order_type !== 'delivery') {
+            return null; // pickup orders are collected in person
+        }
+
+        $order->loadMissing(['delivery', 'restaurant', 'address']);
+
+        if (! $order->delivery || $order->delivery->rider_id || ! $order->restaurant) {
+            return null;
+        }
+
+        $delivery = app(RiderMatchingService::class)->assignBestRider(
+            $order,
+            $order->delivery,
+            $order->restaurant,
+            $order->address
+        );
+
+        return $delivery?->rider_id;
+    }
+
+    /**
+     * Cancels/rejects an order's delivery: the delivery row is marked
+     * cancelled, and a rider that had already been assigned to it is put back
+     * on the available list so they can take another delivery instead.
+     *
+     * When $notifyCustomer is true (restaurant/admin rejection) the customer
+     * is emailed that the order was cancelled - the customer cancelling their
+     * own order obviously doesn't need that mail.
+     */
+    private function releaseOrderDelivery(Order $order, bool $notifyCustomer = false): void
+    {
+        DB::transaction(function () use ($order): void {
+            $delivery = $order->delivery()->first();
+
+            if (! $delivery) {
+                return;
+            }
+
+            $locked = Delivery::whereKey($delivery->id)->lockForUpdate()->first();
+
+            // A delivery already handed to the customer stays delivered; only
+            // an open delivery can be cancelled at this point.
+            if (! $locked || $locked->status === 'delivered') {
+                return;
+            }
+
+            if ($locked->rider_id) {
+                Rider::whereKey($locked->rider_id)->lockForUpdate()->first()?->update(['is_available' => true]);
+            }
+
+            $locked->update(['status' => 'cancelled']);
+        });
+
+        if (! $notifyCustomer) {
+            return;
+        }
+
+        $order->loadMissing(['user', 'restaurant']);
+
+        if (! $order->user) {
+            return;
+        }
+
+        try {
+            $order->user->notify(new OrderRejectedNotification($order));
+        } catch (Throwable $exception) {
+            Log::warning('Failed to notify the customer of a rejected order.', [
+                'order_id' => $order->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

@@ -21,8 +21,10 @@ import {
 } from "../../../services/driverService";
 import API from "../../../services/api";
 import { uploadImageToCloudinary } from "../../../services/cloudinary";
+import { getStoredUser, logout, persistUser } from "../../../services/session";
 import Sidebar from "../components/DriverSidebar";
 import Header from "../components/Header";
+import DeliveryRouteMap from "../../../components/ui/DeliveryRouteMap";
 
 const emptySummary = {
   today_deliveries: 0,
@@ -32,16 +34,12 @@ const emptySummary = {
 };
 
 const readCurrentUser = () => {
-  try {
-    const rawUser = localStorage.getItem("user");
-    if (rawUser) return JSON.parse(rawUser);
-  } catch {
-    // Keep dashboard usable even if localStorage contains invalid JSON.
-  }
+  const sessionUser = getStoredUser();
+  if (sessionUser) return sessionUser;
 
   return {
-    name: localStorage.getItem("name") || "Driver",
-    role: "Driver",
+    name: localStorage.getItem("name") || "Rider",
+    role: "rider",
   };
 };
 
@@ -53,6 +51,7 @@ export default function DriverDashboard() {
     location.pathname.endsWith("/profile") ? "profile" : "requests",
   );
   const [activeOrder, setActiveOrder] = useState(null);
+  const [riderPosition, setRiderPosition] = useState(null);
   const [availableRequests, setAvailableRequests] = useState([]);
   const [recentHistory, setRecentHistory] = useState([]);
   const [summary, setSummary] = useState(emptySummary);
@@ -179,7 +178,15 @@ export default function DriverDashboard() {
       setProfile(updated);
       setProfileFile(null);
       setProfileImagePreview("");
-      localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
+      // Keep the cached session user in sync without ever touching the role
+      // Laravel assigned to this account.
+      persistUser({
+        ...getStoredUser(),
+        ...user,
+        ...updated,
+        role: user?.role,
+        role_key: user?.role_key,
+      });
       window.dispatchEvent(
         new CustomEvent("driver-profile-updated", { detail: updated }),
       );
@@ -198,6 +205,7 @@ export default function DriverDashboard() {
     const pushLocation = () => {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
+          setRiderPosition([coords.latitude, coords.longitude]);
           updateRiderLocation(coords.latitude, coords.longitude).catch(() => {
             // A single failed ping isn't worth interrupting the driver - the
             // next interval tick will retry.
@@ -274,7 +282,22 @@ export default function DriverDashboard() {
     }
   };
 
+  // Revokes the token in Laravel and clears the cached user/role before
+  // returning to the customer portal's login page.
+  const handleLogout = () => {
+    logout();
+  };
+
   const activeStatus = String(activeOrder?.delivery_status || "").toLowerCase();
+
+  // What the rider is expected to do next, derived from the delivery's own
+  // status rather than the order's - the order stays READY_FOR_PICKUP until
+  // the food is actually collected.
+  const activeStageLabel = {
+    assigned: "Assigned - Head to the Restaurant",
+    picked_up: "Picked Up - Start Your Route",
+    delivering: "Delivering - Complete on Arrival",
+  }[activeStatus] || "Active";
 
   return (
     <div className="flex h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden relative">
@@ -284,6 +307,7 @@ export default function DriverDashboard() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         navItems={navItems}
+        onLogout={handleLogout}
       />
 
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full bg-slate-100">
@@ -291,7 +315,7 @@ export default function DriverDashboard() {
           setIsSidebarOpen={setIsSidebarOpen}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          user={{ name: user?.name || "Driver", role: "Driver" }}
+          user={user}
         />
 
         <main className="p-4 sm:p-8 space-y-6 w-full max-w-7xl mx-auto">
@@ -303,7 +327,7 @@ export default function DriverDashboard() {
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 uppercase">
                 {activeTab === "requests"
-                  ? "Pending Dispatch"
+                  ? "Ready for Pickup"
                   : `${activeTab} Overview`}
               </h2>
             </div>
@@ -430,6 +454,9 @@ export default function DriverDashboard() {
                       <span className="px-3 py-1.5 bg-blue-900 text-white rounded-none text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                         <Package size={12} /> Active Dispatch
                       </span>
+                      <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-none text-[10px] font-bold uppercase tracking-widest">
+                        {activeStageLabel}
+                      </span>
                       <span className="text-sm font-bold text-slate-900 uppercase tracking-wide">
                         ID: {activeOrder.id}
                       </span>
@@ -463,6 +490,21 @@ export default function DriverDashboard() {
                       </p>
                     </div>
                   </div>
+
+                  <DeliveryRouteMap
+                    riderPosition={riderPosition}
+                    destination={
+                      activeStatus === "assigned"
+                        ? (Number.isFinite(activeOrder.restaurant_lat) && Number.isFinite(activeOrder.restaurant_lng)
+                            ? [activeOrder.restaurant_lat, activeOrder.restaurant_lng]
+                            : null)
+                        : (Number.isFinite(activeOrder.dropoff_lat) && Number.isFinite(activeOrder.dropoff_lng)
+                            ? [activeOrder.dropoff_lat, activeOrder.dropoff_lng]
+                            : null)
+                    }
+                    destinationLabel={activeStatus === "assigned" ? activeOrder.restaurant : activeOrder.customer}
+                    isPickupPhase={activeStatus === "assigned"}
+                  />
 
                   <div>
                     {activeStatus === "assigned" && (
@@ -507,7 +549,7 @@ export default function DriverDashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-4">
                     <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-300 pb-3">
-                      Available Dispatch Requests
+                      Ready for Pickup Orders
                     </h3>
 
                     {!isOnline ? (
@@ -516,7 +558,7 @@ export default function DriverDashboard() {
                       </div>
                     ) : filteredRequests.length === 0 ? (
                       <div className="bg-white p-12 rounded-none border border-slate-300 text-center text-xs font-bold uppercase tracking-widest text-slate-500 shadow-sm">
-                        No delivery requests at this time.
+                        No orders are ready for pickup right now.
                       </div>
                     ) : (
                       filteredRequests.map((request) => (
@@ -525,8 +567,8 @@ export default function DriverDashboard() {
                           className="bg-white rounded-none border border-slate-300 shadow-sm p-6 space-y-5 hover:border-blue-900 transition-colors"
                         >
                           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                            <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-none text-[10px] font-bold uppercase tracking-widest">
-                              {request.status}
+                            <span className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-none text-[10px] font-bold uppercase tracking-widest">
+                              {request.status === "Ready" ? "Ready for Pickup" : request.status}
                             </span>
                             <span className="text-lg font-bold text-slate-900">
                               {request.price}

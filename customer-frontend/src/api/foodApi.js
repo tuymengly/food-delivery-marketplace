@@ -10,7 +10,8 @@ export const normalizeFood = (food) => ({
   category: food?.category?.name || food?.category || 'Food',
   restaurantId: food?.restaurant_id || food?.restaurant?.id || null,
   restaurantName: food?.restaurant?.name || food?.restaurant_name || food?.restaurantName || 'Restaurant',
-  description: food?.description || 'Delicious Khmer food',
+  description: food?.description || '',
+  status: food?.status || 'available',
   qty: food?.qty || 10,
 });
 
@@ -19,8 +20,8 @@ export const fetchFoodDetail = async (id) => {
   return normalizeFood(unwrapData(response));
 };
 
-export const fetchFoods = async () => {
-  const response = await api.get('/foods');
+export const fetchFoods = async (params = {}, options = {}) => {
+  const response = await api.get('/foods', { params, ...options });
   return (unwrapData(response) || []).map(normalizeFood);
 };
 

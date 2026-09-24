@@ -298,6 +298,8 @@ class RestaurantController extends Controller
             'phone' => ['required', 'string', 'max:50'],
             'cuisine' => ['nullable', 'string', 'max:500'],
             'accepts_vouchers' => ['sometimes', 'boolean'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             // កែសម្រួលឱ្យទទួលយកទាំង String ឬ File រូបភាព
             'image' => ['nullable', 'sometimes'],
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'pending', 'rejected'])],
@@ -382,6 +384,8 @@ class RestaurantController extends Controller
             'phone' => ['required', 'string', 'max:50'],
             'image' => ['nullable', 'sometimes'],
             'cuisine' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'delivery_fee' => ['nullable', 'numeric'],
             'min_order' => ['nullable', 'numeric'],
             'avg_delivery_time' => ['nullable', 'string', 'max:50'],

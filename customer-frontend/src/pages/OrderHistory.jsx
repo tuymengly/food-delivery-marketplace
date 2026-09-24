@@ -1,14 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHistory, FaCalendar, FaMapMarkerAlt, FaPhone, FaCreditCard, FaMoneyBillWave, FaChevronDown, FaChevronUp, FaShoppingBag } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+import { FaHistory, FaCalendar, FaMapMarkerAlt, FaPhone, FaCreditCard, FaMoneyBillWave, FaQrcode, FaChevronDown, FaChevronUp, FaShoppingBag } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 import api from '../api/axios';
 
+// Maps a raw order.status value to the orderPages.* key that has its label.
+// pending/delivered reuse the filter-button labels; the rest were only ever
+// shown here, in the status badge, with their own keys.
+const STATUS_LABEL_KEYS = {
+  pending: 'orderPages.statusPendingRestaurant',
+  accepted: 'orderPages.statusAccepted',
+  preparing: 'orderPages.statusPreparing',
+  ready: 'orderPages.statusReady',
+  delivering: 'orderPages.statusDelivering',
+  delivered: 'orderPages.delivered',
+  completed: 'orderPages.statusCompleted',
+  cancelled: 'orderPages.statusCancelled',
+};
+
 const OrderHistory = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [expandedOrders, setExpandedOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
+
+  const getStatusLabel = (status) => {
+    // Filter buckets that aren't a single status (see STATUS_FILTERS below).
+    if (status === 'active') return t('orderPages.statusInProgress');
+    const key = STATUS_LABEL_KEYS[status];
+    return key ? t(key) : status;
+  };
 
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser');
@@ -21,20 +44,39 @@ const OrderHistory = () => {
       try {
         const response = await api.get('/orders');
         const apiOrders = response.data.orders || response.data.data || [];
-        const normalizedOrders = apiOrders.map((order) => ({
-          ...order,
-          date: order.date || order.created_at || new Date().toISOString(),
-          total: Number(String(order.total || order.price || '0').replace(/[^0-9.]/g, '')) || 0,
-          status: String(order.status || 'placed').toLowerCase(),
-          items: Array.isArray(order.items) ? order.items : (order.items ? [{ name: order.items, quantity: 1 }] : []),
-          customerInfo: order.customerInfo || {
-            fullName: order.customer || 'Guest Customer',
-            phone: order.phone || '',
-            address: order.address || '',
-            city: '',
-            paymentMethod: 'cash',
-          },
-        }));
+        const normalizedOrders = apiOrders.map((order) => {
+          // The API returns a full item breakdown (price/image/category) in
+          // items_detail; older/cached orders only have the display string
+          // in items, so fall back to a bare name with no price/image.
+          const items = Array.isArray(order.items_detail)
+            ? order.items_detail.map((item) => ({
+                ...item,
+                price: Number(item.price) || 0,
+                quantity: Number(item.quantity) || 1,
+              }))
+            : Array.isArray(order.items)
+              ? order.items
+              : order.items
+                ? [{ name: order.items, quantity: 1, price: 0 }]
+                : [];
+
+          return {
+            ...order,
+            date: order.created_at || order.date || new Date().toISOString(),
+            total: Number(String(order.total || order.price || '0').replace(/[^0-9.]/g, '')) || 0,
+            subtotal: Number(order.subtotal) || 0,
+            delivery: Number(order.delivery_fee ?? order.delivery) || 0,
+            status: String(order.status || 'placed').toLowerCase(),
+            items,
+            customerInfo: order.customerInfo || {
+              fullName: order.customer || 'Guest Customer',
+              phone: order.phone || '',
+              address: order.address || '',
+              city: '',
+              paymentMethod: order.payment_method || 'cash',
+            },
+          };
+        });
         setOrders(normalizedOrders);
       } catch (error) {
         console.error('Error fetching order history:', error);
@@ -69,11 +111,16 @@ const OrderHistory = () => {
     switch (status) {
       case 'pending':
         return 'bg-amber-50 text-amber-800 border-amber-300';
+      case 'accepted':
+        return 'bg-slate-100 text-slate-800 border-slate-300';
       case 'preparing':
         return 'bg-blue-50 text-blue-800 border-blue-300';
+      case 'ready':
+        return 'bg-teal-50 text-teal-800 border-teal-300';
       case 'delivering':
         return 'bg-indigo-50 text-indigo-800 border-indigo-300';
       case 'delivered':
+      case 'completed':
         return 'bg-emerald-50 text-emerald-800 border-emerald-300';
       case 'cancelled':
         return 'bg-rose-50 text-rose-800 border-rose-300';
@@ -85,6 +132,7 @@ const OrderHistory = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'delivered':
+      case 'completed':
         return '✓';
       case 'cancelled':
         return '✗';
@@ -93,9 +141,22 @@ const OrderHistory = () => {
     }
   };
 
-  const filteredOrders = filterStatus === 'all'
-    ? orders
-    : orders.filter(order => order.status === filterStatus);
+  // A filter bucket groups the statuses the customer thinks of together; the
+  // lifecycle itself is: pending -> accepted -> preparing -> ready ->
+  // delivering -> delivered (or cancelled at any point before delivery).
+  const STATUS_FILTERS = {
+    all: null,
+    active: ['accepted', 'preparing', 'ready', 'delivering'],
+    pending: ['pending'],
+    delivered: ['delivered', 'completed'],
+    cancelled: ['cancelled'],
+  };
+
+  const filteredOrders = (() => {
+    const bucket = STATUS_FILTERS[filterStatus];
+    if (!bucket) return orders;
+    return orders.filter((order) => bucket.includes(order.status));
+  })();
 
   if (orders.length === 0) {
     return (
@@ -103,9 +164,9 @@ const OrderHistory = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 border-b border-slate-300 pb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-2">
-              Order History
+              {t('orderPages.title')}
             </h1>
-            <p className="text-slate-500 text-sm uppercase tracking-widest font-bold">Your Past Orders</p>
+            <p className="text-slate-500 text-sm uppercase tracking-widest font-bold">{t('orderPages.pastOrders')}</p>
           </div>
 
           {/* Empty State */}
@@ -113,15 +174,15 @@ const OrderHistory = () => {
             <div className="w-24 h-24 bg-slate-50 border border-slate-200 flex items-center justify-center mb-6 rounded-none">
               <FaHistory className="text-4xl text-slate-400" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide mb-2">No Orders Yet</h2>
+            <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide mb-2">{t('orderPages.noOrders')}</h2>
             <p className="text-slate-500 mb-8 text-center max-w-md text-sm font-medium">
-              You haven't placed any orders yet. Start exploring the menu to make your first order.
+              {t('orderPages.noOrdersMessage')}
             </p>
             <button
               onClick={() => navigate('/menu')}
               className="px-8 py-3 bg-blue-900 hover:bg-blue-950 text-white rounded-none font-bold uppercase tracking-wider transition-colors border border-blue-950 shadow-sm"
             >
-              Browse Menu
+              {t('orderPages.browseMenu')}
             </button>
           </div>
         </div>
@@ -136,10 +197,10 @@ const OrderHistory = () => {
         {/* Header */}
         <div className="mb-8 border-b border-slate-300 pb-6">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-2">
-            Order History
+            {t('orderPages.title')}
           </h1>
           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
-            {orders.length} {orders.length === 1 ? 'Total Order' : 'Total Orders'} Found
+            {orders.length} {t('orderPages.totalOrder', { count: orders.length })} {t('orderPages.found')}
           </p>
         </div>
 
@@ -154,7 +215,7 @@ const OrderHistory = () => {
                   : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
               }`}
             >
-              All Orders ({orders.length})
+              {t('orderPages.allOrders')} ({orders.length})
             </button>
             <button
               onClick={() => setFilterStatus('pending')}
@@ -164,7 +225,17 @@ const OrderHistory = () => {
                   : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
               }`}
             >
-              Pending
+              {t('orderPages.pending')}
+            </button>
+            <button
+              onClick={() => setFilterStatus('active')}
+              className={`px-5 py-2 text-[11px] font-bold uppercase tracking-wider rounded-none transition-colors border ${
+                filterStatus === 'active'
+                  ? 'bg-blue-100 text-blue-900 border-blue-300'
+                  : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              {t('orderPages.statusInProgress')}
             </button>
             <button
               onClick={() => setFilterStatus('delivered')}
@@ -174,7 +245,17 @@ const OrderHistory = () => {
                   : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
               }`}
             >
-              Delivered
+              {t('orderPages.delivered')}
+            </button>
+            <button
+              onClick={() => setFilterStatus('cancelled')}
+              className={`px-5 py-2 text-[11px] font-bold uppercase tracking-wider rounded-none transition-colors border ${
+                filterStatus === 'cancelled'
+                  ? 'bg-rose-100 text-rose-900 border-rose-300'
+                  : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              {t('orderPages.statusCancelled')}
             </button>
           </div>
         </div>
@@ -200,7 +281,7 @@ const OrderHistory = () => {
                         <FaShoppingBag className="text-slate-400 text-xl" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-slate-900 uppercase tracking-wide">Order #{order.id}</h3>
+                        <h3 className="text-lg font-bold text-slate-900 uppercase tracking-wide">{t('orderPages.order')} #{order.id}</h3>
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mt-1">
                           <FaCalendar className="text-slate-400" />
                           {formatDate(order.date)}
@@ -210,7 +291,7 @@ const OrderHistory = () => {
 
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-slate-100 sm:border-none pt-4 sm:pt-0 mt-2 sm:mt-0">
                       <span className={`px-3 py-1.5 rounded-none font-bold text-[10px] uppercase tracking-widest border ${getStatusColor(order.status)}`}>
-                        {getStatusIcon(order.status)} {order.status}
+                        {getStatusIcon(order.status)} {getStatusLabel(order.status)}
                       </span>
                       {isExpanded ? (
                         <FaChevronUp className="text-xl text-slate-400" />
@@ -224,12 +305,12 @@ const OrderHistory = () => {
                   <div className="flex items-center justify-between bg-slate-50 p-4 border border-slate-200 rounded-none">
                     <div className="flex items-center gap-6">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Items</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('orderPages.totalItems')}</p>
                         <p className="text-base font-bold text-slate-900">{order.items.length}</p>
                       </div>
                       <div className="h-10 w-px bg-slate-300"></div>
                       <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Amount</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('orderPages.totalAmount')}</p>
                         <p className="text-base font-bold text-blue-900">${order.total.toFixed(2)}</p>
                       </div>
                     </div>
@@ -259,7 +340,7 @@ const OrderHistory = () => {
                     
                     {/* Order Items */}
                     <div className="p-6 border-b border-slate-200">
-                      <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">Order Items</h4>
+                      <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">{t('orderPages.orderItems')}</h4>
                       <div className="space-y-3">
                         {order.items.map((item, index) => (
                           <div
@@ -294,27 +375,27 @@ const OrderHistory = () => {
                       <div>
                         <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2 border-b border-slate-200 pb-2">
                           <MdDeliveryDining className="text-slate-500 text-lg" />
-                          Delivery Details
+                          {t('orderPages.deliveryDetails')}
                         </h4>
                         <div className="space-y-4">
                           <div className="flex items-start gap-3">
                             <FaPhone className="text-slate-400 mt-0.5 text-sm" />
                             <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Contact Name</p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">{t('orderPages.contactName')}</p>
                               <p className="text-xs font-bold text-slate-900">{order.customerInfo.fullName}</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <FaPhone className="text-slate-400 mt-0.5 text-sm" />
                             <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Phone Number</p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">{t('orderPages.phoneNumber')}</p>
                               <p className="text-xs font-bold text-slate-900">{order.customerInfo.phone}</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <FaMapMarkerAlt className="text-slate-400 mt-0.5 text-sm" />
                             <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Delivery Address</p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">{t('orderPages.deliveryAddress')}</p>
                               <p className="text-xs font-bold text-slate-900 leading-relaxed">
                                 {order.customerInfo.address}, {order.customerInfo.city}
                               </p>
@@ -327,7 +408,7 @@ const OrderHistory = () => {
                       <div>
                         <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2 border-b border-slate-200 pb-2">
                           <FaCreditCard className="text-slate-500 text-sm" />
-                          Payment Method
+                          {t('orderPages.paymentMethod')}
                         </h4>
                         <div className="bg-slate-50 p-4 border border-slate-200 rounded-none">
                           <div className="flex items-center gap-4">
@@ -335,16 +416,16 @@ const OrderHistory = () => {
                               <>
                                 <FaMoneyBillWave className="text-2xl text-emerald-700" />
                                 <div>
-                                  <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">Cash on Delivery</p>
-                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Pay upon receipt</p>
+                                  <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">{t('orderPages.cashOnDelivery')}</p>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{t('orderPages.payUponReceipt')}</p>
                                 </div>
                               </>
                             ) : (
                               <>
-                                <FaCreditCard className="text-2xl text-blue-900" />
+                                <FaQrcode className="text-2xl text-blue-900" />
                                 <div>
-                                  <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">Credit / Debit Card</p>
-                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Paid online</p>
+                                  <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">KHQR</p>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{t('orderPages.paidOnline')}</p>
                                 </div>
                               </>
                             )}
@@ -357,19 +438,19 @@ const OrderHistory = () => {
                     <div className="p-6 bg-white">
                       <div className="max-w-md ml-auto space-y-3">
                         <div className="flex justify-between text-xs font-bold text-slate-600 uppercase tracking-wider">
-                          <span>Subtotal</span>
+                          <span>{t('orderPages.subtotal')}</span>
                           <span>${order.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-xs font-bold text-slate-600 uppercase tracking-wider">
                           <span className="flex items-center gap-1.5">
                             <MdDeliveryDining className="text-sm" />
-                            Delivery Fee
+                            {t('orderPages.deliveryFee')}
                           </span>
                           <span>${order.delivery.toFixed(2)}</span>
                         </div>
                         <div className="border-t border-slate-300 pt-3 mt-3">
                           <div className="flex justify-between text-base font-bold uppercase tracking-wide">
-                            <span className="text-slate-900">Total</span>
+                            <span className="text-slate-900">{t('orderPages.total')}</span>
                             <span className="text-blue-900">${order.total.toFixed(2)}</span>
                           </div>
                         </div>
@@ -389,7 +470,7 @@ const OrderHistory = () => {
                         }}
                         className="w-full bg-blue-900 hover:bg-blue-950 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-widest border border-blue-950 transition-colors shadow-sm flex items-center justify-center gap-2"
                       >
-                        <FaShoppingBag /> Reorder These Items
+                        <FaShoppingBag /> {t('orderPages.reorder')}
                       </button>
                     </div>
                   </div>
@@ -402,7 +483,7 @@ const OrderHistory = () => {
         {/* No Results for Filter */}
         {filteredOrders.length === 0 && filterStatus !== 'all' && (
           <div className="text-center py-16 bg-white border border-slate-300 rounded-none shadow-sm">
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">No {filterStatus} orders found</p>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{t('orderPages.noStatusOrders', { status: getStatusLabel(filterStatus) })}</p>
           </div>
         )}
       </div>

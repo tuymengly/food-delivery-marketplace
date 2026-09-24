@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaCheckCircle, FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave, FaMobileAlt, FaQrcode, FaHome, FaList, FaTruck } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+import { FaCheckCircle, FaMapMarkerAlt, FaPhone, FaUser, FaCreditCard, FaMoneyBillWave, FaQrcode, FaHome, FaList, FaTruck } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 
-const PAYMENT_METHOD_LABELS = {
-  cash: { label: 'Cash on Delivery', description: 'Pay upon receipt', icon: FaMoneyBillWave, color: 'text-emerald-700' },
-  aba: { label: 'ABA Pay', description: 'Payment completed', icon: FaMobileAlt, color: 'text-blue-900' },
-  khqr: { label: 'KHQR', description: 'Payment completed', icon: FaQrcode, color: 'text-blue-900' },
-  card: { label: 'Credit/Debit Card', description: 'Payment completed', icon: FaCreditCard, color: 'text-blue-900' },
-};
+const getPaymentMethodLabels = (t) => ({
+  cash: { label: t('orderPages.cashOnDelivery'), description: t('orderPages.payUponReceipt'), icon: FaMoneyBillWave, color: 'text-emerald-700' },
+  khqr: { label: 'KHQR', description: t('orderPages.paymentCompleted'), icon: FaQrcode, color: 'text-blue-900' },
+});
 
 const readStoredJson = (key, fallback) => {
   try {
@@ -29,6 +28,7 @@ const getSavedOrder = () => {
 };
 
 const OrderSuccess = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [orderData] = useState(() => location.state?.order || getSavedOrder());
@@ -44,7 +44,7 @@ const OrderSuccess = () => {
       <div className="w-full min-h-screen bg-slate-100 pt-24 pb-16 px-6 md:px-14 flex items-center justify-center font-sans rounded-none">
         <div className="text-center">
           <div className="animate-spin h-12 w-12 border-4 border-slate-300 border-t-blue-900 mx-auto mb-4 rounded-none"></div>
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Loading Order Details...</p>
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">{t('orderPages.loadingDetails')}</p>
         </div>
       </div>
     );
@@ -80,13 +80,13 @@ const OrderSuccess = () => {
               <FaCheckCircle className="text-3xl text-emerald-700" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-3">
-              Order Confirmed
+              {t('orderPages.confirmed')}
             </h1>
             <p className="text-sm font-medium text-slate-600 mb-8">
-              Your transaction was successful. We are now processing your order.
+              {t('orderPages.confirmedMessage')}
             </p>
             <div className="inline-block bg-slate-50 border border-slate-300 px-8 py-4 rounded-none">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Transaction ID</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('orderPages.transactionId')}</p>
               <p className="text-2xl font-bold text-blue-900">#{orderData.id}</p>
             </div>
             <p className="text-[11px] font-bold text-slate-400 mt-5 uppercase tracking-wider">{formatDate(orderData.date)}</p>
@@ -97,11 +97,11 @@ const OrderSuccess = () => {
             <div className="flex items-center justify-center gap-3 mb-2">
               <MdDeliveryDining className="text-2xl text-blue-900" />
               <p className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                {isPickup ? 'Estimated Pickup Window' : 'Estimated Delivery Window'}
+                {isPickup ? t('orderPages.estimatedPickup') : t('orderPages.estimatedDelivery')}
               </p>
             </div>
             <p className="text-2xl font-extrabold text-blue-900 uppercase tracking-tight">
-              {isPickup ? '15 - 20 Minutes' : '30 - 45 Minutes'}
+              {isPickup ? t('orderPages.pickupMinutes') : t('orderPages.deliveryMinutes')}
             </p>
           </div>
         </div>
@@ -110,7 +110,7 @@ const OrderSuccess = () => {
         <div className="bg-white border border-slate-300 rounded-none shadow-sm p-8 md:p-10 mb-6">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-300 pb-4 mb-6 flex items-center gap-3">
             <FaList className="text-slate-400" />
-            Order Details
+            {t('orderPages.details')}
           </h2>
 
           {/* Ordered Items */}
@@ -146,19 +146,19 @@ const OrderSuccess = () => {
           {/* Price Breakdown */}
           <div className="max-w-sm ml-auto space-y-3">
             <div className="flex justify-between text-xs font-bold text-slate-600 uppercase tracking-wider">
-              <span>Subtotal</span>
+              <span>{t('orderPages.subtotal')}</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs font-bold text-slate-600 uppercase tracking-wider">
               <span className="flex items-center gap-2">
                 <MdDeliveryDining className="text-sm" />
-                Delivery Fee
+                {t('orderPages.deliveryFee')}
               </span>
               <span>${delivery.toFixed(2)}</span>
             </div>
             <div className="border-t border-slate-300 pt-3 mt-3">
               <div className="flex justify-between text-base font-bold uppercase tracking-wide">
-                <span className="text-slate-900">Total Settled</span>
+                <span className="text-slate-900">{t('orderPages.totalSettled')}</span>
                 <span className="text-blue-900">${total.toFixed(2)}</span>
               </div>
             </div>
@@ -169,14 +169,14 @@ const OrderSuccess = () => {
         <div className="bg-white border border-slate-300 rounded-none shadow-sm p-8 md:p-10 mb-6">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-300 pb-4 mb-6 flex items-center gap-3">
             <FaUser className="text-slate-400" />
-            Customer Information
+            {t('orderPages.customerInformation')}
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-slate-50 border border-slate-200 p-5 rounded-none flex items-start gap-4">
               <FaUser className="text-slate-400 text-lg mt-0.5" />
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('orderPages.fullName')}</p>
                 <p className="text-sm font-bold text-slate-900">{customerInfo.fullName}</p>
               </div>
             </div>
@@ -184,7 +184,7 @@ const OrderSuccess = () => {
             <div className="bg-slate-50 border border-slate-200 p-5 rounded-none flex items-start gap-4">
               <FaPhone className="text-slate-400 text-lg mt-0.5" />
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Contact Number</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('orderPages.contactNumber')}</p>
                 <p className="text-sm font-bold text-slate-900">{customerInfo.phone}</p>
               </div>
             </div>
@@ -193,7 +193,7 @@ const OrderSuccess = () => {
               <FaMapMarkerAlt className="text-slate-400 text-lg mt-0.5" />
               <div className="flex-1">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
-                  {isPickup ? 'Pickup Location' : 'Delivery Address'}
+                  {isPickup ? t('orderPages.pickupLocation') : t('orderPages.deliveryAddress')}
                 </p>
                 {isPickup ? (
                   <>
@@ -213,7 +213,7 @@ const OrderSuccess = () => {
             {customerInfo.notes && (
               <div className="md:col-span-2 bg-blue-50 border border-blue-200 p-5 rounded-none flex items-start gap-4">
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold text-blue-900 uppercase tracking-widest mb-1">Delivery Instructions</p>
+                  <p className="text-[10px] font-bold text-blue-900 uppercase tracking-widest mb-1">{t('orderPages.deliveryInstructions')}</p>
                   <p className="text-sm font-medium text-slate-800">{customerInfo.notes}</p>
                 </div>
               </div>
@@ -225,12 +225,13 @@ const OrderSuccess = () => {
         <div className="bg-white border border-slate-300 rounded-none shadow-sm p-8 md:p-10 mb-8">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-300 pb-4 mb-6 flex items-center gap-3">
             <FaCreditCard className="text-slate-400" />
-            Payment Details
+            {t('orderPages.paymentDetails')}
           </h2>
 
           <div className="bg-slate-50 border border-slate-200 p-6 rounded-none flex items-center gap-4">
             {(() => {
-              const method = PAYMENT_METHOD_LABELS[customerInfo.paymentMethod] || PAYMENT_METHOD_LABELS.card;
+              const paymentMethodLabels = getPaymentMethodLabels(t);
+              const method = paymentMethodLabels[customerInfo.paymentMethod] || paymentMethodLabels.cash;
               const Icon = method.icon;
               return (
                 <>
@@ -252,7 +253,7 @@ const OrderSuccess = () => {
             className="bg-blue-900 hover:bg-blue-950 text-white py-3.5 px-4 rounded-none text-[11px] font-bold uppercase tracking-wider border border-blue-950 transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <FaTruck size={14} />
-            Track Order
+            {t('orderPages.trackOrder')}
           </button>
 
           <button
@@ -260,29 +261,29 @@ const OrderSuccess = () => {
             className="bg-slate-800 hover:bg-slate-900 text-white py-3.5 px-4 rounded-none text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <FaList size={14} />
-            Order History
+            {t('orderPages.orderHistory')}
           </button>
 
           <button
             onClick={() => navigate('/menu')}
             className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 py-3.5 px-4 rounded-none text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center shadow-sm"
           >
-            New Order
+            {t('orderPages.newOrder')}
           </button>
-          
+
           <button
             onClick={() => navigate('/')}
             className="bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 py-3.5 px-4 rounded-none text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <FaHome size={14} />
-            Return Home
+            {t('orderPages.returnHome')}
           </button>
         </div>
 
         {/* Formal Footer Note */}
         <div className="mt-8 bg-slate-50 border border-slate-300 rounded-none p-6 text-center">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            System Record • End of Receipt
+            {t('orderPages.receiptEnd')}
           </p>
         </div>
       </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Models\Rider;
+use App\Services\RiderMatchingService;
 use App\Support\OrderStatuses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class RiderDeliveryController extends Controller
         $deliveries = $request->user()
             ->rider
             ->deliveries()
-            ->with(['order.address', 'order.items.food'])
+            ->with(['order.address', 'order.restaurant', 'order.items.food'])
             ->latest()
             ->get();
 
@@ -43,7 +44,7 @@ class RiderDeliveryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rider delivery retrieved successfully.',
-            'data' => $delivery->load(['order.address', 'order.items.food']),
+            'data' => $delivery->load(['order.address', 'order.restaurant', 'order.items.food']),
         ]);
     }
 
@@ -59,10 +60,18 @@ class RiderDeliveryController extends Controller
             return $this->invalidTransition('Only assigned deliveries can be accepted.');
         }
 
+        // A delivery is only ever assigned once the restaurant marked the order
+        // READY_FOR_PICKUP, so an order still with the restaurant can never be
+        // accepted here. Re-checking it makes that rule explicit (and guards
+        // against any manually edited/legacy row).
+        if ($delivery->order && ! OrderStatuses::isReadyForPickup($delivery->order->status)) {
+            return $this->invalidTransition('This order is not ready for pickup yet.');
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Delivery accepted successfully.',
-            'data' => $delivery->load(['order.address', 'order.items.food']),
+            'data' => $delivery->load(['order.address', 'order.restaurant', 'order.items.food']),
         ]);
     }
 
@@ -90,7 +99,7 @@ class RiderDeliveryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Delivery picked up successfully.',
-            'data' => $delivery->refresh()->load(['order.address', 'order.items.food']),
+            'data' => $delivery->refresh()->load(['order.address', 'order.restaurant', 'order.items.food']),
         ]);
     }
 
@@ -112,7 +121,7 @@ class RiderDeliveryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Delivery started successfully.',
-            'data' => $delivery->refresh()->load(['order.address', 'order.items.food']),
+            'data' => $delivery->refresh()->load(['order.address', 'order.restaurant', 'order.items.food']),
         ]);
     }
 
@@ -135,13 +144,23 @@ class RiderDeliveryController extends Controller
                 'delivered_at' => now(),
             ]);
             $delivery->order()->update(['status' => 'delivered']);
-            $rider->update(['is_available' => true]);
+            // Deliberately a query-based update (not $rider->update(...)): a
+            // model cached earlier in the request can be stale and Eloquent
+            // skips the write when the attribute isn't dirty, silently leaving
+            // the rider BUSY forever.
+            Rider::whereKey($rider->id)->update(['is_available' => true]);
         });
+
+        // Completing the delivery makes this rider available again, which is
+        // the trigger for the "nobody was eligible when the restaurant marked
+        // it ready" retry: a waiting READY_FOR_PICKUP order can be matched to
+        // them right away instead of sitting there.
+        app(RiderMatchingService::class)->assignWaitingDeliveryToRider($rider->refresh());
 
         return response()->json([
             'success' => true,
             'message' => 'Delivery completed successfully.',
-            'data' => $delivery->refresh()->load(['order.address', 'order.items.food']),
+            'data' => $delivery->refresh()->load(['order.address', 'order.restaurant', 'order.items.food']),
         ]);
     }
 

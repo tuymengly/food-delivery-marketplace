@@ -16,6 +16,10 @@ export const deleteDriver = async (id) => {
   return await API.delete(`/drivers/${id}`);
 };
 
+export const sendDriverCredentials = async (emailData) => {
+  return await API.post('/admin/drivers/send-credentials', emailData);
+};
+
 export const getDriverOrders = async () => {
   return await API.get('/driver/orders');
 };

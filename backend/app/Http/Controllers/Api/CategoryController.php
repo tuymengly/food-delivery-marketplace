@@ -18,10 +18,7 @@ class CategoryController extends Controller
             $query->withCount(['foods' => fn ($foodQuery) => $foodQuery->whereIn('restaurant_id', $restaurantIds)]);
             $query->where(function ($categoryQuery) use ($restaurantIds): void {
                 $categoryQuery->whereIn('restaurant_id', $restaurantIds)
-                    ->orWhere(function ($globalQuery) use ($restaurantIds): void {
-                        $globalQuery->whereNull('restaurant_id')
-                            ->whereHas('foods', fn ($foodQuery) => $foodQuery->whereIn('restaurant_id', $restaurantIds));
-                    });
+                    ->orWhereNull('restaurant_id');
             });
         } else {
             $query->withCount('foods');

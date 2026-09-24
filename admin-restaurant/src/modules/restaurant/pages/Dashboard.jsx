@@ -26,6 +26,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  // True only when the backend explicitly returned 404 for "no restaurant
+  // linked to this account yet" (see DashboardController@restaurantStats) -
+  // distinct from a real connectivity/server failure, which also lands in
+  // `error` but should keep the generic "Connection problem" copy.
+  const [isRestaurantMissing, setIsRestaurantMissing] = useState(false);
 
   const [stats, setStats] = useState({
     todayRevenue: 0,
@@ -43,6 +48,7 @@ export default function Dashboard() {
 
   const applyDashboardData = (data) => {
     if (data.success) {
+      setIsRestaurantMissing(false);
       setStats(data.stats || {
         todayRevenue: 0,
         revenueGrowth: 0,
@@ -71,6 +77,11 @@ export default function Dashboard() {
       applyDashboardData(response.data);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      // A 404 here specifically means this account has no restaurant row
+      // yet (see DashboardController@restaurantStats) - that's not a
+      // connectivity problem, so it gets its own message instead of the
+      // generic "Connection problem" copy.
+      setIsRestaurantMissing(err.response?.status === 404);
       setError(err.response?.data?.message || 'Unable to connect to the server. Please check the backend.');
     } finally {
       setLoading(false);
@@ -133,8 +144,11 @@ export default function Dashboard() {
       case 'processing':
         return 'bg-amber-50 text-amber-800 font-semibold border-l-2 border-amber-500';
       case 'ready':
-      case 'accepted':
         return 'bg-emerald-50 text-emerald-800 font-semibold border-l-2 border-emerald-600';
+      case 'accepted':
+        return 'bg-[#EEF2F8] text-[#0B1F3B] font-semibold border-l-2 border-[#0B1F3B]';
+      case 'delivering':
+        return 'bg-sky-50 text-sky-800 font-semibold border-l-2 border-sky-500';
       case 'completed':
       case 'delivered':
         return 'bg-emerald-50 text-emerald-800 font-semibold border-l-2 border-emerald-700';
@@ -161,9 +175,15 @@ export default function Dashboard() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#F4F5F7] p-4">
         <div className="bg-[#FBEEEC] border border-[#F0D5CF] p-6 max-w-md w-full text-center space-y-3">
           <AlertCircle className="w-10 h-10 text-[#A6321E] mx-auto" />
-          <h3 className="text-base font-bold text-[#A6321E]">Connection problem</h3>
-          <p className="text-xs text-[#A6321E] font-medium">{error}</p>
-          <button 
+          <h3 className="text-base font-bold text-[#A6321E]">
+            {isRestaurantMissing ? 'No restaurant linked to this account' : 'Connection problem'}
+          </h3>
+          <p className="text-xs text-[#A6321E] font-medium">
+            {isRestaurantMissing
+              ? 'This account is not linked to a restaurant yet, so there is no dashboard data to show. Add your restaurant details, or contact an admin if this is unexpected.'
+              : error}
+          </p>
+          <button
             onClick={() => fetchDashboardData(true)}
             className="mt-2 px-5 py-2.5 bg-[#0B1F3B] hover:bg-[#132C52] text-white text-xs font-semibold transition inline-flex items-center gap-2 cursor-pointer"
           >

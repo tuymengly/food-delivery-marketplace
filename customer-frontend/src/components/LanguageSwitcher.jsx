@@ -4,15 +4,16 @@ import { GrLanguage } from 'react-icons/gr';
 
 const languages = [
   { code: 'en', label: 'English', native: 'English' },
-  { code: 'kh', label: 'Khmer', native: 'ខ្មែរ' },
+  { code: 'km', label: 'Khmer', native: 'ខ្មែរ' },
 ];
 
 const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const currentLang = languages.find((l) => l.code === i18n.language) || languages[0];
+  const normalizedLanguage = i18n.language === 'kh' ? 'km' : i18n.language;
+  const currentLang = languages.find((l) => l.code === normalizedLanguage) || languages[0];
 
   const handleSelect = (code) => {
     i18n.changeLanguage(code);
@@ -34,7 +35,8 @@ const LanguageSwitcher = () => {
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         className="relative flex items-center justify-center gap-1.5 h-8 px-3 rounded-full bg-white shadow-md hover:shadow-lg transition-all duration-300 border-2 border-gray-200 hover:border-black-500 group overflow-hidden active:scale-95"
-        title="Change language"
+        title={t('language.change')}
+        aria-label={t('language.change')}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -58,15 +60,15 @@ const LanguageSwitcher = () => {
               key={lang.code}
               onClick={() => handleSelect(lang.code)}
               role="option"
-              aria-selected={i18n.language === lang.code}
+              aria-selected={normalizedLanguage === lang.code}
               className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors duration-150 ${
-                i18n.language === lang.code
+                normalizedLanguage === lang.code
                   ? 'bg-orange-50 text-black-600 font-medium'
                   : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
               <span>{lang.native}</span>
-              {i18n.language === lang.code && (
+              {normalizedLanguage === lang.code && (
                 <span className="text-black-500 text-xs">●</span>
               )}
             </button>

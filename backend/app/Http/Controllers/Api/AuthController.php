@@ -252,10 +252,16 @@ class AuthController extends Controller
 
     /**
      * Logout user (Revoke token)
+     *
+     * The token is revoked in the database, so every other app/tab holding
+     * the same token (customer-frontend and admin-restaurant run on
+     * different origins and therefore have separate localStorage) is
+     * invalidated server-side too - each one clears itself on its next
+     * request once Laravel answers 401.
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()?->currentAccessToken()?->delete();
 
         return response()->json([
             'success' => true,

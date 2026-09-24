@@ -5,6 +5,40 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
 use Laravel\Sanctum\Sanctum;
 
+/**
+ * Sanctum stores stateful domains as host[:port] (no scheme). The localhost
+ * entries below are development defaults; on Render set
+ * SANCTUM_STATEFUL_DOMAINS to the deployed frontend hosts. Blank and
+ * duplicated entries are dropped so a placeholder APP_URL can't inject
+ * garbage into the list.
+ *
+ * @return list<string>
+ */
+$statefulDomains = static function (): array {
+    $configured = env('SANCTUM_STATEFUL_DOMAINS');
+
+    if (filled($configured)) {
+        return array_values(array_unique(array_filter(
+            array_map('trim', explode(',', (string) $configured)),
+            static fn (string $host): bool => $host !== ''
+        )));
+    }
+
+    return array_values(array_unique(array_filter([
+        'localhost',
+        'localhost:3000',
+        'localhost:5173',
+        'localhost:5174',
+        '127.0.0.1',
+        '127.0.0.1:8000',
+        '127.0.0.1:5173',
+        '127.0.0.1:5174',
+        '::1',
+        Sanctum::currentApplicationUrlWithPort(),
+        // Sanctum::currentRequestHost(),
+    ], static fn (?string $host): bool => filled($host))));
+};
+
 return [
 
     /*
@@ -16,14 +50,18 @@ return [
     | authentication cookies. Typically, these should include your local
     | and production domains which access your API via a frontend SPA.
     |
+    | This API authenticates with Sanctum bearer tokens (Authorization
+    | header) rather than cookies, so these values only matter if a future
+    | deployment switches to cookie-based SPA auth. Override them per
+    | environment on Render:
+    |
+    |   SANCTUM_STATEFUL_DOMAINS=<customer-frontend>.onrender.com,<admin-restaurant>.onrender.com
+    |
+    | The defaults below are local-development only.
+    |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
-    ))),
+    'stateful' => $statefulDomains(),
 
     /*
     |--------------------------------------------------------------------------
@@ -48,9 +86,15 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | Null (the default) keeps tokens valid until they are explicitly
+    | revoked via POST /api/logout, which is what the frontends rely on.
+    | Set SANCTUM_TOKEN_EXPIRATION=<minutes> per environment to expire
+    | tokens automatically; both frontends treat the resulting 401 as
+    | "session over" and clear their stored authentication state.
+    |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION') ? (int) env('SANCTUM_TOKEN_EXPIRATION') : null,
 
     /*
     |--------------------------------------------------------------------------

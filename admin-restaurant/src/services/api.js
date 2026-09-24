@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL, getToken, handleUnauthorized, isAuthError } from './session';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -9,7 +10,7 @@ const API = axios.create({
 });
 API.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    const token = getToken();
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -19,6 +20,21 @@ API.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// A 401 means Laravel no longer accepts the stored token (expired, revoked by
+// a logout in the customer portal, password reset, ...). Clear the cached
+// session and go back to the customer login page rather than keeping a stale
+// user/role on screen.
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (isAuthError(error)) {
+      handleUnauthorized();
+    }
+
     return Promise.reject(error);
   }
 );

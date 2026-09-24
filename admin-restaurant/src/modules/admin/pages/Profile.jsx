@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, CheckCircle2, KeyRound, Loader2, Save, Shield, User } from 'lucide-react';
 import { getAdminProfile, updateAdminPassword, updateAdminProfile } from '../../../services/adminService';
+import { getStoredUser, persistUser } from '../../../services/session';
 import { uploadImageToCloudinary } from '../../../services/cloudinary';
 
 const emptyPasswords = {
@@ -32,11 +33,16 @@ export default function Profile() {
   const [passwordError, setPasswordError] = useState('');
   const [notice, setNotice] = useState('');
 
+  // Refresh the cached session user from Laravel's answer without ever
+  // overwriting the role Laravel assigned to this account.
   const publishProfile = (updatedProfile) => {
-    const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const nextUser = { ...savedUser, ...updatedProfile };
-    localStorage.setItem('user', JSON.stringify(nextUser));
-    localStorage.setItem('admin_user', JSON.stringify(nextUser));
+    const savedUser = getStoredUser() || {};
+    persistUser({
+      ...savedUser,
+      ...updatedProfile,
+      role: savedUser.role,
+      role_key: savedUser.role_key,
+    });
     window.dispatchEvent(new CustomEvent('admin-profile-updated', { detail: updatedProfile }));
   };
 

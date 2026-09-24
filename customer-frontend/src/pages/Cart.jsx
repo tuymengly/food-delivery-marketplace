@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   FaShoppingCart, FaTrash, FaMinus, FaPlus, FaStar, FaRegStar,
   FaMapMarkerAlt, FaStore, FaClock, FaTicketAlt, FaTimesCircle,
-  FaMoneyBillWave, FaMobileAlt, FaQrcode, FaCreditCard, FaCheckCircle,
+  FaMoneyBillWave, FaQrcode, FaCheckCircle,
 } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 import { clearCart as clearApiCart, fetchCart, removeCartItem, toggleFoodRecommendation, updateCartItem } from '../api/foodApi';
 import { fetchRestaurant } from '../api/restaurantApi';
 import { validateVoucher } from '../api/voucherApi';
-import { createOrder, createPayWayPayment, getStoredUser } from '../api/app';
+import { createOrder, createKhqrPayment, getStoredUser } from '../api/app';
 import { getStoredLocation } from '../utils/location';
 import Toast from '../components/Toast';
 import AddressPickerModal from '../components/AddressPickerModal';
@@ -18,9 +19,8 @@ const DELIVERY_FEE = 1.5;
 const SERVICE_FEE = 0.3;
 
 const PAYMENT_METHODS = [
-  { id: 'cash', label: 'Cash', description: 'Pay when your order arrives', icon: FaMoneyBillWave },
-  { id: 'khqr', label: 'ABA KHQR', description: 'Scan to pay with ABA or any KHQR bank app', icon: FaQrcode },
-  { id: 'card', label: 'Credit / Debit Card', description: 'Pay securely with ABA PayWay checkout', icon: FaCreditCard },
+  { id: 'cash', labelKey: 'cartFlow.paymentCash', descriptionKey: 'cartFlow.paymentCashDesc', icon: FaMoneyBillWave },
+  { id: 'khqr', label: 'KHQR', descriptionKey: 'cartFlow.paymentKhqrDesc', icon: FaQrcode },
 ];
 
 const readStoredJson = (key, fallback) => {
@@ -33,6 +33,7 @@ const readStoredJson = (key, fallback) => {
 };
 
 const Cart = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +133,7 @@ const Cart = () => {
       setFavorites(favorites);
       localStorage.setItem('favorites', JSON.stringify(favorites));
       window.dispatchEvent(new Event('favoritesUpdated'));
-      showToast(error.response?.data?.message || 'Could not update recommendation.');
+      showToast(error.response?.data?.message || t('cartFlow.updateRecommendationError'));
     }
   };
 
@@ -234,7 +235,7 @@ const Cart = () => {
       setAppliedVoucher(data);
       setVoucherOpen(false);
     } catch (error) {
-      setVoucherError(error.response?.data?.message || 'Unable to apply this voucher.');
+      setVoucherError(error.response?.data?.message || t('cartFlow.voucherApplyError'));
     } finally {
       setVoucherApplying(false);
     }
@@ -247,10 +248,10 @@ const Cart = () => {
   };
 
   const validateBeforeCheckout = () => {
-    if (cartItems.length === 0) return 'Your cart is empty.';
-    if (hasMultipleRestaurants) return 'Please order from one restaurant at a time.';
-    if (orderType === 'delivery' && !selectedLocation?.addressId) return 'Please select a delivery address.';
-    if (!paymentMethod) return 'Please select a payment method.';
+    if (cartItems.length === 0) return t('cartFlow.emptyValidation');
+    if (hasMultipleRestaurants) return t('cartFlow.singleRestaurantValidation');
+    if (orderType === 'delivery' && !selectedLocation?.addressId) return t('cartFlow.addressValidation');
+    if (!paymentMethod) return t('cartFlow.paymentValidation');
     return null;
   };
 
@@ -258,7 +259,7 @@ const Cart = () => {
     const validationMessage = validateBeforeCheckout();
     if (validationMessage) {
       setSubmitError(validationMessage);
-      if (validationMessage === 'Please select a delivery address.') setAddressModalOpen(true);
+      if (validationMessage === t('cartFlow.addressValidation')) setAddressModalOpen(true);
       return;
     }
 
@@ -278,7 +279,7 @@ const Cart = () => {
       const apiResponse = await createOrder(payload);
       savedOrder = apiResponse.data;
     } catch (error) {
-      setSubmitError(describeApiError(error, 'Unable to place your order.'));
+      setSubmitError(describeApiError(error, t('cartFlow.placeOrderError')));
       setIsSubmitting(false);
       if (error.response?.data?.errors?.address_id) {
         localStorage.removeItem('deliveryLocation');
@@ -303,7 +304,7 @@ const Cart = () => {
         phone: user.phone || '',
         address: orderType === 'delivery'
           ? (selectedLocation?.address || '')
-          : `Pickup at ${restaurantDetail?.name || cartItems[0]?.restaurantName || 'the restaurant'}`,
+          : t('cartFlow.pickupAt', { name: restaurantDetail?.name || cartItems[0]?.restaurantName || t('cartFlow.restaurantFallback') }),
         city: orderType === 'delivery' ? (selectedLocation?.city || '') : '',
         notes,
         paymentMethod,
@@ -320,15 +321,15 @@ const Cart = () => {
     localStorage.removeItem('cart');
     window.dispatchEvent(new Event('cartUpdated'));
 
-    if (['khqr', 'card'].includes(paymentMethod) && savedOrder?.id) {
+    if (paymentMethod === 'khqr' && savedOrder?.id) {
       try {
-        const paymentResponse = await createPayWayPayment(savedOrder.id, paymentMethod);
+        const paymentResponse = await createKhqrPayment(savedOrder.id);
         const payment = paymentResponse.data;
         setIsSubmitting(false);
-        navigate(`/payment/payway/${payment.id}`, { state: { payment, order } });
+        navigate(`/payment/khqr/${payment.id}`, { state: { payment, order } });
         return;
       } catch (error) {
-        setSubmitError(describeApiError(error, 'Unable to start ABA PayWay payment. Please try another method.'));
+        setSubmitError(describeApiError(error, t('cartFlow.khqrStartError')));
         setIsSubmitting(false);
         return;
       }
@@ -353,10 +354,10 @@ const Cart = () => {
           <div className="w-28 h-28 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: '#eef2f7' }}>
             <FaShoppingCart className="text-5xl" style={{ color: 'var(--muted)' }} />
           </div>
-          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--ink)' }}>Your cart is empty</h1>
-          <p className="mb-8" style={{ color: 'var(--muted)' }}>Looks like you haven't added anything yet.</p>
-          <Link to="/restaurants" className="app-button-primary inline-block px-8 py-3.5 font-semibold">
-            Browse Restaurants
+          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--ink)' }}>{t('cartFlow.emptyTitle')}</h1>
+          <p className="mb-8" style={{ color: 'var(--muted)' }}>{t('cartFlow.emptySubtitle')}</p>
+          <Link to="/shops" className="app-button-primary inline-block px-8 py-3.5 font-semibold">
+            {t('cartFlow.browseRestaurants')}
           </Link>
         </div>
       </div>
@@ -376,10 +377,10 @@ const Cart = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--brand-navy)' }}>Your Cart</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--brand-navy)' }}>{t('cartFlow.title')}</h1>
             <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-              From: <span className="font-semibold" style={{ color: 'var(--ink)' }}>{cartItems[0]?.restaurantName || 'Restaurant'}</span>
-              {' · '}{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
+              {t('cartFlow.from')}: <span className="font-semibold" style={{ color: 'var(--ink)' }}>{cartItems[0]?.restaurantName || t('cartFlow.restaurant')}</span>
+              {' · '}{cartItems.length} {t('cartFlow.item', { count: cartItems.length })}
             </p>
           </div>
           <button
@@ -387,14 +388,14 @@ const Cart = () => {
             className="text-sm font-semibold px-4 py-2 rounded-lg border border-slate-200 hover:border-red-300 hover:text-red-600 transition"
             style={{ color: 'var(--muted)' }}
           >
-            Clear cart
+            {t('cartFlow.clearCart')}
           </button>
         </div>
 
         {hasMultipleRestaurants && (
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm font-semibold text-amber-800 mb-2">
-              Your cart has items from more than one restaurant. Please keep items from only one restaurant to check out.
+              {t('cartFlow.multiRestaurantWarning')}
             </p>
             <div className="flex flex-wrap gap-2">
               {restaurantGroups.map((group) => (
@@ -403,7 +404,7 @@ const Cart = () => {
                   onClick={() => removeRestaurantGroup(group.restaurantId)}
                   className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 transition"
                 >
-                  Remove items from {group.name || 'this restaurant'}
+                  {t('cartFlow.removeItemsFrom', { name: group.name || t('cartFlow.thisRestaurant') })}
                 </button>
               ))}
             </div>
@@ -427,7 +428,7 @@ const Cart = () => {
                         <button
                           type="button"
                           onClick={() => toggleRecommend(item)}
-                          title={isRecommended(item) ? 'Remove recommendation' : 'Recommend this food'}
+                          title={isRecommended(item) ? t('cartFlow.removeRecommendation') : t('cartFlow.recommendFood')}
                           className="shrink-0 p-1.5 rounded-full hover:bg-yellow-50 transition"
                         >
                           {isRecommended(item) ? (
@@ -466,7 +467,7 @@ const Cart = () => {
                         <button
                           onClick={() => removeFromCart(item.id, item.type)}
                           className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
-                          aria-label={`Remove ${item.name}`}
+                          aria-label={t('cartFlow.removeItem', { name: item.name })}
                         >
                           <FaTrash className="text-sm" />
                         </button>
@@ -479,7 +480,7 @@ const Cart = () => {
 
             {/* Special instructions */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>Special instructions</h3>
+              <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>{t('cartFlow.specialInstructions')}</h3>
               {editingNotes ? (
                 <div className="space-y-3">
                   <textarea
@@ -487,18 +488,18 @@ const Cart = () => {
                     onChange={(event) => setNotesDraft(event.target.value)}
                     rows={3}
                     maxLength={1000}
-                    placeholder="e.g. Please make it less spicy."
+                    placeholder={t('cartFlow.instructionsPlaceholder')}
                     className="app-input w-full p-3 text-sm resize-none"
                   />
                   <div className="flex gap-2">
-                    <button onClick={saveNotes} className="app-button-primary px-5 py-2 text-sm font-semibold">Save</button>
-                    <button onClick={cancelNotes} className="px-5 py-2 text-sm font-semibold rounded-md border border-slate-200" style={{ color: 'var(--muted)' }}>Cancel</button>
+                    <button onClick={saveNotes} className="app-button-primary px-5 py-2 text-sm font-semibold">{t('common.save')}</button>
+                    <button onClick={cancelNotes} className="px-5 py-2 text-sm font-semibold rounded-md border border-slate-200" style={{ color: 'var(--muted)' }}>{t('common.cancel')}</button>
                   </div>
                 </div>
               ) : notes ? (
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm italic" style={{ color: 'var(--ink)' }}>"{notes}"</p>
-                  <button onClick={() => { setNotesDraft(notes); setEditingNotes(true); }} className="text-xs font-semibold shrink-0" style={{ color: 'var(--brand-accent)' }}>Edit</button>
+                  <button onClick={() => { setNotesDraft(notes); setEditingNotes(true); }} className="text-xs font-semibold shrink-0" style={{ color: 'var(--brand-accent)' }}>{t('common.edit')}</button>
                 </div>
               ) : (
                 <button
@@ -506,7 +507,7 @@ const Cart = () => {
                   className="text-sm font-semibold"
                   style={{ color: 'var(--brand-accent)' }}
                 >
-                  + Add special instructions
+                  {t('cartFlow.addInstructions')}
                 </button>
               )}
             </div>
@@ -516,7 +517,7 @@ const Cart = () => {
           <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24 lg:self-start">
             {/* Order type */}
             <div className="bg-white cursor-pointer rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>Order type</h3>
+              <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>{t('cartFlow.orderType')}</h3>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {['delivery', 'pickup'].map((type) => (
                   <button
@@ -527,7 +528,7 @@ const Cart = () => {
                       ? { background: 'var(--brand-navy)', color: 'white', borderColor: 'var(--brand-navy)' }
                       : { color: 'var(--muted)', borderColor: 'var(--line)' }}
                   >
-                    {type === 'pickup' ? 'Pick-up' : 'Delivery'}
+                    {type === 'pickup' ? t('cartFlow.pickup') : t('cartFlow.delivery')}
                   </button>
                 ))}
               </div>
@@ -537,20 +538,20 @@ const Cart = () => {
                   <div className="flex items-start gap-2 min-w-0">
                     <FaMapMarkerAlt className="mt-0.5 shrink-0" style={{ color: 'var(--brand-accent)' }} />
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Delivery Address</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{t('cartFlow.deliveryAddress')}</p>
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--ink)' }}>
-                        {selectedLocation?.address || 'No address selected'}
+                        {selectedLocation?.address || t('cartFlow.noAddress')}
                       </p>
                     </div>
                   </div>
-                  <button onClick={() => setAddressModalOpen(true)} className="text-xs font-semibold shrink-0" style={{ color: 'var(--brand-accent)' }}>Change</button>
+                  <button onClick={() => setAddressModalOpen(true)} className="text-xs font-semibold shrink-0" style={{ color: 'var(--brand-accent)' }}>{t('cartFlow.change')}</button>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
                     <FaStore className="mt-0.5 shrink-0" style={{ color: 'var(--brand-accent)' }} />
                     <div>
-                      <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Pick-up Location</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{t('cartFlow.pickupLocation')}</p>
                       <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
                         {restaurantDetail?.name || cartItems[0]?.restaurantName}
                       </p>
@@ -560,7 +561,7 @@ const Cart = () => {
                   <div className="flex items-center gap-2 pt-1">
                     <FaClock className="shrink-0" style={{ color: 'var(--brand-accent)' }} />
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                      Estimated preparation time: <span className="font-semibold" style={{ color: 'var(--ink)' }}>{restaurantDetail?.avg_delivery_time || '15-20 minutes'}</span>
+                      {t('cartFlow.estimatedPrep')} <span className="font-semibold" style={{ color: 'var(--ink)' }}>{restaurantDetail?.avg_delivery_time || t('cartFlow.prepFallback')}</span>
                     </p>
                   </div>
                 </div>
@@ -589,7 +590,7 @@ const Cart = () => {
                       type="text"
                       value={voucherInput}
                       onChange={(event) => { setVoucherInput(event.target.value.toUpperCase()); setVoucherError(''); }}
-                      placeholder="Enter voucher code"
+                      placeholder={t('cartFlow.voucherPlaceholder')}
                       className="app-input flex-1 px-3 py-2 text-sm"
                     />
                     <button
@@ -597,24 +598,24 @@ const Cart = () => {
                       disabled={voucherApplying || !voucherInput.trim()}
                       className="app-button-primary px-4 text-sm font-semibold disabled:opacity-50"
                     >
-                      {voucherApplying ? 'Checking...' : 'Apply'}
+                      {voucherApplying ? t('cartFlow.checking') : t('cartFlow.apply')}
                     </button>
                   </div>
                   {voucherError && <p className="text-xs text-red-600">{voucherError}</p>}
-                  <button onClick={() => { setVoucherOpen(false); setVoucherError(''); }} className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Cancel</button>
+                  <button onClick={() => { setVoucherOpen(false); setVoucherError(''); }} className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{t('common.cancel')}</button>
                 </div>
               ) : (
                 <button onClick={() => setVoucherOpen(true)} className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--brand-accent)' }}>
-                  <FaTicketAlt /> Add voucher
+                  <FaTicketAlt /> {t('cartFlow.addVoucher')}
                 </button>
               )}
             </div>
 
             {/* Payment method */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>Payment Method</h3>
+              <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>{t('cartFlow.paymentMethod')}</h3>
               <div className="space-y-2">
-                {PAYMENT_METHODS.map(({ id, label, description, icon: Icon }) => (
+                {PAYMENT_METHODS.map(({ id, label, labelKey, descriptionKey, icon: Icon }) => (
                   <label
                     key={id}
                     className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition"
@@ -630,8 +631,8 @@ const Cart = () => {
                     />
                     <Icon className="text-lg shrink-0" style={{ color: 'var(--brand-navy)' }} />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{label}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{description}</p>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{labelKey ? t(labelKey) : label}</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{t(descriptionKey)}</p>
                     </div>
                   </label>
                 ))}
@@ -640,29 +641,29 @@ const Cart = () => {
 
             {/* Order summary */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ink)' }}>Order Summary</h3>
+              <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ink)' }}>{t('cartFlow.orderSummary')}</h3>
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between" style={{ color: 'var(--muted)' }}>
-                  <span>Subtotal</span>
+                  <span>{t('cartFlow.subtotal')}</span>
                   <span className="font-semibold" style={{ color: 'var(--ink)' }}>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between" style={{ color: 'var(--muted)' }}>
-                  <span className="flex items-center gap-1.5"><MdDeliveryDining /> Delivery Fee</span>
+                  <span className="flex items-center gap-1.5"><MdDeliveryDining /> {t('cartFlow.deliveryFee')}</span>
                   <span className="font-semibold" style={{ color: 'var(--ink)' }}>${deliveryFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between" style={{ color: 'var(--muted)' }}>
-                  <span>Service Fee</span>
+                  <span>{t('cartFlow.serviceFee')}</span>
                   <span className="font-semibold" style={{ color: 'var(--ink)' }}>${serviceFee.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Discount</span>
+                    <span>{t('cartFlow.discount')}</span>
                     <span className="font-semibold">-${discount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="border-t pt-3 mt-1" style={{ borderColor: 'var(--line)' }}>
                   <div className="flex justify-between text-lg font-bold">
-                    <span style={{ color: 'var(--ink)' }}>Total</span>
+                    <span style={{ color: 'var(--ink)' }}>{t('cartFlow.total')}</span>
                     <span style={{ color: 'var(--brand-navy)' }}>${total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -677,7 +678,7 @@ const Cart = () => {
                 disabled={isSubmitting}
                 className="hidden lg:block app-button-primary w-full mt-5 py-3.5 font-bold text-base disabled:opacity-60"
               >
-                {isSubmitting ? 'Placing order...' : 'CHECKOUT'}
+                {isSubmitting ? t('cartFlow.placingOrder') : t('cartFlow.checkout')}
               </button>
             </div>
           </div>
@@ -688,7 +689,7 @@ const Cart = () => {
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between gap-4 max-w-6xl mx-auto">
           <div>
-            <p className="text-[11px] font-semibold" style={{ color: 'var(--muted)' }}>Total</p>
+            <p className="text-[11px] font-semibold" style={{ color: 'var(--muted)' }}>{t('cartFlow.total')}</p>
             <p className="text-lg font-bold" style={{ color: 'var(--brand-navy)' }}>${total.toFixed(2)}</p>
           </div>
           <button
@@ -696,7 +697,7 @@ const Cart = () => {
             disabled={isSubmitting}
             className="app-button-primary flex-1 max-w-[220px] py-3 font-bold text-sm disabled:opacity-60"
           >
-            {isSubmitting ? 'Placing order...' : 'CHECKOUT'}
+            {isSubmitting ? t('cartFlow.placingOrder') : t('cartFlow.checkout')}
           </button>
         </div>
       </div>

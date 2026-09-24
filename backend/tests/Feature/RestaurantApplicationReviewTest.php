@@ -208,4 +208,30 @@ class RestaurantApplicationReviewTest extends TestCase
 
         $this->assertSame('pending', $restaurant->fresh()->status);
     }
+
+    /**
+     * The restaurant map picker (customer-frontend/admin-restaurant location
+     * feature) saves through this same endpoint - without latitude/longitude
+     * in its validation rules the coordinates would be silently dropped and
+     * RiderMatchingService could never place this restaurant.
+     */
+    public function test_owner_can_save_the_restaurants_map_coordinates_via_profile(): void
+    {
+        $restaurant = $this->pendingApplication();
+        Sanctum::actingAs($restaurant->user);
+
+        $this->putJson('/api/restaurant/profile', [
+            'name' => $restaurant->name,
+            'address' => $restaurant->address,
+            'phone' => $restaurant->phone,
+            'latitude' => 11.5564,
+            'longitude' => 104.9282,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.latitude', '11.5564000')
+            ->assertJsonPath('data.longitude', '104.9282000');
+
+        $this->assertEquals(11.5564, (float) $restaurant->fresh()->latitude);
+        $this->assertEquals(104.9282, (float) $restaurant->fresh()->longitude);
+    }
 }

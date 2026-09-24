@@ -16,17 +16,10 @@ class Payment extends Model
         'currency',
         'status',
         'qr_string',
-        'checkout_url',
-        'checkout_html',
-        'deeplink',
         'qr_image',
         'md5',
         'bakong_transaction_hash',
-        'bakong_from_account_id',
-        'bakong_to_account_id',
-        'bakong_response',
         'gateway_response',
-        'callback_payload',
         'failed_reason',
         'expires_at',
         'paid_at',
@@ -36,9 +29,7 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
-            'bakong_response' => 'array',
             'gateway_response' => 'array',
-            'callback_payload' => 'array',
             'expires_at' => 'datetime',
             'paid_at' => 'datetime',
         ];

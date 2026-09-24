@@ -64,10 +64,23 @@ const Orders = () => {
         if (selectedOrderDetails && selectedOrderDetails.real_id === realId) {
           setSelectedOrderDetails((prev) => ({ ...prev, status: response.data.status }));
         }
+
+        // Marking an order ready triggers the backend's automatic nearest-rider
+        // assignment, so the rider details only become accurate on a re-fetch.
+        if (newStatus === 'Ready') {
+          await fetchOrders();
+          if (response.data.assigned_rider_id) {
+            alert(`Order is ready - rider #${response.data.assigned_rider_id} was assigned.`);
+          } else {
+            alert('Order is ready. No rider is available right now - it will be assigned automatically.');
+          }
+        }
+
+        return;
       }
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert('Failed to update status! Please try again.');
+      alert(`Failed to update status: ${err.response?.data?.message || 'Please try again.'}`);
     } finally {
       setUpdatingId(null);
     }
@@ -99,6 +112,9 @@ const Orders = () => {
         return 'bg-amber-50 text-amber-700 border-l-2 border-amber-500';
       case 'Ready':
         return 'bg-emerald-50 text-emerald-700 border-l-2 border-emerald-500';
+      case 'Delivering':
+        return 'bg-sky-50 text-sky-700 border-l-2 border-sky-500';
+      case 'Delivered':
       case 'Completed':
         return 'bg-emerald-50 text-emerald-700 border-l-2 border-emerald-700';
       case 'Cancelled':
@@ -108,7 +124,22 @@ const Orders = () => {
     }
   };
 
-  const tabs = ['All', 'Pending', 'Accepted', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
+  // What the restaurant should read in place of the raw status: the delivery
+  // leg has its own progress (a rider can already be assigned while the order
+  // itself is still "Ready").
+  const getStatusLabel = (order) => {
+    const status = order.status || '';
+    if (status === 'Ready') {
+      if (order.delivery_status === 'assigned') return 'Ready — Rider Assigned';
+      if (order.delivery_status === 'picked_up' || order.delivery_status === 'delivering') return 'Rider Picked Up';
+      if (order.order_type === 'pickup') return 'Ready for Pick-up';
+      return 'Ready — Waiting for Rider';
+    }
+    if (status === 'Delivered') return 'Delivered';
+    return status;
+  };
+
+  const tabs = ['All', 'Pending', 'Accepted', 'Preparing', 'Ready', 'Delivering', 'Delivered', 'Cancelled'];
 
   return (
     <div className="p-6 space-y-6 bg-[#F4F5F7] min-h-screen">
@@ -190,7 +221,7 @@ const Orders = () => {
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="font-bold text-[#1A2233] text-base">{order.id}</span>
                   <span className={`px-2.5 py-1 text-xs font-semibold ${getStatusBadge(order.status)}`}>
-                    {order.status}
+                    {getStatusLabel(order)}
                   </span>
                   <span className={`px-2.5 py-1 text-xs font-semibold flex items-center gap-1 ${
                     order.order_type === 'pickup'
@@ -208,6 +239,13 @@ const Orders = () => {
                 <div className="text-xs text-slate-600 space-y-1">
                   <p><span className="font-medium text-slate-700">Customer:</span> {order.customer} {order.phone ? `(${order.phone})` : ''}</p>
                   <p><span className="font-medium text-slate-700">Items:</span> {order.items}</p>
+                  {order.rider && (
+                    <p className="flex items-center gap-1 text-sky-700">
+                      <Bike className="w-3.5 h-3.5" />
+                      <span className="font-medium">Rider:</span> {order.rider}
+                      {order.rider_phone ? ` (${order.rider_phone})` : ''}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -220,7 +258,7 @@ const Orders = () => {
                     {order.status === 'Pending' && (
                       <>
                         <button
-                          onClick={() => handleUpdateStatus(order.real_id, 'Accepted')}
+                          onClick={() => handleUpdateStatus(order.real_id, 'Preparing')}
                           className="px-3.5 py-1.5 bg-[#0B1F3B] text-white text-xs font-bold hover:bg-[#132C52] transition cursor-pointer"
                         >
                           Accept
@@ -239,7 +277,7 @@ const Orders = () => {
                         onClick={() => handleUpdateStatus(order.real_id, 'Preparing')}
                         className="px-3.5 py-1.5 bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition cursor-pointer"
                       >
-                        Mark Preparing
+                        Start Preparing
                       </button>
                     )}
 
@@ -252,13 +290,23 @@ const Orders = () => {
                       </button>
                     )}
 
-                    {order.status === 'Ready' && (
+                    {order.status === 'Ready' && order.order_type === 'pickup' && (
                       <button
                         onClick={() => handleUpdateStatus(order.real_id, 'Completed')}
                         className="px-3.5 py-1.5 bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800 transition cursor-pointer"
                       >
-                        {order.order_type === 'pickup' ? 'Mark Picked Up' : 'Mark Completed'}
+                        Mark Picked Up
                       </button>
+                    )}
+
+                    {/* A delivery order at READY_FOR_PICKUP is matched to a
+                        rider by the backend - the restaurant just waits. */}
+                    {order.status === 'Ready' && order.order_type !== 'pickup' && (
+                      <span className="px-3.5 py-1.5 bg-slate-100 text-slate-500 text-xs font-semibold">
+                        {order.delivery_status === 'assigned'
+                          ? 'Rider on the way'
+                          : 'Waiting for a rider'}
+                      </span>
                     )}
 
                     <button 
@@ -318,6 +366,17 @@ const Orders = () => {
                   <div className="flex items-start gap-2 text-slate-700">
                     <MapPin className="w-4 h-4 text-[#0B1F3B] mt-0.5" />
                     <span><strong className="font-semibold">Address:</strong> {selectedOrderDetails.address}</span>
+                  </div>
+                )}
+                {selectedOrderDetails.order_type !== 'pickup' && (
+                  <div className="flex items-start gap-2 text-slate-700">
+                    <Bike className="w-4 h-4 text-[#0B1F3B] mt-0.5" />
+                    <span>
+                      <strong className="font-semibold">Delivery:</strong>{' '}
+                      {selectedOrderDetails.rider
+                        ? `${selectedOrderDetails.rider}${selectedOrderDetails.rider_phone ? ` (${selectedOrderDetails.rider_phone})` : ''}`
+                        : 'No rider assigned yet'}
+                    </span>
                   </div>
                 )}
               </div>

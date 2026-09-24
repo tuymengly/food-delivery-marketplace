@@ -15,7 +15,7 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
-import { createDriver, deleteDriver, getDrivers, updateDriver } from '../../../services/driverService';
+import { createDriver, deleteDriver, getDrivers, updateDriver, sendDriverCredentials } from '../../../services/driverService';
 
 export default function ManageDrivers() {
   const [drivers, setDrivers] = useState([]);
@@ -34,6 +34,9 @@ export default function ManageDrivers() {
   // Shown once right after a rider account is created, since the temporary
   // password is only ever returned in that single API response.
   const [createdCredentials, setCreatedCredentials] = useState(null);
+  // Email sending state
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -91,6 +94,24 @@ export default function ManageDrivers() {
       setEditingDriver(null);
     } catch (err) {
       alert(`Error: ${err.response?.data?.message || err.message || 'An error occurred while saving data.'}`);
+    }
+  };
+
+  // 2b. POST: Send credentials email to the newly created rider
+  const handleSendEmail = async () => {
+    if (!createdCredentials) return;
+    setSendingEmail(true);
+    try {
+      await sendDriverCredentials({
+        email: createdCredentials.email,
+        name: createdCredentials.email.split('@')[0], // Use email prefix as name fallback
+        password: createdCredentials.password,
+      });
+      setEmailSent(true);
+    } catch (err) {
+      alert(`Error sending email: ${err.response?.data?.message || err.message || 'Failed to send credentials email.'}`);
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -544,6 +565,51 @@ export default function ManageDrivers() {
               <p><strong className="text-slate-600 font-medium">Email:</strong> {createdCredentials.email}</p>
               <p><strong className="text-slate-600 font-medium">Temporary password:</strong> <span className="font-mono font-semibold">{createdCredentials.password}</span></p>
             </div>
+            
+            {/* Email sending options - OTP style UI */}
+            <div className="mt-6 pt-6 border-t border-[#D6DBE3]">
+              <p className="text-xs text-slate-500 text-center mb-4">
+                Send login credentials to the rider's email address
+              </p>
+              
+              {emailSent ? (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="font-semibold">Credentials email sent successfully!</span>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                  className="w-full py-3 px-4 bg-[#0B1F3B] hover:bg-[#132C52] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold text-sm transition cursor-pointer rounded-lg shadow-sm"
+                >
+                  {sendingEmail ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
+                      Sending credentials...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Send Credentials via Email
+                    </span>
+                  )}
+                </button>
+              )}
+              
+              {!emailSent && !sendingEmail && (
+                <p className="text-xs text-slate-400 mt-3 text-center">
+                  The rider will receive their email and temporary password
+                </p>
+              )}
+            </div>
+
             <button
               onClick={() => setCreatedCredentials(null)}
               className="w-full mt-4 px-4 py-2 bg-[#0B1F3B] hover:bg-[#132C52] text-white text-sm font-semibold transition cursor-pointer"

@@ -17,6 +17,7 @@ import {
 
 import logoImg from '../../../assets/Logo Upgrade (No Background).png';
 import API from '../../../services/api';
+import { getStoredUser } from '../../../services/session';
 
 const resolveImageUrl = (image) => {
   if (!image) return null;
@@ -58,6 +59,7 @@ export default function RestaurantSidebar({ onClose, onLogout }) {
         const response = await API.get('/restaurant/profile');
         const profile = response.data.data || response.data;
         if (profile?.id) {
+          // Data cache for the sidebar; cleared on logout by services/session.
           localStorage.setItem('restaurant', JSON.stringify(profile));
           localStorage.setItem('restaurant_id', String(profile.id));
         }
@@ -74,16 +76,13 @@ export default function RestaurantSidebar({ onClose, onLogout }) {
         if (storedRestaurant) {
           applyRestaurantInfo(JSON.parse(storedRestaurant));
         } else {
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-            const user = JSON.parse(storedUser);
-            if (user.restaurant) {
-              applyRestaurantInfo(user.restaurant);
-            }
+          const user = getStoredUser();
+          if (user?.restaurant) {
+            applyRestaurantInfo(user.restaurant);
           }
         }
       } catch (error) {
-        console.error('Failed to load restaurant info from localStorage:', error);
+        console.error('Failed to load restaurant info from the cached session:', error);
       }
     };
 

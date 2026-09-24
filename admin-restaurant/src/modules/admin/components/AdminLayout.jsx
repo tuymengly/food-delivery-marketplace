@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { ChevronDown, Menu, Search, LogOut, User as UserIcon } from 'lucide-react';
 import { getAdminProfile, getRestaurantApplications } from '../../../services/adminService';
-import API from '../../../services/api';
+import { getStoredUser, logout, persistUser } from '../../../services/session';
 import NotificationBell from '../../../components/ui/NotificationBell';
 
 export default function AdminLayout() {
@@ -29,28 +29,11 @@ export default function AdminLayout() {
     '/admin/profile': 'Profile',
   }[location.pathname] || 'Admin Panel';
 
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('admin_user') || localStorage.getItem('user');
-    if (savedUser && savedUser !== "undefined") {
-      try {
-        return JSON.parse(savedUser);
-      } catch {
-        return { name: 'Admin', role: 'Super Admin' };
-      }
-    }
-    return { name: 'Admin', role: 'Super Admin' };
-  });
+  // The last user Laravel confirmed (App.jsx's GET /api/user) - never the
+  // browser's own idea of who is signed in.
+  const [user, setUser] = useState(() => getStoredUser() || { name: 'Admin', role: 'admin' });
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const role = String(currentUser?.role || '').toLowerCase().trim();
-    const isAdmin = ['admin', 'super_admin', 'super admin'].includes(role);
-
-    if (!isAdmin) {
-      navigate('/restaurant/dashboard', { replace: true });
-      return;
-    }
-
     const fetchProfile = async () => {
       try {
         const response = await getAdminProfile();
@@ -59,11 +42,11 @@ export default function AdminLayout() {
           setUser((currentUser) => ({
             ...currentUser,
             ...userData,
-            name: userData.name || currentUser.name || 'Admin',
-            role: userData.role || currentUser.role || 'Super Admin',
+            name: userData.name || currentUser?.name || 'Admin',
+            role: userData.role || currentUser?.role || 'admin',
           }));
-          localStorage.setItem('admin_user', JSON.stringify(userData));
-          localStorage.setItem('user', JSON.stringify(userData));
+          // Refresh the cached session user from Laravel's answer.
+          persistUser({ ...(getStoredUser() || {}), ...userData });
         }
       } catch (error) {
         console.error('Failed to fetch admin profile from API:', error);
@@ -98,16 +81,11 @@ export default function AdminLayout() {
     };
   }, [navigate]);
 
+  // Revokes the token in Laravel and clears every cached auth key (user,
+  // role, and the old per-portal caches) before returning to the login page,
+  // so the next sign-in can never inherit this admin's role.
   const handleLogout = () => {
-    API.post('/logout').catch((error) => {
-      console.warn('Logout request failed; clearing local session anyway.', error);
-    }).finally(() => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('admin_user');
-      localStorage.removeItem('user');
-      window.location.assign(`${import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174'}/login`);
-    });
+    logout();
   };
 
   const handleSearchKeyDown = (event) => {

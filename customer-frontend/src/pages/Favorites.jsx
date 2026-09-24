@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaHeart, FaShoppingCart, FaTrash } from 'react-icons/fa';
 import { BsSearchHeartFill } from "react-icons/bs";
 import Toast from '../components/Toast';
 
 const Favorites = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
   const [showToast, setShowToast] = useState(false);
@@ -45,7 +47,7 @@ const Favorites = () => {
     // Check if user is logged in
     const currentUser = localStorage.getItem('currentUser');
     if (!currentUser) {
-      setToastMessage('Please login to add items to cart');
+      setToastMessage(t('favorites.loginRequired'));
       setShowToast(true);
       setTimeout(() => {
         navigate('/login');
@@ -79,7 +81,7 @@ const Favorites = () => {
     window.dispatchEvent(new Event('cartUpdated'));
     
     // Show toast notification
-    setToastMessage(`${item.name} added to cart!`);
+    setToastMessage(`${item.name} ${t('favorites.addedToCart')}`);
     setShowToast(true);
   };
 
@@ -90,9 +92,9 @@ const Favorites = () => {
           {/* Header */}
           <div className="text-center mb-12 border-b border-slate-300 pb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-2">
-              My Favorites
+              {t('favorites.title')}
             </h1>
-            <p className="text-slate-500 text-sm uppercase tracking-widest font-bold">Your Saved Dishes</p>
+            <p className="text-slate-500 text-sm uppercase tracking-widest font-bold">{t('favorites.subtitle')}</p>
           </div>
 
           {/* Empty State */}
@@ -100,15 +102,15 @@ const Favorites = () => {
             <div className="w-24 h-24 bg-none border border-none flex items-center justify-center mb-6 rounded-none">
               <BsSearchHeartFill className="text-5xl text-slate-400" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide mb-2">No Favorites Yet</h2>
+            <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide mb-2">{t('favorites.empty')}</h2>
             <p className="text-slate-500 mb-8 text-center max-w-md text-sm font-medium">
-              Start adding your favorite dishes by clicking the heart icon on any menu item!
+              {t('favorites.startAdding')}
             </p>
             <Link
               to="/menu"
               className="px-8 py-3 bg-blue-900 hover:bg-blue-950 text-white rounded-none font-bold uppercase tracking-wider transition-colors border border-blue-950 shadow-sm inline-block"
             >
-              Browse Menu
+              {t('orderPages.browseMenu')}
             </Link>
           </div>
         </div>
@@ -131,10 +133,10 @@ const Favorites = () => {
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-300 pb-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 uppercase tracking-tight mb-2">
-              My Favorites
+              {t('favorites.title')}
             </h1>
             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
-              You have {favorites.length} saved {favorites.length === 1 ? 'item' : 'items'}
+              {t('favorites.savedCount', { count: favorites.length })}
             </p>
           </div>
           <button
@@ -142,7 +144,7 @@ const Favorites = () => {
             className="mt-4 md:mt-0 px-6 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer rounded-none"
           >
             <FaTrash size={12} />
-            Clear All
+            {t('favorites.removeAll')}
           </button>
         </div>
 
@@ -165,7 +167,7 @@ const Favorites = () => {
                 <button
                   onClick={() => removeFromFavorites(item.id)}
                   className="absolute top-4 right-4 w-9 h-9 bg-white border border-slate-300 flex items-center justify-center hover:bg-rose-50 transition-colors rounded-none shadow-sm"
-                  title="Remove from favorites"
+                  title={t('favorites.removeTooltip')}
                 >
                   <FaHeart className="text-sm text-rose-700" />
                 </button>
@@ -186,7 +188,7 @@ const Favorites = () => {
                   
                   {item.qty && (
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 inline-block uppercase tracking-widest rounded-none mb-2">
-                      {item.qty} available
+                      {t('favorites.available', { qty: item.qty })}
                     </span>
                   )}
                 </div>
@@ -197,12 +199,12 @@ const Favorites = () => {
                     to={item.detailLink}
                     className="flex-1 text-center px-4 py-2.5 text-white bg-blue-900 hover:bg-blue-950 border border-blue-950 transition-colors font-bold text-[11px] uppercase tracking-wider rounded-none flex items-center justify-center"
                   >
-                    View Details
+                    {t('button.viewDetails')}
                   </Link>
-                  <button 
+                  <button
                     onClick={() => addToCart(item)}
                     className="px-4 py-2.5 bg-slate-50 hover:bg-slate-200 border border-slate-300 text-blue-900 transition-colors cursor-pointer flex items-center justify-center rounded-none"
-                    title="Add to Cart"
+                    title={t('favorites.addToCartTooltip')}
                   >
                     <FaShoppingCart size={14} />
                   </button>

@@ -5,27 +5,42 @@
       "label": "Backend: php artisan serve",
       "type": "shell",
       "command": "php artisan serve --host=127.0.0.1 --port=8000",
-      "options": { "cwd": "${workspaceFolder}/backend" },
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
       "isBackground": true,
-      "presentation": { "group": "fullstack", "panel": "dedicated" },
+      "presentation": {
+        "group": "fullstack",
+        "panel": "dedicated"
+      },
       "problemMatcher": []
     },
     {
       "label": "Customer Frontend: npm run dev",
       "type": "shell",
       "command": "npm run dev",
-      "options": { "cwd": "${workspaceFolder}/customer-frontend" },
+      "options": {
+        "cwd": "${workspaceFolder}/customer-frontend"
+      },
       "isBackground": true,
-      "presentation": { "group": "fullstack", "panel": "dedicated" },
+      "presentation": {
+        "group": "fullstack",
+        "panel": "dedicated"
+      },
       "problemMatcher": []
     },
     {
       "label": "Admin/Restaurant Frontend: npm run dev",
       "type": "shell",
       "command": "npm run dev",
-      "options": { "cwd": "${workspaceFolder}/admin-restaurant" },
+      "options": {
+        "cwd": "${workspaceFolder}/admin-restaurant"
+      },
       "isBackground": true,
-      "presentation": { "group": "fullstack", "panel": "dedicated" },
+      "presentation": {
+        "group": "fullstack",
+        "panel": "dedicated"
+      },
       "problemMatcher": []
     },
     {

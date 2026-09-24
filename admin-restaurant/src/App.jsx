@@ -4,88 +4,77 @@ import AdminRoutes from './routes/AdminRoutes';
 import RestaurantRoutes from './routes/RestaurantRoutes';
 import DriverRoutes from './routes/DriverRoutes';
 import ProtectedRoute from './components/ui/ProtectedRoute';
-import API from './services/api';
+import {
+  bootstrapSessionFromUrlToken,
+  hydrateSession,
+  redirectToLogin,
+  redirectToRoleHome,
+  roleHomePath,
+} from './services/session';
 
-const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174';
-
-const RootRedirect = () => {
-  const token = localStorage.getItem('token');
-  const userStr = localStorage.getItem('user');
-
-  if (!token || !userStr) {
-    window.location.assign(`${CUSTOMER_APP_URL}/login`);
-    return null;
-  }
-
-  try {
-    const user = JSON.parse(userStr);
-    const role = user?.role?.toLowerCase()?.trim();
-
-    if (role === 'admin' || role === 'super_admin' || role === 'super admin') {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else if (role === 'restaurant' || role === 'restaurant admin') {
-      return <Navigate to="/restaurant/dashboard" replace />;
-    } else if (role === 'driver' || role === 'rider') {
-      return <Navigate to="/driver/dashboard" replace />;
-    }
-  } catch (e) {
-    console.error('Error parsing user from localStorage', e);
-  }
-
-  window.location.assign(`${CUSTOMER_APP_URL}/login`);
-  return null;
-};
-
-// Picks up a session handed off from another portal (e.g. customer-frontend)
-// via a one-time ?token= param, instead of forcing a second login.
-function useSessionBootstrap() {
-  const [ready, setReady] = useState(() => !new URLSearchParams(window.location.search).get('token'));
+/**
+ * App bootstrap.
+ *
+ * This app has no login page of its own: the customer portal authenticates
+ * against Laravel and hands the token over (?token=), and every start/refresh
+ * re-asks Laravel (GET /api/user) who that token belongs to. The role that
+ * decides which dashboard is shown therefore always comes from the database -
+ * a role cached in localStorage is never trusted on its own.
+ */
+export default function App() {
+  const [sessionUser, setSessionUser] = useState(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const incomingToken = params.get('token');
-
-    if (!incomingToken) {
-      return;
-    }
+    let cancelled = false;
 
     (async () => {
-      localStorage.setItem('token', incomingToken);
-      try {
-        const response = await API.get('/user');
-        const user = response.data?.data?.user;
-        if (user) {
-          localStorage.setItem('user', JSON.stringify(user));
-        }
-      } catch (error) {
-        console.warn('Failed to bootstrap session from token handoff:', error);
-        localStorage.removeItem('token');
-      } finally {
-        params.delete('token');
-        const query = params.toString();
-        window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-        setReady(true);
+      // 1. A session handed over from the customer portal, verified with Laravel.
+      await bootstrapSessionFromUrlToken();
+
+      // 2. Who does the stored token actually belong to right now?
+      const user = await hydrateSession();
+
+      if (cancelled) return;
+
+      if (!user) {
+        // No token, or Laravel no longer recognises it: clear everything and
+        // send the user to the customer portal's login page. Never fall back
+        // to a previously cached role.
+        redirectToLogin();
+        return;
       }
+
+      setSessionUser(user);
+      setIsReady(true);
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return ready;
-}
+  if (!isReady) return null;
 
-export default function App() {
-  const ready = useSessionBootstrap();
+  const home = roleHomePath(sessionUser);
 
-  if (!ready) return null;
+  if (!home) {
+    // 'user' (or an unknown role): this portal is not theirs. A customer is
+    // handed back to the customer frontend with their token so they stay
+    // signed in there; anything unrecognised goes to login.
+    redirectToRoleHome(sessionUser);
+    return null;
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
-      
+        <Route path="/" element={<Navigate to={home} replace />} />
+
         <Route
           path="/admin/*"
           element={(
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'super admin']}>
+            <ProtectedRoute allowedRoles={['admin']} user={sessionUser}>
               <AdminRoutes />
             </ProtectedRoute>
           )}
@@ -93,7 +82,7 @@ export default function App() {
         <Route
           path="/restaurant/*"
           element={(
-            <ProtectedRoute allowedRoles={['restaurant', 'restaurant admin']}>
+            <ProtectedRoute allowedRoles={['restaurant_owner']} user={sessionUser}>
               <RestaurantRoutes />
             </ProtectedRoute>
           )}
@@ -101,13 +90,13 @@ export default function App() {
         <Route
           path="/driver/*"
           element={(
-            <ProtectedRoute allowedRoles={['driver', 'rider']}>
+            <ProtectedRoute allowedRoles={['rider']} user={sessionUser}>
               <DriverRoutes />
             </ProtectedRoute>
           )}
         />
-      
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        <Route path="*" element={<Navigate to={home} replace />} />
       </Routes>
     </BrowserRouter>
   );

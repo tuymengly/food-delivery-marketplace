@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { FaSearch } from "react-icons/fa";
 import { CUISINES, SORT_OPTIONS } from "./restaurantFilterData";
 
@@ -13,6 +14,7 @@ export default function RestaurantFilters({
   toggleCuisine,
   clearFilters,
 }) {
+  const { t } = useTranslation();
   const visibleCuisines = useMemo(
     () =>
       CUISINES.filter((cuisine) =>
@@ -21,11 +23,20 @@ export default function RestaurantFilters({
     [cuisineSearch],
   );
 
+  // SORT_OPTIONS values (relevance/fastest/distance/rating) drive the sort
+  // query param - only the display label is translated here.
+  const sortLabels = {
+    relevance: t("restaurantFilters.sortRelevance"),
+    fastest: t("restaurantFilters.sortFastest"),
+    distance: t("restaurantFilters.sortDistance"),
+    rating: t("restaurantFilters.sortRating"),
+  };
+
   return (
     <div className="space-y-6">
       <section>
         <h2 className="text-sm font-bold uppercase tracking-wider text-[#0B1F3A]">
-          Sort by
+          {t("restaurantFilters.sortBy")}
         </h2>
         <div className="mt-3 space-y-2">
           {SORT_OPTIONS.map(([value, label]) => (
@@ -40,14 +51,14 @@ export default function RestaurantFilters({
                 onChange={() => setSort(value)}
                 className="h-4 w-4 accent-[#163A63]"
               />
-              {label}
+              {sortLabels[value] || label}
             </label>
           ))}
         </div>
       </section>
       <section>
         <h2 className="text-sm font-bold uppercase tracking-wider text-[#0B1F3A]">
-          Quick filters
+          {t("restaurantFilters.quickFilters")}
         </h2>
         <label className="mt-3 flex cursor-pointer items-center gap-3 text-sm text-slate-700">
           <input
@@ -56,13 +67,13 @@ export default function RestaurantFilters({
             onChange={(event) => setVoucherOnly(event.target.checked)}
             className="h-4 w-4 accent-[#163A63]"
           />
-          Accepts vouchers
+          {t("restaurantsPage.acceptsVouchers")}
         </label>
       </section>
       <section>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-bold uppercase tracking-wider text-[#0B1F3A]">
-            Cuisines
+            {t("restaurantFilters.cuisines")}
           </h2>
           {selectedCuisines.length > 0 && (
             <button
@@ -70,7 +81,7 @@ export default function RestaurantFilters({
               onClick={clearFilters}
               className="text-xs font-semibold text-[#2563EB]"
             >
-              Clear all
+              {t("restaurantsPage.clearAll")}
             </button>
           )}
         </div>
@@ -79,7 +90,7 @@ export default function RestaurantFilters({
           <input
             value={cuisineSearch}
             onChange={(event) => setCuisineSearch(event.target.value)}
-            placeholder="Search cuisines"
+            placeholder={t("restaurantFilters.searchCuisines")}
             className="h-10 w-full rounded-md border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-[#2563EB]"
           />
         </div>

@@ -91,7 +91,9 @@ class DeliverySystemTest extends TestCase
             'phone' => '012345678',
             'status' => 'active',
         ]);
-        $order = $this->createOrderWithPendingDelivery($restaurant);
+        // Riders may only be attached once the restaurant marked the order
+        // ready for pickup.
+        $order = $this->createOrderWithPendingDelivery($restaurant, 'ready');
         $rider = $this->createRider();
         Sanctum::actingAs($owner);
 
@@ -116,7 +118,7 @@ class DeliverySystemTest extends TestCase
             'phone' => '012345678',
             'status' => 'active',
         ]);
-        $order = $this->createOrderWithPendingDelivery($restaurant);
+        $order = $this->createOrderWithPendingDelivery($restaurant, 'ready');
         $rider = $this->createRider(['is_available' => false]);
         Sanctum::actingAs($owner);
 
@@ -139,7 +141,7 @@ class DeliverySystemTest extends TestCase
             'phone' => '012345679',
             'status' => 'active',
         ]);
-        $order = $this->createOrderWithPendingDelivery($otherRestaurant);
+        $order = $this->createOrderWithPendingDelivery($otherRestaurant, 'ready');
         $rider = $this->createRider();
         Sanctum::actingAs($owner);
 
@@ -147,6 +149,60 @@ class DeliverySystemTest extends TestCase
             'rider_id' => $rider->id,
         ])
             ->assertForbidden();
+    }
+
+    public function test_cannot_assign_a_rider_before_the_restaurant_marks_the_order_ready(): void
+    {
+        $owner = User::factory()->create(['role' => 'restaurant']);
+        $restaurant = Restaurant::create([
+            'user_id' => $owner->id,
+            'name' => 'Owner Restaurant',
+            'address' => 'One Street',
+            'phone' => '012345678',
+            'status' => 'active',
+        ]);
+        // Still with the restaurant (PENDING_RESTAURANT / PREPARING).
+        $order = $this->createOrderWithPendingDelivery($restaurant, 'preparing');
+        $rider = $this->createRider();
+        Sanctum::actingAs($owner);
+
+        $this->postJson("/api/orders/{$order->id}/assign-rider", [
+            'rider_id' => $rider->id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['status']);
+
+        $this->assertDatabaseHas('deliveries', [
+            'order_id' => $order->id,
+            'rider_id' => null,
+            'status' => 'pending',
+        ]);
+        $this->assertTrue($rider->refresh()->is_available);
+    }
+
+    /**
+     * The frontend must never be able to pick its own rider - a customer
+     * (who owns neither a restaurant nor an admin role) has no path to this
+     * endpoint at all, regardless of what rider_id it sends.
+     */
+    public function test_customer_cannot_manually_assign_a_rider(): void
+    {
+        $order = $this->createOrderWithPendingDelivery(Restaurant::create([
+            'user_id' => User::factory()->create(['role' => 'restaurant'])->id,
+            'name' => 'Owner Restaurant',
+            'address' => 'One Street',
+            'phone' => '012345678',
+            'status' => 'active',
+        ]), 'ready');
+        $rider = $this->createRider();
+        Sanctum::actingAs(User::factory()->create(['role' => 'customer']));
+
+        $this->postJson("/api/orders/{$order->id}/assign-rider", [
+            'rider_id' => $rider->id,
+        ])
+            ->assertForbidden();
+
+        $this->assertTrue($rider->refresh()->is_available);
     }
 
     public function test_rider_can_see_their_assigned_deliveries(): void
@@ -182,6 +238,27 @@ class DeliverySystemTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.status', 'assigned');
+    }
+
+    /**
+     * A rider must never be able to accept an order the restaurant has not
+     * finished preparing, even if a delivery row for it somehow says
+     * "assigned" (legacy/hand-edited data).
+     */
+    public function test_rider_cannot_accept_a_delivery_whose_order_is_not_ready_for_pickup(): void
+    {
+        $rider = $this->createRider();
+        $order = $this->createOrderWithPendingDelivery(null, 'preparing');
+        $delivery = $order->delivery;
+        $delivery->update(['rider_id' => $rider->id, 'status' => 'assigned']);
+
+        Sanctum::actingAs($rider->user);
+
+        $this->postJson("/api/rider/deliveries/{$delivery->id}/accept")
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
+
+        $this->assertSame('assigned', $delivery->refresh()->status);
     }
 
     public function test_rider_can_pickup_delivery(): void
@@ -270,6 +347,13 @@ class DeliverySystemTest extends TestCase
         return Rider::create([
             'user_id' => User::factory()->create(['role' => 'rider'])->id,
             ...$this->riderProfileData(),
+            // Eligible by default: online, available and parked at the
+            // restaurant with a fresh location fix, which is what the
+            // assignment rules require.
+            'is_online' => true,
+            'current_latitude' => 11.5564,
+            'current_longitude' => 104.9282,
+            'location_updated_at' => now(),
             ...$overrides,
         ]);
     }
@@ -293,7 +377,10 @@ class DeliverySystemTest extends TestCase
      */
     private function createAssignedDelivery(Rider $rider, array $overrides = []): Delivery
     {
-        $order = $this->createOrderWithPendingDelivery();
+        // A delivery is only ever assigned while the order is
+        // READY_FOR_PICKUP - that is the state the restaurant/rider flow
+        // actually produces, so the fixtures use it too.
+        $order = $this->createOrderWithPendingDelivery(null, 'ready');
         $delivery = $order->delivery;
         $delivery->update([
             'rider_id' => $rider->id,
@@ -304,7 +391,7 @@ class DeliverySystemTest extends TestCase
         return $delivery->refresh();
     }
 
-    private function createOrderWithPendingDelivery(?Restaurant $restaurant = null): Order
+    private function createOrderWithPendingDelivery(?Restaurant $restaurant = null, string $status = 'pending'): Order
     {
         $user = User::factory()->create();
         $address = Address::create([...$this->addressData(), 'user_id' => $user->id]);
@@ -312,7 +399,7 @@ class DeliverySystemTest extends TestCase
             'user_id' => $user->id,
             'restaurant_id' => $restaurant?->id,
             'address_id' => $address->id,
-            'status' => 'pending',
+            'status' => $status,
             'subtotal' => 9.00,
             'delivery_fee' => 1.50,
             'total' => 10.50,

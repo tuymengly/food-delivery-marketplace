@@ -47,6 +47,29 @@ class MarketplaceApiTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
+    public function test_foods_can_be_filtered_by_restaurant(): void
+    {
+        $restaurant = Restaurant::create($this->restaurantData());
+        $otherRestaurant = Restaurant::create([
+            ...$this->restaurantData(),
+            'name' => 'Other Kitchen',
+        ]);
+        $category = Category::create($this->categoryData());
+
+        Food::create($this->foodData($restaurant, $category));
+        Food::create([
+            ...$this->foodData($otherRestaurant, $category),
+            'name' => 'Other Dish',
+        ]);
+
+        $this->getJson('/api/foods?restaurant_id=' . $restaurant->id)
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.restaurant_id', $restaurant->id)
+            ->assertJsonPath('data.0.name', 'Chicken Rice');
+    }
+
     public function test_authenticated_user_can_create_a_restaurant(): void
     {
         $user = User::factory()->create(['role' => 'restaurant']);
@@ -70,9 +93,15 @@ class MarketplaceApiTest extends TestCase
         ]);
     }
 
-    public function test_authenticated_user_can_create_a_category(): void
+    public function test_restaurant_owner_can_create_a_category(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $owner = User::factory()->create(['role' => 'restaurant']);
+        $restaurant = Restaurant::create([
+            ...$this->restaurantData(),
+            'user_id' => $owner->id,
+            'status' => 'active',
+        ]);
+        Sanctum::actingAs($owner);
 
         $this->postJson('/api/categories', [
             'name' => 'Noodles',
@@ -80,7 +109,19 @@ class MarketplaceApiTest extends TestCase
         ])
             ->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.name', 'Noodles');
+            ->assertJsonPath('data.name', 'Noodles')
+            // A restaurant owner's categories are always scoped to their own restaurant.
+            ->assertJsonPath('data.restaurant_id', $restaurant->id);
+    }
+
+    public function test_customer_cannot_create_a_category(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'customer']));
+
+        $this->postJson('/api/categories', [
+            'name' => 'Noodles',
+            'description' => 'Noodle bowls and soups.',
+        ])->assertForbidden();
     }
 
     public function test_authenticated_user_can_create_food(): void
@@ -113,7 +154,7 @@ class MarketplaceApiTest extends TestCase
 
     public function test_food_validation_rejects_invalid_price(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(['role' => 'restaurant']));
         $restaurant = Restaurant::create($this->restaurantData());
         $category = Category::create($this->categoryData());
 
@@ -127,7 +168,7 @@ class MarketplaceApiTest extends TestCase
 
     public function test_food_validation_rejects_nonexistent_restaurant_and_category(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(['role' => 'restaurant']));
 
         $this->postJson('/api/foods', [
             'restaurant_id' => 999,

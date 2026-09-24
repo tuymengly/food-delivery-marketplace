@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import RestaurantSidebar from './RestaurantSidebar';
 import { ChevronDown, Menu, X, Search, UtensilsCrossed, LogOut, User as UserIcon } from 'lucide-react';
 import API from '../../../services/api';
+import { getStoredUser, logout } from '../../../services/session';
 import NotificationBell from '../../../components/ui/NotificationBell';
 
 export default function RestaurantLayout() {
@@ -11,17 +12,9 @@ export default function RestaurantLayout() {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('restaurant_user');
-    if (savedUser && savedUser !== "undefined") {
-      try {
-        return JSON.parse(savedUser);
-      } catch (e) {
-        return { name: 'Burger Joint', role: 'Restaurant' };
-      }
-    }
-    return { name: 'Burger Joint', role: 'Restaurant' };
-  });
+  // The last user Laravel confirmed at startup (see App.jsx) - the session
+  // cache is the only place this app reads a user from.
+  const [user, setUser] = useState(() => getStoredUser() || { name: 'Restaurant', role: 'restaurant_owner' });
   const [restaurantStatus, setRestaurantStatus] = useState(null);
 
   useEffect(() => {
@@ -31,14 +24,16 @@ export default function RestaurantLayout() {
         const userData = response.data.data || response.data;
         if (userData) {
           if (userData.id) {
+            // Cache used by the restaurant pages to scope their queries; it is
+            // cleared on logout so it can't leak between owners.
             localStorage.setItem('restaurant_id', String(userData.id));
           }
-          setUser({
-            name: userData.name || userData.restaurant_name || 'Restaurant',
-            role: userData.role || 'Restaurant'
-          });
+          setUser((currentUser) => ({
+            ...currentUser,
+            name: userData.name || userData.restaurant_name || currentUser?.name || 'Restaurant',
+            role: currentUser?.role || 'restaurant_owner',
+          }));
           setRestaurantStatus(String(userData.status || '').toLowerCase());
-          localStorage.setItem('restaurant_user', JSON.stringify(userData));
         }
       } catch (error) {
         console.error('Failed to fetch restaurant profile:', error);
@@ -48,18 +43,10 @@ export default function RestaurantLayout() {
     fetchRestaurantProfile();
   }, []);
 
+  // Logout: revoke the token in Laravel, drop every cached auth key (session
+  // user, role, restaurant cache), then go back to the login page.
   const handleLogout = () => {
-    API.post('/logout').catch((error) => {
-      console.warn('Logout request failed; clearing local session anyway.', error);
-    }).finally(() => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('restaurant_user');
-      localStorage.removeItem('restaurant');
-      localStorage.removeItem('restaurant_id');
-      localStorage.removeItem('user');
-      window.location.assign(`${import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174'}/login`);
-    });
+    logout();
   };
 
   const handleSearchKeyDown = (event) => {

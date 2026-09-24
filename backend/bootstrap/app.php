@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\OtpCooldownException;
+use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -19,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            // Parameterised role gate, e.g. ->middleware('role:rider') or
+            // ->middleware('role:restaurant_owner,admin'). Roles resolve
+            // through App\Support\UserRoles, so 'restaurant'/'restaurant_owner'
+            // and 'driver'/'rider' aliases all work.
+            'role' => EnsureUserHasRole::class,
         ]);
 
         // This is an API-only app with no "login" web route, so never let the
