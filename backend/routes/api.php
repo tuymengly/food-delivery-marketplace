@@ -102,6 +102,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
+
+    // Rating the food of a finished order. The order itself is the security
+    // boundary here: only its own customer can rate it, and only once it has
+    // been delivered/completed (see ReviewController::storeOrderItem).
+    Route::get('/orders/{order}/food-reviews', [ReviewController::class, 'orderIndex']);
+    Route::post('/orders/{order}/food-reviews', [ReviewController::class, 'storeOrderItem']);
+
     Route::post('/orders/{order}/assign-rider', [OrderController::class, 'assignRider']);
     Route::post('/vouchers/validate', [VoucherController::class, 'validateCode']);
 

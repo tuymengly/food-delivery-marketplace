@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaHistory, FaCalendar, FaMapMarkerAlt, FaPhone, FaCreditCard, FaMoneyBillWave, FaQrcode, FaChevronDown, FaChevronUp, FaShoppingBag } from 'react-icons/fa';
+import { FaHistory, FaCalendar, FaMapMarkerAlt, FaPhone, FaCreditCard, FaMoneyBillWave, FaQrcode, FaChevronDown, FaChevronUp, FaShoppingBag, FaStar } from 'react-icons/fa';
 import { MdDeliveryDining } from 'react-icons/md';
 import api from '../api/axios';
+import { fetchOrderFoodReviews } from '../api/reviewApi';
+import OrderFoodRating from '../components/OrderFoodRating';
 
 // Maps a raw order.status value to the orderPages.* key that has its label.
 // pending/delivered reuse the filter-button labels; the rest were only ever
@@ -19,12 +21,20 @@ const STATUS_LABEL_KEYS = {
   cancelled: 'orderPages.statusCancelled',
 };
 
+// A dish can only be rated once the order actually reached the customer -
+// the same rule the API enforces through OrderStatuses::SETTLED
+// (delivered/completed). A cancelled or still-in-flight order is not rateable.
+const RATEABLE_STATUSES = ['delivered', 'completed'];
+
 const OrderHistory = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [expandedOrders, setExpandedOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
+  // Ratings the customer already left, per order and then per dish:
+  // { [orderId]: { [foodId]: review } }. Loaded lazily when an order is opened.
+  const [ratings, setRatings] = useState({});
 
   const getStatusLabel = (status) => {
     // Filter buckets that aren't a single status (see STATUS_FILTERS below).
@@ -88,12 +98,52 @@ const OrderHistory = () => {
     loadOrders();
   }, [navigate]);
 
-  const toggleOrderExpand = (orderId) => {
+  // The API needs the numeric order id; the list shows a padded "#BR-0001"
+  // label in `id`, so only `real_id` can address the order. Locally cached
+  // orders have no `real_id` and therefore cannot be rated.
+  const getApiOrderId = (order) => order.real_id;
+
+  // A dish can only be rated once the order was delivered, and only dishes
+  // that carry a real food id can be addressed at the API.
+  const isRateable = (order) => RATEABLE_STATUSES.includes(order.status) && Boolean(getApiOrderId(order));
+
+  const loadRatings = async (orderId) => {
+    try {
+      const reviews = await fetchOrderFoodReviews(orderId);
+      const byFoodId = {};
+      reviews.forEach((review) => {
+        if (review?.food_id) byFoodId[review.food_id] = review;
+      });
+      setRatings((previous) => ({ ...previous, [orderId]: byFoodId }));
+    } catch (error) {
+      // A failed lookup must not hide the order - the rating form still works,
+      // it just starts from "not rated yet" until the next open.
+      console.error('Error fetching food ratings:', error);
+    }
+  };
+
+  const toggleOrderExpand = (order) => {
+    const wasExpanded = expandedOrders.includes(order.id);
+
     setExpandedOrders(prev =>
-      prev.includes(orderId)
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
+      wasExpanded
+        ? prev.filter(id => id !== order.id)
+        : [...prev, order.id]
     );
+
+    // Ratings are only needed for a finished order, and only once its details
+    // are actually on screen.
+    if (!wasExpanded && isRateable(order)) {
+      loadRatings(getApiOrderId(order));
+    }
+  };
+
+  const handleRatingSaved = (orderId, foodId, review) => {
+    if (!foodId) return;
+    setRatings((previous) => ({
+      ...previous,
+      [orderId]: { ...(previous[orderId] || {}), [foodId]: review },
+    }));
   };
 
   const formatDate = (dateString) => {
@@ -264,7 +314,20 @@ const OrderHistory = () => {
         <div className="space-y-6">
           {filteredOrders.map((order) => {
             const isExpanded = expandedOrders.includes(order.id);
-            
+            const showRatings = isRateable(order);
+            const itemRating = (item) => ratings[getApiOrderId(order)]?.[item.food_id];
+            // Unrated dishes are only known once the ratings have been loaded,
+            // so before that the whole order counts as still waiting.
+            const pendingRatingCount = (target) => {
+              if (!isRateable(target)) return 0;
+              const rateableItems = target.items.filter((item) => item.food_id);
+              if (!rateableItems.length) return 0;
+              const saved = ratings[getApiOrderId(target)];
+              return saved
+                ? rateableItems.filter((item) => !saved[item.food_id]).length
+                : rateableItems.length;
+            };
+
             return (
               <div
                 key={order.id}
@@ -273,7 +336,7 @@ const OrderHistory = () => {
                 {/* Order Header */}
                 <div
                   className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
-                  onClick={() => toggleOrderExpand(order.id)}
+                  onClick={() => toggleOrderExpand(order)}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
@@ -315,6 +378,18 @@ const OrderHistory = () => {
                       </div>
                     </div>
 
+                    {/* Nudge: a finished order whose dishes are not all rated yet */}
+                    {showRatings && pendingRatingCount(order) > 0 && (
+                      <span className="flex items-center gap-2 bg-amber-50 border border-amber-300 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-amber-900">
+                        <FaStar className="text-amber-500" />
+                        {/* The exact number is only trustworthy once the ratings
+                            have been fetched, which happens on first expand. */}
+                        {ratings[getApiOrderId(order)]
+                          ? t('orderPages.ratingPendingCount', { count: pendingRatingCount(order) })
+                          : t('orderPages.rateYourFood')}
+                      </span>
+                    )}
+
                     {/* Quick Item Preview */}
                     <div className="hidden md:flex items-center gap-3">
                       {order.items.slice(0, 3).map((item, idx) => (
@@ -338,6 +413,20 @@ const OrderHistory = () => {
                 {isExpanded && (
                   <div className="border-t border-slate-300 bg-slate-50">
                     
+                    {/* Food Rating lead-in - the controls themselves sit inside
+                        the matching dish below, so this only introduces them. */}
+                    {showRatings && (
+                      <div className="p-6 border-b border-slate-200 bg-white">
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-1 flex items-center gap-2 border-b border-slate-200 pb-2">
+                          <FaStar className="text-amber-400" />
+                          {t('orderPages.rateYourFood')}
+                        </h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          {t('orderPages.rateFoodHint')}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Order Items */}
                     <div className="p-6 border-b border-slate-200">
                       <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">{t('orderPages.orderItems')}</h4>
@@ -345,25 +434,37 @@ const OrderHistory = () => {
                         {order.items.map((item, index) => (
                           <div
                             key={`${item.id}-${item.type}-${index}`}
-                            className="flex gap-4 p-4 bg-white rounded-none border border-slate-200 shadow-sm"
+                            className="p-4 bg-white rounded-none border border-slate-200 shadow-sm"
                           >
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded-none border border-slate-100 shrink-0"
-                            />
-                            <div className="flex-1">
-                              <h5 className="font-bold text-slate-900 text-sm uppercase tracking-wide">{item.name}</h5>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 mb-2">{item.category}</p>
-                              <div className="flex items-center justify-between border-t border-slate-100 pt-2">
-                                <span className="text-xs font-bold text-slate-600">
-                                  ${item.price.toFixed(2)} × {item.quantity}
-                                </span>
-                                <span className="text-sm font-bold text-blue-900">
-                                  ${(item.price * item.quantity).toFixed(2)}
-                                </span>
+                            <div className="flex gap-4">
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-16 h-16 object-cover rounded-none border border-slate-100 shrink-0"
+                              />
+                              <div className="flex-1">
+                                <h5 className="font-bold text-slate-900 text-sm uppercase tracking-wide">{item.name}</h5>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 mb-2">{item.category}</p>
+                                <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+                                  <span className="text-xs font-bold text-slate-600">
+                                    ${item.price.toFixed(2)} × {item.quantity}
+                                  </span>
+                                  <span className="text-sm font-bold text-blue-900">
+                                    ${(item.price * item.quantity).toFixed(2)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
+
+                            {showRatings && item.food_id && (
+                              <OrderFoodRating
+                                orderId={getApiOrderId(order)}
+                                foodId={item.food_id}
+                                foodName={item.name}
+                                review={itemRating(item)}
+                                onSaved={(review) => handleRatingSaved(getApiOrderId(order), item.food_id, review)}
+                              />
+                            )}
                           </div>
                         ))}
                       </div>

@@ -79,4 +79,14 @@ class Order extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    /**
+     * Food ratings the customer left for the dishes in this order. Only
+     * meaningful once the order has been delivered/completed - see
+     * ReviewController::storeOrderItem.
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
 }

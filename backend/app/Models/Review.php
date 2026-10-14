@@ -10,6 +10,12 @@ class Review extends Model
 {
     use HasFactory;
 
+    /** A rating the customer left for a single dish they received in an order. */
+    public const TYPE_FOOD = 'food';
+
+    /** A rating for the restaurant as a whole (the original review type). */
+    public const TYPE_RESTAURANT = 'restaurant';
+
     protected $fillable = [
         'restaurant_id',
         'user_id',
