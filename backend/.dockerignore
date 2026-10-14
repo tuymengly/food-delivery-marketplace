@@ -7,6 +7,12 @@ auth.json
 # Dependencies — reinstalled fresh inside the image.
 /vendor
 /node_modules
+**/node_modules
+
+# Local database, stale bootstrap caches, and user-generated files stay out.
+/database/*.sqlite
+/storage/app/*
+/bootstrap/cache/*.php
 
 # Frontend tooling — not built or run inside this image (API-only container).
 package.json
@@ -38,7 +44,6 @@ Thumbs.db
 /storage/framework/views/*
 .phpunit.cache
 .phpunit.result.cache
-node_modules
 
 # Tests and docs — not needed in the runtime image.
 /tests
